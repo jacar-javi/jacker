@@ -1,0 +1,29 @@
+services:
+  # VSCode - VSCode Editing
+  vscode:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: vscode
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - traefik_proxy
+    volumes:
+      - $DOCKERDIR:/data/jacker
+      - $DATADIR/vscode/config:/config
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.vscode-rtr.entrypoints=websecure"
+      - "traefik.http.routers.vscode-rtr.rule=Host(`code.$PUBLIC_FQDN`)"
+      # Middlewares
+      - "traefik.http.routers.vscode-rtr.middlewares=chain-oauth@file"
+      # HTTP Services
+      - "traefik.http.routers.vscode-rtr.service=vscode-svc"
+      - "traefik.http.services.vscode-svc.loadbalancer.server.port=8443"
+      # Watchtower
+      - "com.centurylinklabs.watchtower.enable=true"
