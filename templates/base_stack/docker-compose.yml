@@ -1,0 +1,43 @@
+version: "3.9"
+
+# Jacker Stack docker-composer.yml base template
+################################################
+
+# Declare Networks used by stack
+
+#networks:
+#  default:
+#    driver: bridge
+#  traefik_proxy:
+#    external: true
+#
+
+
+# Declare Volumes used by stack
+
+#volumes:
+#  mysql-vol-1:
+#  mysql-socket-vol-1:
+#  downloads:
+#    driver: rclone
+#    driver_opts:
+#      remote: 'downloads:'
+#      allow_non_empty: 'true'
+#      allow_other: 'true'
+#      vfs_cache_mode: full
+#      vfs_cache_max_age: '1h'
+#      vfs_read_chunk_size_limit: off
+
+
+# Declare Secrets used by stack
+
+#secrets:
+#  my_secret:
+#    file: $STACKDIR/secrets/my_secret
+
+
+# Include Stack Services
+
+#include:
+#  - compose/service1.yml
+#  - compose/service2.yml
