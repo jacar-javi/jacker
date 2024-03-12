@@ -27,7 +27,7 @@ It contains the next structure:
 
 Stack's Environment File. It contains all environment variables used.
 
-# dc.sh
+## dc.sh
 
 Script to launch docker compose using Jacker's Environment + Stack's Environment. Use instead docker compose.
 
