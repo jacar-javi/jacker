@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
-source .env
+source ../.env
 
-for var in "$@"
-        do
-                argstopass="$argstopass $var"
-        done
+if [ "$#" -neq 1 ]; then
+    echo "Usage: $0 <name-of-new-stack>"
+    exit -1;
+fi
 
-cp -r ../templates/base_stack ./$argstopass
+cp -r ../templates/base_stack ./$1
 
-echo Finished $(basename "$0")
+echo $(basename "$0") succesfully created $1 from Jacker's base_stack template

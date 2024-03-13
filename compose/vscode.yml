@@ -11,6 +11,7 @@ services:
         ipv4_address: $CODE_TRAEFIK_SUBNET_IP
     volumes:
       - $DOCKERDIR:/data/jacker
+      - $USERDIR:/data/home
       - $DATADIR/vscode/config:/config
     environment:
       TZ: $TZ

@@ -3,10 +3,8 @@ cd "$(dirname "$0")"        # Change dir to this script's path
 source ../../.env			# Load Jacker's Environment Variables
 source .env					# Load Stack Environment Variables
 
+# UFW close rules
+# sudo ufw delete allow 
+# sudo ufw delete allow from 
 
-for var in "$@"
-        do
-                argstopass="$argstopass $var"
-        done
-
-docker compose --env-file ../../.env --env-file .env $argstopass
+echo Finished $(basename "$0")

@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-cd "$(dirname "$0")"
-source ../../.env                               # Load Jacker's Environment Variables
-source .env                                     # Load Stack Environment Variables
+cd "$(dirname "$0")"        # Change dir to this script's path
+source ../../.env			# Load Jacker's Environment Variables
+source .env					# Load Stack Environment Variables
+
 
 
 # Delete UFW rules needed by stack
 #=================================
 
-# sudo ufw delete allow $VAR
+# ./close_firewall.sh
 
 
 # Remove Assets
@@ -19,6 +20,6 @@ source .env                                     # Load Stack Environment Variabl
 # Stop Stack
 #=================================
 
-#./dc.sh compose down
+#./dc.sh down
 
 echo Finished $(basename "$0")
