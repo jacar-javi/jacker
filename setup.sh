@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 source .env
 
+chmod 600 data/traefik/acme.json
 cd assets
 chmod +x *.sh
 
