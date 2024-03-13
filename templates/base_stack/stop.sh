@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+cd "$(dirname "$0")"
 source ../../.env                               # Load Jacker's Environment Variables
 source .env                                     # Load Stack Environment Variables
 

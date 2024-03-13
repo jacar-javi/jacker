@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
-source ../../.env
 source .env
 
 for var in "$@"
@@ -8,4 +7,6 @@ for var in "$@"
                 argstopass="$argstopass $var"
         done
 
-docker compose --env-file ../../.env --env-file .env $argstopass
+cp -r ../templates/base_stack ./$argstopass
+
+echo Finished $(basename "$0")
