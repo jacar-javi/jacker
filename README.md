@@ -6,4 +6,11 @@ Project Jacker :heart: is a powerful Docker stack combining Traefik and CrowdSec
 
 Jacker is also intended to be a solid foundation on which to host new stacks of Docker-based components, establishing a series of foundations, standards and good practices to guarantee the security and stability necessary for any production system.
 
-For more details, [RTFM](https://jacker.jacar.es)
+## References
+
+[Jacker :heart: Documentation](https://jacker.jacar.es)
+
+[Jacker :heart: Documentation Repo](https://github.com/jacar-javi/jacker-docs)
+
+[Jacker :heart: Stacks Repo](https://github.com/jacar-javi/jacker-stacks)
+
