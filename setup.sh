@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+cd "$(dirname "$0")"
 source .env
 
 chmod 600 data/traefik/acme.json

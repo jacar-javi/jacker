@@ -5,7 +5,7 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: $DOCKER_SUBNET
+        - subnet: $DOCKER_DEFAULT_SUBNET
   socket_proxy:
     name: socket_proxy
     driver: bridge

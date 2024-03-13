@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+cd "$(dirname "$0")"
 source ../.env
 
 # Add Docker's official GPG key:

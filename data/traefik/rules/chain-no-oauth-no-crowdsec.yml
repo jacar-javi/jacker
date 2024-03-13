@@ -1,6 +1,6 @@
 http:
   middlewares:
-    chain-no-auth:
+    chain-no-oauth-no-crowdsec:
       chain:
         middlewares:
           - middlewares-traefik-bouncer # leave this out if you are not using CrowdSec
