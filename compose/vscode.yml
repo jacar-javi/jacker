@@ -7,7 +7,7 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     networks:
-      socket_proxy:
+      traefik_proxy:
         ipv4_address: $CODE_TRAEFIK_SUBNET_IP
     volumes:
       - $DOCKERDIR:/data/jacker
