@@ -1,0 +1,8 @@
+scrape_configs:
+  - job_name: 'node-exporter'
+    scrape_interval: 1m
+    dns_sd_configs:
+      - names:
+        - 'node-exporter'
+        type: 'A'
+        port: 9100
