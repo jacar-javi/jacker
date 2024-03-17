@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
+[ -f .env ] || echo "You need to create the .env file (cp .env.sample .env) and configure it"; exit
 source .env
 
 chmod 600 data/traefik/acme.json
