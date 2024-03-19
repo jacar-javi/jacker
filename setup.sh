@@ -35,4 +35,11 @@ case $response in
   ;;
 esac
 
+read -r -p "Do you want to run 05-configure_logrotate.sh? [y/N] " response
+case $response in
+  [yY][eE][sS]|[yY])
+    ./05-configure_logrotate.sh
+  ;;
+esac
+
 echo Reboot your system!!
