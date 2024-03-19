@@ -1,0 +1,9 @@
+$DOCKER_DIR/logs/traefik/*.log {
+  size 10M
+  rotate 5
+  missingok
+  notifempty
+  postrotate
+    docker kill --signal="USR1" traefik
+  endscript
+}
