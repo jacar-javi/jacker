@@ -1,6 +1,7 @@
-$DOCKER_DIR/logs/traefik/*.log {
+$DOCKERDIR/logs/traefik/*.log {
   size 10M
   rotate 5
+  compress
   missingok
   notifempty
   postrotate
