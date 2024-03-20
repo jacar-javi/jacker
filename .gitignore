@@ -1,1 +1,8 @@
 .env
+data/crowdsec
+data/grafana
+data/mysql
+data/portainer
+data/prometheus/data
+logs/traefik/*
+data/vscode

@@ -2,6 +2,8 @@
 cd "$(dirname "$0")"
 source ../.env
 
+echo "Installing Docker"
+
 # Add Docker's official GPG key:
 sudo apt-get update
 sudo apt-get install ca-certificates curl
@@ -10,13 +12,14 @@ sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyring
 sudo chmod a+r /etc/apt/keyrings/docker.asc
 
 # Add the repository to Apt sources:
+sudo truncate -s 0 /etc/apt/sources.list.d/docker.list+
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
 
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+sudo apt-get update &> /dev/null
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y &> /dev/null
 
 # Add current user to docker group
 sudo usermod -aG docker $USER
@@ -24,7 +27,3 @@ sudo usermod -aG docker $USER
 # Configure docker to run on boot
 sudo systemctl enable docker.service
 sudo systemctl enable containerd.service
-
-echo Finished $(basename "$0")
-
-echo Exit ssh and reconnect to gain new group permissions!!

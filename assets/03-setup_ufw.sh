@@ -32,5 +32,3 @@ if [ -d "../stacks" ]; then
 fi
 
 sudo ufw --force enable
-
-echo Finished $(basename "$0")
