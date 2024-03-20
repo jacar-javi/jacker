@@ -1,0 +1,50 @@
+services:
+  # Traefik - Reverse Proxy
+  traefik:
+    container_name: traefik
+    image: traefik
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      traefik_proxy:
+        ipv4_address: $TRAEFIK_PROXY_IP
+      socket_proxy:
+
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 5s
+      retries: 3
+
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+
+    volumes:
+      - $DATADIR/traefik/traefik.yml:/etc/traefik/traefik.yml # Traefik config file
+      - $DATADIR/traefik/rules:/rules # Dynamic File Provider directory
+      - $DATADIR/traefik/acme.json:/acme.json # Certs File 
+      - $DOCKERDIR/logs/traefik:/logs # Traefik logs
+
+    environment:
+      - TZ=$TZ
+      - HTPASSWD_FILE=/run/secrets/basic_auth_credentials # HTTP Basic Auth Credentials
+      - TRAEFIK_CERTIFICATESRESOLVERS_http_ACME_EMAIL=$LETSENCRYPT_EMAIL
+      - TRAEFIK_ENTRYPOINTS_websecure_FORWARDEDHEADERS_TRUSTEDIPS=$LOCAL_IPS
+      - PUBLIC_FQDN # Passing environment variables to traefik container to be able to use the variable in rules
+
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.traefik-rtr.entrypoints=websecure"
+      - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.$PUBLIC_FQDN`)"
+      # Services - API
+      - "traefik.http.routers.traefik-rtr.service=api@internal"
+      # Middlewares
+      - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth@file"

@@ -1,0 +1,7 @@
+db_config:
+  type: mysql
+  user: $MYSQL_USER
+  password: $MYSQL_PASSWORD
+  db_name: $MYSQL_DATABASE
+  host: mariadb
+  port: 3306

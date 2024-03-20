@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+for var in "$@"
+        do
+                argstopass="$argstopass $var"
+        done
+exec /usr/bin/docker exec crowdsec cscli $argstopass

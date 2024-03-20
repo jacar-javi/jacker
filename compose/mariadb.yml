@@ -1,0 +1,19 @@
+services:
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb
+    restart: unless-stopped
+    networks:
+      - traefik_proxy
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - $DATADIR/mysql:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: $MYSQL_ROOT_PASSWORD
+      MYSQL_DATABASE: $MYSQL_DATABASE
+      MYSQL_USER: $MYSQL_USER
+      MYSQL_PASSWORD: $MYSQL_PASSWORD
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ

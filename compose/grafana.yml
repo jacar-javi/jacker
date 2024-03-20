@@ -1,0 +1,31 @@
+services:
+  # Grafana - Graphical data visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - traefik_proxy
+    user: $PUID
+    volumes:
+      - $DATADIR/grafana/data:/var/lib/grafana
+      - $DATADIR/grafana/provisioning:/etc/grafana/provisioning/
+    environment:
+      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource,grafana-worldmap-panel,grafana-piechart-panel"
+      GF_AUTH_ANONYMOUS_ENABLED: true
+      GF_AUTH_ANONYMOUS_ORG_NAME: Main Org.
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: true
+      GF_AUTH_OAUTH_AUTO_LOGIN: true
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.grafana-rtr.entrypoints=websecure"
+      - "traefik.http.routers.grafana-rtr.rule=Host(`grafana.$PUBLIC_FQDN`)"
+      # Middlewares
+      - "traefik.http.routers.grafana-rtr.middlewares=chain-oauth@file"
+      # HTTP Services
+      - "traefik.http.routers.grafana-rtr.service=grafana-svc"
+      - "traefik.http.services.grafana-svc.loadbalancer.server.port=3000"

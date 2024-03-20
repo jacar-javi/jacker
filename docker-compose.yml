@@ -1,0 +1,43 @@
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: $DOCKER_DEFAULT_SUBNET
+  socket_proxy:
+    name: socket_proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: $SOCKET_PROXY_SUBNET
+  traefik_proxy:
+    name: traefik_proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: $TRAEFIK_PROXY_SUBNET
+
+secrets:
+  traefik_forward_oauth:
+    file: $DOCKERDIR/secrets/traefik_forward_oauth
+
+
+include:
+  # CORE
+  - compose/socket-proxy.yml
+  - compose/traefik.yml
+  - compose/mariadb.yml
+
+  # SECURITY
+  - compose/oauth.yml
+  - compose/crowdsec.yml
+  - compose/traefik-bouncer.yml
+
+  # MONITORING
+  - compose/node-exporter.yml
+  - compose/prometheus.yml
+  - compose/grafana.yml
+
+  # APPS
+  - compose/portainer.yml
+  - compose/vscode.yml

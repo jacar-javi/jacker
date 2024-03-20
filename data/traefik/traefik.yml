@@ -1,0 +1,71 @@
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+certificatesResolvers:
+  http:
+    acme:
+      storage: /acme.json
+      tlsChallenge: {}
+
+entryPoints:
+  web:
+    address: :80
+    http:
+      redirections:
+        entrypoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    address: :443
+    http:
+      tls:
+        options: tls-opts@file
+        certresolver: http
+  traefik:
+    address: :8080
+
+api:
+  dashboard: true
+  insecure: true
+
+ping:
+  entryPoint: traefik
+
+log:
+  level: DEBUG
+  filePath: /logs/traefik-error.log
+
+accessLog:
+  filePath: /logs/traefik-access.log
+  fields:
+    names:
+      StartUTC: drop
+  bufferingSize: 100
+  filters:
+    statusCodes:
+      - 204-299
+      - 400-499
+      - 500-599
+
+providers:
+  docker:
+    endpoint: tcp://socket-proxy:2375
+    exposedByDefault: false
+    network: traefik_proxy
+    swarmMode: false
+  file:
+    directory: /rules
+    watch: true
+
+metrics:
+  prometheus:
+    buckets:
+    - 0.1
+    - 0.3
+    - 1.2
+    - 5.0
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    addRoutersLabels: true
