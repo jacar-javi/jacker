@@ -202,7 +202,7 @@ first_round()
   gpg_check
   detect_apt_version
 
-  if [ ! -f ".env" ]; then
+  if [ -f ".env" ]; then
     read -r -p "Existing .env file. Reinstall Jacker? (.env will be moved to .env.bak) [y/N] " response
     case $response in
       [yY][eE][sS]|[yY])
