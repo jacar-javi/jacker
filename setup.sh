@@ -115,7 +115,7 @@ detect_apt_version ()
 
 create_env_files()
 {
-  source .env-defaults
+  source .env.defaults
 
   # Create .env from template
   export PUID=`id -u $USER`
@@ -158,6 +158,7 @@ create_env_files()
   read -r -p "Enter Email address for Let's Encrypt SSL Certificates: " response
   export LETSENCRYPT_EMAIL=$response
 
+  export CROWDSEC_API_PORT=$CROWDSEC_API_PORT
   export CROWDSEC_TRAEFIK_BOUNCER_API_KEY=`openssl rand -hex 64`
   export CROWDSEC_IPTABLES_BOUNCER_API_KEY=`openssl rand -hex 64`
   export MYSQL_ROOT_PASSWORD=`openssl rand -hex 24`
@@ -207,8 +208,6 @@ first_round()
     case $response in
       [yY][eE][sS]|[yY])
         mv .env .env.bak
-        create_env_files
-        execute_assets
       ;;
       *)
         exit -1
@@ -216,8 +215,12 @@ first_round()
     esac
   fi
 
+  create_env_files
+  execute_assets
+
   # Execute second round after reboot
-  echo $0 | tee -a ~/.bashrc
+  SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+  echo $SCRIPT_PATH | tee -a ~/.bashrc
   touch .FIRST_ROUND
 
   echo "System needs to be restarted. You can safe say N and do it manually after saving other works."
@@ -240,7 +243,8 @@ second_round ()
 
   source .env
   export CROWDSEC_IPTABLES_BOUNCER_API_KEY=$CROWDSEC_IPTABLES_BOUNCER_API_KEY
-  sudo envsubst < assets/templates/crowdsec-firewall-bouncer.yaml.template > /etc/crowdsec/crowdsec-firewall-bouncer.yaml
+  envsubst < assets/templates/crowdsec-firewall-bouncer.yaml.template > assets/templates/crowdsec-firewall-bouncer.yaml
+  sudo mv assets/templates/crowdsec-firewall-bouncer.yaml /etc/crowdsec/crowdsec-firewall-bouncer.yaml
   sudo systemctl restart crowdsec-firewall-bouncer.service
 
   docker compose up -d
@@ -248,9 +252,10 @@ second_round ()
   cscli bouncers add iptables-bouncer --key $CROWDSEC_IPTABLES_BOUNCER_API_KEY
   sudo cp assets/templates/crowdsec-custom-whitelists.yaml data/crowdsec/config/parsers/s02-enrich/custom-whitelists.yaml
   docker compose down
-  docker images prune -a -f
+  docker image prune -a -f
 
-  sed -i -e "/$0/d" ~/.bashrc
+  SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+  sed -i -e "/$SCRIPT_PATH/d" ~/.bashrc
   rm .FIRST_ROUND
 }
 
@@ -260,7 +265,7 @@ main ()
     first_round
   else
     second_round
-  fi  
+  fi
 }
 
 main
