@@ -5,14 +5,14 @@ source ../.env
 echo "Installing Docker"
 
 # Add Docker's official GPG key:
-sudo apt-get update
-sudo apt-get install ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
+sudo apt-get update &> /dev/null
+sudo apt-get install ca-certificates curl &> /dev/null
+sudo install -m 0755 -d /etc/apt/keyrings &> /dev/null
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc &> /dev/null
+sudo chmod a+r /etc/apt/keyrings/docker.asc &> /dev/null
 
 # Add the repository to Apt sources:
-sudo truncate -s 0 /etc/apt/sources.list.d/docker.list+
+sudo truncate -s 0 /etc/apt/sources.list.d/docker.list
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
@@ -25,5 +25,7 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 sudo usermod -aG docker $USER
 
 # Configure docker to run on boot
-sudo systemctl enable docker.service
-sudo systemctl enable containerd.service
+sudo systemctl enable docker.service &> /dev/null
+sudo systemctl enable containerd.service &> /dev/null
+
+echo "done ..."

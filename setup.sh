@@ -184,6 +184,7 @@ create_env_files()
   envsubst < assets/templates/traefik_forward_oauth.template > secrets/traefik_forward_oauth
 
   # Change Permissions
+  touch data/traefik/acme.json
   chmod 600 data/traefik/acme.json
   chmod +x assets/*.sh
 }
@@ -219,8 +220,8 @@ first_round()
   execute_assets
 
   # Execute second round after reboot
-  SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-  echo $SCRIPT_PATH | tee -a ~/.bashrc
+  SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/$(basename "$0")
+  echo $SCRIPT_PATH | tee -a ~/.bashrc &> /dev/null
   touch .FIRST_ROUND
 
   echo "System needs to be restarted. You can safe say N and do it manually after saving other works."
@@ -245,18 +246,22 @@ second_round ()
   export CROWDSEC_IPTABLES_BOUNCER_API_KEY=$CROWDSEC_IPTABLES_BOUNCER_API_KEY
   envsubst < assets/templates/crowdsec-firewall-bouncer.yaml.template > assets/templates/crowdsec-firewall-bouncer.yaml
   sudo mv assets/templates/crowdsec-firewall-bouncer.yaml /etc/crowdsec/crowdsec-firewall-bouncer.yaml
-  sudo systemctl restart crowdsec-firewall-bouncer.service
 
-  docker compose up -d
+  echo "Setting up Jacker Stack"
+
+  docker compose up -d &> /dev/null
   cscli bouncers add traefik-bouncer --key $CROWDSEC_TRAEFIK_BOUNCER_API_KEY
   cscli bouncers add iptables-bouncer --key $CROWDSEC_IPTABLES_BOUNCER_API_KEY
   sudo cp assets/templates/crowdsec-custom-whitelists.yaml data/crowdsec/config/parsers/s02-enrich/custom-whitelists.yaml
-  docker compose down
-  docker image prune -a -f
+  sudo systemctl enable crowdsec-firewall-bouncer.service 
+  docker compose down &> /dev/null
+  docker image prune -a -f &> /dev/null
 
-  SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-  sed -i -e "/$SCRIPT_PATH/d" ~/.bashrc
+  SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/$(basename "$0")
+  sed -i -e "|$SCRIPT_PATH|d" ~/.bashrc
   rm .FIRST_ROUND
+
+  echo "done ..."
 }
 
 main ()

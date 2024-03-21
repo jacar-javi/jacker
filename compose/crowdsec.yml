@@ -6,6 +6,8 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    depends_on:
+      - mariadb
     ports:
       - "$CROWDSEC_API_PORT:8080"
     networks:

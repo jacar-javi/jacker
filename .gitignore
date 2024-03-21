@@ -6,5 +6,7 @@ data/mysql
 data/portainer
 data/prometheus/data
 data/vscode
+data/traefik/acme.json
 logs/traefik/*
 secrets
+assets/templates/crowdsec-firewall-bouncer.yaml
