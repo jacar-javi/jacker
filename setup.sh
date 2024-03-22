@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-cd "$(dirname "$0")"
-
 unknown_os ()
 {
   echo "Unfortunately, your operating system distribution and version are not supported by Jacker."
@@ -220,7 +218,7 @@ first_round()
   execute_assets
 
   # Execute second round after reboot
-  SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/$(basename "$0")
+  SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )/$(basename "$0") 
   echo $SCRIPT_PATH | tee -a ~/.bashrc &> /dev/null
   touch .FIRST_ROUND
 
@@ -241,24 +239,26 @@ second_round ()
 {
   echo "Jacker Setup will continue now ..."
 
-
   source .env
   export CROWDSEC_IPTABLES_BOUNCER_API_KEY=$CROWDSEC_IPTABLES_BOUNCER_API_KEY
   envsubst < assets/templates/crowdsec-firewall-bouncer.yaml.template > assets/templates/crowdsec-firewall-bouncer.yaml
-  sudo mv assets/templates/crowdsec-firewall-bouncer.yaml /etc/crowdsec/crowdsec-firewall-bouncer.yaml
+  sudo mv assets/templates/crowdsec-firewall-bouncer.yaml /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
 
   echo "Setting up Jacker Stack"
 
   docker compose up -d &> /dev/null
+
+  sleep 10
   cscli bouncers add traefik-bouncer --key $CROWDSEC_TRAEFIK_BOUNCER_API_KEY
   cscli bouncers add iptables-bouncer --key $CROWDSEC_IPTABLES_BOUNCER_API_KEY
   sudo cp assets/templates/crowdsec-custom-whitelists.yaml data/crowdsec/config/parsers/s02-enrich/custom-whitelists.yaml
   sudo systemctl enable crowdsec-firewall-bouncer.service 
+  sudo systemctl restart crowdsec-firewall-bouncer.service 
   docker compose down &> /dev/null
   docker image prune -a -f &> /dev/null
 
-  SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/$(basename "$0")
-  sed -i -e "|$SCRIPT_PATH|d" ~/.bashrc
+  SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )/$(basename "$0")
+  sed -i -e "\|$SCRIPT_PATH|d" ~/.bashrc
   rm .FIRST_ROUND
 
   echo "done ..."
@@ -273,4 +273,5 @@ main ()
   fi
 }
 
+cd "$(dirname "$0")"
 main
