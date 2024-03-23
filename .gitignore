@@ -1,7 +1,7 @@
 .env
 .env.bak
 data/crowdsec
-data/grafana
+data/grafana/data
 data/mysql
 data/portainer
 data/prometheus/data
@@ -10,3 +10,4 @@ data/traefik/acme.json
 logs/traefik/*
 secrets
 assets/templates/crowdsec-firewall-bouncer.yaml
+

@@ -1,0 +1,18 @@
+filenames:
+  - /var/log/auth.log
+  - /var/log/syslog
+  - /var/log/kern.log
+  - /var/log/ufw.log
+  - /var/log/mail.log
+labels:
+  type: syslog
+---
+filenames:
+  - /logs/server/traefik/*.log
+labels:
+  type: traefik
+---
+filenames:
+  - /logs/server/nginx/*.log
+labels:
+  type: nginx

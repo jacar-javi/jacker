@@ -8,6 +8,7 @@ case $response in
     docker compose down & > /dev/null
     docker image prune -a -f & > /dev/null
     sudo rm -rf data/crowdsec || true
+    sudo rm -rf data/grafana/data/* || true
     sudo rm -rf data/mysql || true
     sudo rm -rf data/portainer || true
     sudo rm -rf data/traefik/acme.json || true

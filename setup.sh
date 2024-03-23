@@ -249,9 +249,10 @@ second_round ()
   docker compose up -d &> /dev/null
 
   sleep 10
-  cscli bouncers add traefik-bouncer --key $CROWDSEC_TRAEFIK_BOUNCER_API_KEY
-  cscli bouncers add iptables-bouncer --key $CROWDSEC_IPTABLES_BOUNCER_API_KEY
+  cscli bouncers add traefik-bouncer --key $CROWDSEC_TRAEFIK_BOUNCER_API_KEY &> /dev/null
+  cscli bouncers add iptables-bouncer --key $CROWDSEC_IPTABLES_BOUNCER_API_KEY &> /dev/null
   sudo cp assets/templates/crowdsec-custom-whitelists.yaml data/crowdsec/config/parsers/s02-enrich/custom-whitelists.yaml
+  sudo cp assets/templates/crowdsec-acquis.yaml data/crowdsec/config/acquis.yaml
   sudo systemctl enable crowdsec-firewall-bouncer.service 
   sudo systemctl restart crowdsec-firewall-bouncer.service 
   docker compose down &> /dev/null
