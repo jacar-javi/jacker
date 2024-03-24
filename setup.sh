@@ -117,7 +117,7 @@ create_env_files()
 
   # Create .env from template
   export PUID=`id -u $USER`
-  export GUID=`id -g $USER`
+  export PGID=`id -g $USER`
   export TZ=`cat /etc/timezone`
   export USERDIR=`eval echo ~$user`
   export DOCKERDIR=`eval pwd`
