@@ -179,6 +179,7 @@ create_env_files()
   envsubst < assets/templates/config.yaml.local.template > data/crowdsec/config/config.yaml.local
 
   # Configure Traefik Forward OAuth Secret
+  mkdir -p secrets
   envsubst < assets/templates/traefik_forward_oauth.template > secrets/traefik_forward_oauth
 
   # Change Permissions
