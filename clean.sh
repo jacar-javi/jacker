@@ -15,6 +15,9 @@ case $response in
     sudo rm -rf secrets/traefik_forward_oauth || true
     sudo rm -rf logs || true
     sudo rm -rf .env || true
+    sudo rm -rf .FIRST_ROUND || true
+    SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )/setup.sh
+    sed -i -e "\|$SCRIPT_PATH|d" ~/.bashrc
  ;;
   *)
     exit -1

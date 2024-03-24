@@ -140,7 +140,7 @@ create_env_files()
 
   export UFW_ALLOW_FROM=$UFW_ALLOW_FROM
   export UFW_ALLOW_PORTS=$UFW_ALLOW_PORTS
-  read -r -p "Do you want to ufw allow SSH connections to this host from any network/host? (e.g. 1.1.1.1,2.2.2.0/24): " response
+  read -r -p "Enter comma separated networks/hosts that you want to ufw allow SSH connections to this host (e.g. 1.1.1.1,2.2.2.0/24): " response
   [ "$response" != "" ] && export UFW_ALLOW_SSH=$UFW_ALLOW_SSH,$response || export UFW_ALLOW_SSH=$UFW_ALLOW_SSH
 
   export OAUTH_COOKIE_LIFETIME=$OAUTH_COOKIE_LIFETIME
