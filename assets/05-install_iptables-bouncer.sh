@@ -6,4 +6,4 @@ source ../.env
 curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.deb.sh | sudo bash
 
 sudo apt-get update &> /dev/null
-sudo apt install crowdsec-firewall-bouncer-iptables &> /dev/null
+sudo apt-get install crowdsec-firewall-bouncer-iptables &> /dev/null

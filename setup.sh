@@ -194,6 +194,7 @@ execute_assets ()
   assets/02-install_docker.sh
   assets/03-setup_ufw.sh
   assets/04-install_assets.sh
+  assets/05-install_iptables-bouncer.sh
 }
 
 first_round()
