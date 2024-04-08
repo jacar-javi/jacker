@@ -224,7 +224,7 @@ first_round()
   execute_assets
 
   # Execute second round after reboot
-  SCRIPT_PATH=$( cd -- '$( dirname -- "${BASH_SOURCE[0]}" )' && pwd )/$(basename "$0") 
+  SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )/$(basename "$0") 
   echo $SCRIPT_PATH | tee -a ~/.bashrc &> /dev/null
   touch .FIRST_ROUND
 
