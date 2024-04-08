@@ -6,9 +6,17 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+
+    depends_on:
+      socket-proxy:
+        condition: service_healthy
+      traefik:
+        condition: service_healthy
+
     networks:
       - traefik_proxy
       - socket_proxy
+
     command: -H tcp://socket-proxy:2375
     volumes:
       - $DATADIR/portainer/data:/data

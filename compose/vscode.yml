@@ -3,20 +3,30 @@ services:
   vscode:
     image: lscr.io/linuxserver/code-server:latest
     container_name: vscode
+
     security_opt:
       - no-new-privileges:true
+
     restart: unless-stopped
+
+    depends_on:
+      traefik:
+        condition: service_healthy
+
     networks:
       traefik_proxy:
         ipv4_address: $CODE_TRAEFIK_SUBNET_IP
+
     volumes:
       - $DOCKERDIR:/data/jacker
       - $USERDIR:/data/home
       - $DATADIR/vscode/config:/config
+
     environment:
       TZ: $TZ
       PUID: $PUID
       PGID: $PGID
+
     labels:
       - "traefik.enable=true"
       # HTTP Routers
@@ -27,5 +37,3 @@ services:
       # HTTP Services
       - "traefik.http.routers.vscode-rtr.service=vscode-svc"
       - "traefik.http.services.vscode-svc.loadbalancer.server.port=8443"
-      # Watchtower
-      - "com.centurylinklabs.watchtower.enable=true"

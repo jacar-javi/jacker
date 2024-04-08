@@ -3,15 +3,24 @@ services:
   socket-proxy:
     container_name: socket-proxy
     image: tecnativa/docker-socket-proxy
+
     security_opt:
       - no-new-privileges:true
+
     restart: unless-stopped
+
     networks:
       socket_proxy:
         ipv4_address: $SOCKET_PROXY_IP
+
+    ports:
+      - 127.0.0.1:2375:2375
+
     privileged: $HOST_IS_VM # true for VM. False for unprivileged LXC container.
+
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
+
     environment:
       - LOG_LEVEL=info # debug,info,notice,warning,err,crit,alert,emerg
       ## Variables match the URL prefix (i.e. AUTH blocks access to /auth/* parts of the API, etc.).
@@ -44,3 +53,10 @@ services:
       - SYSTEM=0
       - TASKS=1 # Portainer
       - VOLUMES=1 # Portainer
+      
+    healthcheck:
+      test: wget --spider http://localhost:2375/version || exit 1
+      interval: "29s"
+      timeout: "5s"
+      retries: 3
+      start_period: "21s"

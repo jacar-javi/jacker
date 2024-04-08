@@ -4,11 +4,19 @@ services:
   oauth:
     container_name: oauth
     image: thomseddon/traefik-forward-auth:latest
+
     security_opt:
       - no-new-privileges:true
+
     restart: unless-stopped
+
     networks:
       - traefik_proxy
+
+    depends_on:
+      traefik:
+        condition: service_healthy
+
     environment:
       - CONFIG=/config
       - COOKIE_DOMAIN=$PUBLIC_FQDN
@@ -20,9 +28,11 @@ services:
       - LIFETIME=$OAUTH_COOKIE_LIFETIME
       - DEFAULT_ACTION=auth
       - DEFAULT_PROVIDER=google
+      
     secrets:
       - source: traefik_forward_oauth
         target: /config
+        
     labels:
       - "traefik.enable=true"
       # HTTP Routers

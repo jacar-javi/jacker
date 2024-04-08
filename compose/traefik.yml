@@ -2,10 +2,18 @@ services:
   # Traefik - Reverse Proxy
   traefik:
     container_name: traefik
+
     image: traefik
+
     security_opt:
       - no-new-privileges:true
+
     restart: unless-stopped
+
+    depends_on:
+      socket-proxy:
+        condition: service_healthy
+        
     networks:
       traefik_proxy:
         ipv4_address: $TRAEFIK_PROXY_IP

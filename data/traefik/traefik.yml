@@ -34,7 +34,7 @@ ping:
   entryPoint: traefik
 
 log:
-  level: DEBUG
+  level: INFO
   filePath: /logs/traefik-error.log
 
 accessLog:

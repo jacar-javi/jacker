@@ -11,8 +11,3 @@ filenames:
   - /logs/server/traefik/*.log
 labels:
   type: traefik
----
-filenames:
-  - /logs/server/nginx/*.log
-labels:
-  type: nginx

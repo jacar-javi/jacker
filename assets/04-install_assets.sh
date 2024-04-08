@@ -4,3 +4,6 @@ source ../.env
 
 sudo chmod +x cscli
 sudo cp cscli /usr/local/sbin/
+
+# cscli completion
+cscli completion bash | sudo tee /etc/bash_completion.d/cscli

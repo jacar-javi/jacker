@@ -4,13 +4,18 @@ services:
   traefik-bouncer:
     image: fbonalair/traefik-crowdsec-bouncer
     container_name: traefik-bouncer
+
     security_opt:
       - no-new-privileges:true
+
     restart: unless-stopped
+
     depends_on:
-      - crowdsec
+      crowdsec:
+
     networks:
       - traefik_proxy
+
     environment:
       GIN_MODE: release # default is debug (more logs)
       CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_TRAEFIK_BOUNCER_API_KEY # sudo docker exec crowdsec cscli bouncers add traefik-bouncer

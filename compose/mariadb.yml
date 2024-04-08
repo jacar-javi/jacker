@@ -2,13 +2,18 @@ services:
   mariadb:
     image: mariadb:latest
     container_name: mariadb
+    
     restart: unless-stopped
+
     networks:
       - traefik_proxy
+
     security_opt:
       - no-new-privileges:true
+
     volumes:
       - $DATADIR/mysql:/var/lib/mysql
+
     environment:
       MYSQL_ROOT_PASSWORD: $MYSQL_ROOT_PASSWORD
       MYSQL_DATABASE: $MYSQL_DATABASE
@@ -17,3 +22,8 @@ services:
       PUID: $PUID
       PGID: $PGID
       TZ: $TZ
+
+    healthcheck:
+      retries: 10
+      test: ["CMD", "/usr/local/bin/healthcheck.sh", "--su-mysql", "--connect", "--innodb_initialized"]
+      timeout: 20s

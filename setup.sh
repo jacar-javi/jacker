@@ -135,15 +135,19 @@ create_env_files()
   export SOCKET_PROXY_IP=$SOCKET_PROXY_IP
   export TRAEFIK_PROXY_SUBNET=$TRAEFIK_PROXY_SUBNET
   export TRAEFIK_PROXY_IP=$TRAEFIK_PROXY_IP
+
   response=`stat -c '%U' /proc`
   [ "$response" = "root" ] && export HOST_IS_VM=true || export HOST_IS_VM=false
 
   export UFW_ALLOW_FROM=$UFW_ALLOW_FROM
-  export UFW_ALLOW_PORTS=$UFW_ALLOW_PORTS
+  read -r -p "Enter comma separated ports from host that want to ufw allow (e.g. 22,3306): " response
+  [ "$response" != "" && "$UFW_ALLOW_PORTS" != "" ] && export UFW_ALLOW_PORTS=$UFW_ALLOW_PORTS,$response || export UFW_ALLOW_PORTS=$UFW_ALLOW_PORTS
+  
   read -r -p "Enter comma separated networks/hosts that you want to ufw allow SSH connections to this host (e.g. 1.1.1.1,2.2.2.0/24): " response
   [ "$response" != "" ] && export UFW_ALLOW_SSH=$UFW_ALLOW_SSH,$response || export UFW_ALLOW_SSH=$UFW_ALLOW_SSH
 
   export OAUTH_COOKIE_LIFETIME=$OAUTH_COOKIE_LIFETIME
+  
   echo "Configure Google OAuth2 Service as shown in https://jacker.jacar.es/first-steps/prepare/#step-2-configure-google-oauth2-service"
   read -r -p "Enter your OAuth client ID: " response
   export OAUTH_CLIENT_ID=$response
@@ -244,7 +248,7 @@ second_round ()
   source .env
   export CROWDSEC_IPTABLES_BOUNCER_API_KEY=$CROWDSEC_IPTABLES_BOUNCER_API_KEY
   envsubst < assets/templates/crowdsec-firewall-bouncer.yaml.template > assets/templates/crowdsec-firewall-bouncer.yaml
-  sudo mv assets/templates/crowdsec-firewall-bouncer.yaml /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+  sudo mv assets/templates/crowdsec-firewall-bouncer.yaml /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml.local
 
   echo "Setting up Jacker Stack"
 
