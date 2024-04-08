@@ -257,6 +257,10 @@ second_round ()
   sleep 10
   cscli bouncers add traefik-bouncer --key $CROWDSEC_TRAEFIK_BOUNCER_API_KEY &> /dev/null
   cscli bouncers add iptables-bouncer --key $CROWDSEC_IPTABLES_BOUNCER_API_KEY &> /dev/null
+  
+  # cscli completion
+  cscli completion bash | sudo tee /etc/bash_completion.d/cscli
+  
   sudo cp assets/templates/crowdsec-custom-whitelists.yaml data/crowdsec/config/parsers/s02-enrich/custom-whitelists.yaml
   sudo cp assets/templates/crowdsec-acquis.yaml data/crowdsec/config/acquis.yaml
   sudo systemctl enable crowdsec-firewall-bouncer.service 

@@ -35,21 +35,4 @@ done
 sudo ufw --force enable
 sudo ufw status verbose
 
-sudo ufw-docker install
-
-sudo systemctl restart ufw
-
-for i in ${UFW_DOCKER_ALLOW_CONTAINERS//,/ }
-do
-    sudo ufw-docker allow $i &> /dev/null
-done
-
-sudo ufw-docker status
-
-# Find all occurrences of "open_firewall.sh" in stacks and execute them
-if [ -d "../stacks" ]; then
-    find "../stacks" -type f -name "open_firewall.sh" -exec chmod +x {} \; -exec {} \;
-fi
-
-
 echo "done ..".
