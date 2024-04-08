@@ -14,17 +14,15 @@ services:
       - default
 
     depends_on:
-      crowdsec:
-      node-exporter:
-      traefik:
-        condition: service_healthy
-    
+      - crowdsec
+      - node-exporter
+
     volumes:
       - $DATADIR/prometheus/config:/etc/prometheus
       - $DATADIR/prometheus/data:/prometheus
 
     user: $PUID:$PGID
-    
+
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'

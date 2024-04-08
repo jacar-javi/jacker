@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
 
     depends_on:
-      crowdsec:
+      - crowdsec
 
     networks:
       - traefik_proxy

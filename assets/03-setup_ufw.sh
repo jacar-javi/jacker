@@ -37,6 +37,8 @@ sudo ufw status verbose
 
 sudo ufw-docker install
 
+sudo systemctl restart ufw
+
 for i in ${UFW_DOCKER_ALLOW_CONTAINERS//,/ }
 do
     sudo ufw-docker allow $i &> /dev/null
