@@ -1,0 +1,35 @@
+title: Jacker
+headerStyle: clean
+language: es
+
+quicklaunch:
+  searchDescriptions: true
+  hideInternetSearch: true
+  hideVisitURL: true
+
+
+layout:
+  Frontend Apps:
+    tab: Jacker
+    style: row
+    columns: 5
+
+  Reverse Proxy:
+    tab: Jacker
+    style: row
+    columns: 5
+
+  MiddleWare:
+    tab: Jacker
+    style: row
+    columns: 5
+
+  Backend:
+    tab: Jacker
+    style: row
+    columns: 5
+
+  Other Service Group:
+    tab: Other
+    columns: 4
+

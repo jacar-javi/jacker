@@ -40,3 +40,11 @@ services:
       # HTTP Services
       - "traefik.http.routers.grafana-rtr.service=grafana-svc"
       - "traefik.http.services.grafana-svc.loadbalancer.server.port=3000"
+
+      # Homepage Integration
+      - homepage.group=Frontend Apps
+      - homepage.name=Grafana
+      - homepage.icon=grafana.svg
+      - homepage.href=https://grafana.$PUBLIC_FQDN
+      - homepage.description=Graphical data visualization
+

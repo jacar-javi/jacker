@@ -30,3 +30,11 @@ services:
       - '--web.console.templates=/usr/share/prometheus/consoles'
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
+
+    labels:
+      # Homepage Integration
+      - homepage.group=Backend
+      - homepage.name=Prometheus
+      - homepage.icon=prometheus.svg
+      - homepage.description=Open-Source Monitoring System
+      - homepage.href=https://grafana.$PUBLIC_FQDN/d/000000001/prometheus-system

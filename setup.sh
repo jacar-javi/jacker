@@ -163,6 +163,7 @@ create_env_files()
   export CROWDSEC_API_PORT=$CROWDSEC_API_PORT
   export CROWDSEC_TRAEFIK_BOUNCER_API_KEY=`openssl rand -hex 64`
   export CROWDSEC_IPTABLES_BOUNCER_API_KEY=`openssl rand -hex 64`
+  export CROWDSEC_API_LOCAL_PASSWORD=`openssl rand -hex 64`
   export MYSQL_ROOT_PASSWORD=`openssl rand -hex 24`
   export MYSQL_DATABASE=$MYSQL_DATABASE
   export MYSQL_USER=$MYSQL_USER
@@ -182,9 +183,19 @@ create_env_files()
   mkdir -p data/crowdsec/config
   envsubst < assets/templates/config.yaml.local.template > data/crowdsec/config/config.yaml.local
 
+  #Configure Crowdsec local Api Credentials
+  envsubst < assets/templates/crowdsec-local_api_credentials.yaml.template > assets/templates/crowdsec-local_api_credentials.yaml
+  sudo chown root.root assets/templates/crowdsec-local_api_credentials.yaml
+  sudo chmod 600 assets/templates/crowdsec-local_api_credentials.yaml
+
   # Configure Traefik Forward OAuth Secret
   mkdir -p secrets
   envsubst < assets/templates/traefik_forward_oauth.template > secrets/traefik_forward_oauth
+
+  # Configure systemd services
+  envsubst < assets/templates/jacker-compose-reload.service.template > assets/templates/jacker-compose-reload.service
+  envsubst < assets/templates/jacker-compose-reload.timer.template > assets/templates/jacker-compose-reload.timer
+  envsubst < assets/templates/jacker-compose.service.template > assets/templates/jacker-compose.service
 
   # Change Permissions
   touch data/traefik/acme.json
@@ -275,7 +286,10 @@ second_round ()
   sed -i -e "\|$SCRIPT_PATH|d" ~/.bashrc
   rm .FIRST_ROUND
 
-  docker compose up -d
+  sudo mv assets/templates/crowdsec-local_api_credentials.yaml data/crowdsec/config/local_api_credentials.yml
+  sudo mv assets/templates/jacker-compose-reload.service assets/templates/jacker-compose-reload.timer assets/templates/jacker-compose.service /etc/systemd/system
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now jacker-compose.service jacker-compose-reload.timer
 
   echo "done ..."
 }

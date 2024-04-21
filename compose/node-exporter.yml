@@ -15,3 +15,10 @@ services:
       - "--path.sysfs=/host/sys"
       - "--collector.filesystem.ignored-mount-points"
       - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs|rootfs/var/lib/docker/plugins)($$|/)"
+
+    labels:
+      # Homepage Integration
+      - homepage.group=Backend
+      - homepage.name=Node Exporter
+      - homepage.description=Exporter for hardware and OS metrics
+      - homepage.href=https://grafana.$PUBLIC_FQDN/d/rYdddlPWk/node-exporter-full

@@ -33,3 +33,10 @@ services:
       # HTTP Services
       - "traefik.http.routers.portainer-rtr.service=portainer-svc"
       - "traefik.http.services.portainer-svc.loadbalancer.server.port=9000"
+
+      # Homepage Integration
+      - homepage.group=Frontend Apps
+      - homepage.name=Portainer
+      - homepage.icon=portainer.svg
+      - homepage.href=https://portainer.$PUBLIC_FQDN
+      - homepage.description=WebUI for Docker Containers

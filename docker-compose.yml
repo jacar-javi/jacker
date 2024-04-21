@@ -41,3 +41,4 @@ include:
   # APPS
   - compose/portainer.yml
   - compose/vscode.yml
+  - compose/homepage.yml

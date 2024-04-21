@@ -18,3 +18,10 @@ services:
       CROWDSEC_BOUNCER_API_KEY: $CROWDSEC_TRAEFIK_BOUNCER_API_KEY # sudo docker exec crowdsec cscli bouncers add traefik-bouncer
       CROWDSEC_AGENT_HOST: crowdsec:8080 # CrowdSec host and port
       CROWDSEC_BOUNCER_LOG_LEVEL: 2 # https://pkg.go.dev/github.com/rs/zerolog#readme-leveled-logging
+
+    labels:
+      # Homepage Integration
+      - homepage.group=Middleware
+      - homepage.name=Crowdsec Bouncer
+      - homepage.description=Crowdsec Traefik Bouncer
+
