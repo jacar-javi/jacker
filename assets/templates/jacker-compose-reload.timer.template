@@ -4,7 +4,7 @@ Requires=jacker-compose.service
 After=jacker-compose.service
 
 [Timer]
-OnCalendar=*:0/15
+OnCalendar=weekly
 
 [Install]
 WantedBy=timers.target
