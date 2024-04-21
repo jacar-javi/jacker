@@ -8,6 +8,11 @@ data/prometheus/data
 data/vscode
 data/traefik/acme.json
 logs/traefik/*
-secrets
-assets/templates/crowdsec-firewall-bouncer.yaml
+secrets/*
+
+stacks/*
+!stacks/newstack.sh
+!stacks/README.md
+
+dev/*
 
