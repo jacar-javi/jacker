@@ -4,4 +4,4 @@ Description=Refresh images and update Jacker containers
 [Service]
 Type=oneshot
 
-ExecStart=/bin/systemctl reload-or-restart jackerr-compose.service
+ExecStart=/bin/systemctl reload-or-restart jacker-compose.service
