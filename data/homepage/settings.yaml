@@ -1,3 +1,7 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/latest/configs/settings
+
 title: Jacker
 headerStyle: clean
 language: es
@@ -10,26 +14,17 @@ quicklaunch:
 
 layout:
   Frontend Apps:
-    tab: Jacker
     style: row
     columns: 5
 
   Reverse Proxy:
-    tab: Jacker
     style: row
     columns: 5
 
   MiddleWare:
-    tab: Jacker
     style: row
     columns: 5
 
   Backend:
-    tab: Jacker
     style: row
     columns: 5
-
-  Other Service Group:
-    tab: Other
-    columns: 4
-

@@ -1,0 +1,27 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/latest/configs/service-widgets
+
+- resources:
+    label: Processor
+    cpu: true
+    cputemp: true
+
+- resources:
+    label: Uptime
+    uptime: true
+
+- resources:
+    label: Memory
+    memory: true
+
+- resources:
+    label: Storage
+    disk: /
+
+- datetime:
+    text_size: 4xl
+    locale: es
+    format:
+        dateStyle: short
+        timeStyle: short

@@ -141,7 +141,7 @@ create_env_files()
 
   export UFW_ALLOW_FROM=$UFW_ALLOW_FROM
   read -r -p "Enter comma separated ports from host that want to ufw allow (e.g. 22,3306): " response
-  [ "$response" != "" && "$UFW_ALLOW_PORTS" != "" ] && export UFW_ALLOW_PORTS=$UFW_ALLOW_PORTS,$response || export UFW_ALLOW_PORTS=$UFW_ALLOW_PORTS
+  [ "$response" != "" ] && export UFW_ALLOW_PORTS=$UFW_ALLOW_PORTS,$response || export UFW_ALLOW_PORTS=$UFW_ALLOW_PORTS
   
   read -r -p "Enter comma separated networks/hosts that you want to ufw allow SSH connections to this host (e.g. 1.1.1.1,2.2.2.0/24): " response
   [ "$response" != "" ] && export UFW_ALLOW_SSH=$UFW_ALLOW_SSH,$response || export UFW_ALLOW_SSH=$UFW_ALLOW_SSH
@@ -163,7 +163,7 @@ create_env_files()
   export CROWDSEC_API_PORT=$CROWDSEC_API_PORT
   export CROWDSEC_TRAEFIK_BOUNCER_API_KEY=`openssl rand -hex 64`
   export CROWDSEC_IPTABLES_BOUNCER_API_KEY=`openssl rand -hex 64`
-  export CROWDSEC_API_LOCAL_PASSWORD=`openssl rand -hex 64`
+  export CROWDSEC_API_LOCAL_PASSWORD=`openssl rand -hex 36`
   export MYSQL_ROOT_PASSWORD=`openssl rand -hex 24`
   export MYSQL_DATABASE=$MYSQL_DATABASE
   export MYSQL_USER=$MYSQL_USER
@@ -182,11 +182,6 @@ create_env_files()
   # Configure Crowdsec to use mysql databaes
   mkdir -p data/crowdsec/config
   envsubst < assets/templates/config.yaml.local.template > data/crowdsec/config/config.yaml.local
-
-  #Configure Crowdsec local Api Credentials
-  envsubst < assets/templates/crowdsec-local_api_credentials.yaml.template > assets/templates/crowdsec-local_api_credentials.yaml
-  sudo chown root.root assets/templates/crowdsec-local_api_credentials.yaml
-  sudo chmod 600 assets/templates/crowdsec-local_api_credentials.yaml
 
   # Configure Traefik Forward OAuth Secret
   mkdir -p secrets
@@ -266,13 +261,15 @@ second_round ()
   docker compose up -d &> /dev/null
 
   sleep 10
-  echo "Registering traefik-bouncer"
+  echo "Crowdsec: Registering traefik-bouncer"
   cscli bouncers add traefik-bouncer --key $CROWDSEC_TRAEFIK_BOUNCER_API_KEY &> /dev/null
-  echo "Registering iptables-bouncer"
+  echo "Crowdsec: Registering iptables-bouncer"
   cscli bouncers add iptables-bouncer --key $CROWDSEC_IPTABLES_BOUNCER_API_KEY &> /dev/null
+  echo "Crowdsec: Setting local api password"
+  cscli machines add $HOSTNAME -p $CROWDSEC_API_LOCAL_PASSWORD --force &> /dev/null
   
   # cscli completion
-  echo "Installing cscli bash completion"
+  echo "Crowdsec: Installing cscli bash completion"
   cscli completion bash | sudo tee /etc/bash_completion.d/cscli &> /dev/null
 
   sudo cp assets/templates/crowdsec-custom-whitelists.yaml data/crowdsec/config/parsers/s02-enrich/custom-whitelists.yaml
@@ -286,7 +283,6 @@ second_round ()
   sed -i -e "\|$SCRIPT_PATH|d" ~/.bashrc
   rm .FIRST_ROUND
 
-  sudo mv assets/templates/crowdsec-local_api_credentials.yaml data/crowdsec/config/local_api_credentials.yml
   sudo mv assets/templates/jacker-compose-reload.service assets/templates/jacker-compose-reload.timer assets/templates/jacker-compose.service /etc/systemd/system
   sudo systemctl daemon-reload
   sudo systemctl enable --now jacker-compose.service jacker-compose-reload.timer
