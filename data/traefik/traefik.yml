@@ -54,7 +54,6 @@ providers:
     endpoint: tcp://socket-proxy:2375
     exposedByDefault: false
     network: traefik_proxy
-    swarmMode: false
   file:
     directory: /rules
     watch: true
