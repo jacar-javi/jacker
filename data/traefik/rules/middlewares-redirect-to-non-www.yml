@@ -2,6 +2,9 @@ http:
   middlewares:
     middlewares-redirect-to-non-www:
       redirectregex:
-        regex: "^https?://www.(.*)/(.*)"
-        replacement: "https://$${1}/$${2}"
+        # Apply a permanent redirection (HTTP 301)
         permanent: true
+        # The regular expression to match and capture elements from the request URL
+        regex: "^https?://www\\.(.+)"
+        # How to modify the URL to have the new target URL
+        replacement: "https://${1}"
