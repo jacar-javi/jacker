@@ -33,8 +33,8 @@ services:
 
     labels:
       # Homepage Integration
-      -"homepage.group=Backend"
-      -"homepage.name=Prometheus"
-      -"homepage.icon=prometheus.svg"
-      -"homepage.description=Open-Source Monitoring System"
-      -"homepage.href=https://grafana.$PUBLIC_FQDN/d/000000001/prometheus-system"
+      - "homepage.group=Backend"
+      - "homepage.name=Prometheus"
+      - "homepage.icon=prometheus.svg"
+      - "homepage.description=Open-Source Monitoring System"
+      - "homepage.href=https://grafana.$PUBLIC_FQDN/d/000000001/prometheus-system"

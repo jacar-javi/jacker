@@ -254,6 +254,7 @@ second_round ()
   source .env
   export CROWDSEC_IPTABLES_BOUNCER_API_KEY=$CROWDSEC_IPTABLES_BOUNCER_API_KEY
   envsubst < assets/templates/crowdsec-firewall-bouncer.yaml.template > assets/templates/crowdsec-firewall-bouncer.yaml
+  sudo mkdir -p /etc/crowdsec/bouncers
   sudo mv assets/templates/crowdsec-firewall-bouncer.yaml /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml.local
 
   echo "Setting up Jacker Stack"
