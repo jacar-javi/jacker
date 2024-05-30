@@ -58,10 +58,10 @@ services:
       - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth@file"
 
       # Homepage Integration
-      - homepage.group=Reverse Proxy
-      - homepage.name=Traefik
-      - homepage.icon=traefik.svg
-      - homepage.href=https://traefik.$PUBLIC_FQDN
-      - homepage.description=Reverse Proxy And Load Balancer
-      - homepage.widget.type=traefik
-      - homepage.widget.url=http://traefik:8080
+      - "homepage.group=Reverse Proxy"
+      - "homepage.name=Traefik"
+      - "homepage.icon=traefik.svg"
+      - "homepage.href=https://traefik.$PUBLIC_FQDN"
+      - "homepage.description=Reverse Proxy And Load Balancer"
+      - "homepage.widget.type=traefik"
+      - "homepage.widget.url=http://traefik:8080"

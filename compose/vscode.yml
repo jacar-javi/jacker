@@ -39,8 +39,8 @@ services:
       - "traefik.http.services.vscode-svc.loadbalancer.server.port=8443"
 
       # Homepage Integration
-      - homepage.group=Frontend Apps
-      - homepage.name=VSCode
-      - homepage.icon=vscode.svg
-      - homepage.href=https://code.$PUBLIC_FQDN
-      - homepage.description=Visual Studio Code Web Editor
+      - "homepage.group=Frontend Apps"
+      - "homepage.name=VSCode"
+      - "homepage.icon=vscode.svg"
+      - "homepage.href=https://code.$PUBLIC_FQDN"
+      - "homepage.description=Visual Studio Code Web Editor"

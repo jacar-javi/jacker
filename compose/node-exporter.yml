@@ -18,7 +18,7 @@ services:
 
     labels:
       # Homepage Integration
-      - homepage.group=Backend
-      - homepage.name=Node Exporter
-      - homepage.description=Exporter for hardware and OS metrics
-      - homepage.href=https://grafana.$PUBLIC_FQDN/d/rYdddlPWk/node-exporter-full
+      - "homepage.group=Backend"
+      - "homepage.name=Node Exporter"
+      - "homepage.description=Exporter for hardware and OS metrics"
+      - "homepage.href=https://grafana.$PUBLIC_FQDN/d/rYdddlPWk/node-exporter-full"

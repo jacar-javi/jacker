@@ -21,7 +21,7 @@ services:
 
     labels:
       # Homepage Integration
-      - homepage.group=Middleware
-      - homepage.name=Crowdsec Bouncer
-      - homepage.description=Crowdsec Traefik Bouncer
+      - "homepage.group=Middleware"
+      - "homepage.name=Crowdsec Bouncer"
+      - "homepage.description=Crowdsec Traefik Bouncer"
 

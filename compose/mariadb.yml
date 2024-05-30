@@ -30,7 +30,7 @@ services:
 
     labels:
       # Homepage Integration
-      - homepage.group=Backend
-      - homepage.name=MariaDB
-      - homepage.icon=mariadb.svg
-      - homepage.description=Open-Source Relational Database
+      - "homepage.group=Backend"
+      - "homepage.name=MariaDB"
+      - "homepage.icon=mariadb.svg"
+      - "homepage.description=Open-Source Relational Database"

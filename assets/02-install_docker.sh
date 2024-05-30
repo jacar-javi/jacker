@@ -24,6 +24,10 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 # Add current user to docker group
 sudo usermod -aG docker $USER
 
+# Configure log rotation for containers
+sudo cp templates/docker-daemon.json /etc/docker/daemon.json
+sudo chown root:root /etc/docker/daemon.json
+
 # Configure docker to run on boot
 sudo systemctl enable docker.service &> /dev/null
 sudo systemctl enable containerd.service &> /dev/null

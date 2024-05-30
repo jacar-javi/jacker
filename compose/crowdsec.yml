@@ -40,11 +40,11 @@ services:
 
     labels:
       # Homepage Integration
-      - homepage.group=Backend
-      - homepage.name=Crowdsec
-      - homepage.icon=crowdsec.svg
-      - homepage.description=Open-Source Threat Intelligence Collaborative
-      - homepage.widget.type=crowdsec
-      - homepage.widget.url=http://crowdsec:8080
-      - homepage.widget.username=$HOSTNAME
-      - homepage.widget.password=$CROWDSEC_API_LOCAL_PASSWORD
+      - "homepage.group=Backend"
+      - "homepage.name=Crowdsec"
+      - "homepage.icon=crowdsec.svg"
+      - "homepage.description=Open-Source Threat Intelligence Collaborative"
+      - "homepage.widget.type=crowdsec"
+      - "homepage.widget.url=http://crowdsec:8080"
+      - "homepage.widget.username=$HOSTNAME"
+      - "homepage.widget.password=$CROWDSEC_API_LOCAL_PASSWORD"

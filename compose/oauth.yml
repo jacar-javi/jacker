@@ -46,6 +46,6 @@ services:
 
 
       # Homepage Integration
-      - homepage.group=Middleware
-      - homepage.name=OAuth Bouncer
-      - homepage.description=Google OAuth Traefik Bouncer
+      - "homepage.group=Middleware"
+      - "homepage.name=OAuth Bouncer"
+      - "homepage.description=Google OAuth Traefik Bouncer"
