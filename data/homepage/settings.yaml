@@ -21,7 +21,7 @@ layout:
     style: row
     columns: 5
 
-  MiddleWare:
+  Middleware:
     style: row
     columns: 5
 

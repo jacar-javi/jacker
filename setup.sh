@@ -175,7 +175,7 @@ create_env_files()
   # Configure Traefik's logrotate
   envsubst < assets/templates/traefik.logrotate.template > assets/templates/traefik
   sudo mv assets/templates/traefik /etc/logrotate.d/
-  sudo chown root.root /etc/logrotate.d/traefik
+  sudo chown root:root /etc/logrotate.d/traefik
   sudo chmod 644 /etc/logrotate.d/traefik
   sudo logrotate /etc/logrotate.conf
 
