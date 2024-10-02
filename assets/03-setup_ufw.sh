@@ -14,8 +14,8 @@ sudo ufw default deny incoming &> /dev/null
 sudo ufw default allow outgoing &> /dev/null
 
 # Install ufw-docker https://github.com/chaifeng/ufw-docker
-sudo wget -O /usr/local/bin/ufw-docker https://github.com/chaifeng/ufw-docker/raw/master/ufw-docker &> /dev/null
-sudo chmod +x /usr/local/bin/ufw-docker
+# sudo wget -O /usr/local/bin/ufw-docker https://github.com/chaifeng/ufw-docker/raw/master/ufw-docker &> /dev/null
+# sudo chmod +x /usr/local/bin/ufw-docker
 
 for i in ${UFW_ALLOW_FROM//,/ }
 do
