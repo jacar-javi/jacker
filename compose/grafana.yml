@@ -1,7 +1,7 @@
 services:
   # Grafana - Graphical data visualization
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:12.2
     container_name: grafana
 
     security_opt:
@@ -12,6 +12,13 @@ services:
     depends_on:
       traefik:
         condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
     networks:
       - traefik_proxy

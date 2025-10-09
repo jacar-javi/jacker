@@ -26,16 +26,24 @@ include:
   # CORE
   - compose/socket-proxy.yml
   - compose/traefik.yml
-  - compose/mariadb.yml
+  - compose/postgres.yml
+  - compose/redis.yml
 
-  # SECURITY
-  - compose/oauth.yml
+  # SECURITY & AUTHENTICATION
+  # Choose ONE authentication method:
+  # - Google OAuth (simple, external): compose/oauth.yml
+  # - Authentik (self-hosted, advanced): compose/authentik.yml
+  - compose/oauth.yml            # Default: Google OAuth
+  # - compose/authentik.yml      # Alternative: Self-hosted Authentik
   - compose/crowdsec.yml
   - compose/traefik-bouncer.yml
 
   # MONITORING
   - compose/node-exporter.yml
   - compose/prometheus.yml
+  - compose/loki.yml
+  - compose/promtail.yml
+  - compose/alertmanager.yml
   - compose/grafana.yml
 
   # APPS

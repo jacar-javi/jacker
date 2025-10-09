@@ -1,0 +1,52 @@
+services:
+  # Alertmanager - Alert routing and notification
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: alertmanager
+
+    security_opt:
+      - no-new-privileges:true
+
+    restart: unless-stopped
+
+    networks:
+      - traefik_proxy
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    ports:
+      - "127.0.0.1:9093:9093"
+
+    volumes:
+      - $DATADIR/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - $DATADIR/alertmanager/data:/alertmanager
+
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+
+    environment:
+      TZ: $TZ
+      SMTP_HOST: $SMTP_HOST
+      SMTP_PORT: $SMTP_PORT
+      SMTP_FROM: $SMTP_FROM
+      SMTP_USERNAME: $SMTP_USERNAME
+      SMTP_PASSWORD: $SMTP_PASSWORD
+      ALERT_EMAIL_TO: $ALERT_EMAIL_TO
+      TELEGRAM_BOT_TOKEN: $TELEGRAM_BOT_TOKEN
+      TELEGRAM_CHAT_ID: $TELEGRAM_CHAT_ID
+
+    labels:
+      # Homepage Integration
+      - "homepage.group=Backend"
+      - "homepage.name=Alertmanager"
+      - "homepage.icon=alertmanager.svg"
+      - "homepage.description=Alert Management and Routing"
+      - "homepage.widget.type=alertmanager"
+      - "homepage.widget.url=http://alertmanager:9093"

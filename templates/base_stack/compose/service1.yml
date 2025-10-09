@@ -1,0 +1,78 @@
+services:
+  {service-name}:
+    image: {image:tag}
+    container_name: {service-name}
+    hostname: {service-name}
+    restart: unless-stopped
+
+    # Security
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+
+    # Networks
+    networks:
+      - traefik_proxy
+      - default
+
+    # Environment variables
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      # Add service-specific environment variables
+
+    # Volumes
+    volumes:
+      - ${DATADIR}/{service-name}:/data
+      - ${CONFIGDIR}/{service-name}:/config
+      # Add service-specific volumes
+
+    # Ports (only expose if needed - prefer Traefik routing)
+    # ports:
+    #   - "8080:80"
+
+    # Health check (if supported by the service)
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
+
+    # Resource limits (optional)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1.0'
+    #       memory: 1G
+    #     reservations:
+    #       cpus: '0.25'
+    #       memory: 256M
+
+    # Traefik labels
+    labels:
+      - "traefik.enable=true"
+
+      # HTTP Router
+      - "traefik.http.routers.{service-name}-rtr.entrypoints=websecure"
+      - "traefik.http.routers.{service-name}-rtr.rule=Host(`${SERVICE_SUBDOMAIN}.${PUBLIC_FQDN}`)"
+      - "traefik.http.routers.{service-name}-rtr.tls=true"
+      - "traefik.http.routers.{service-name}-rtr.tls.certresolver=${TRAEFIK_TLS_CERTRESOLVER}"
+
+      # Middlewares
+      - "traefik.http.routers.{service-name}-rtr.middlewares=${TRAEFIK_MIDDLEWARE}"
+
+      # HTTP Service
+      - "traefik.http.routers.{service-name}-rtr.service={service-name}-svc"
+      - "traefik.http.services.{service-name}-svc.loadbalancer.server.port=${SERVICE_PORT}"
+
+      # Homepage integration (optional)
+      - "homepage.group={Category}"
+      - "homepage.name={STACK_NAME}"
+      - "homepage.icon={icon}.svg"
+      - "homepage.href=https://${SERVICE_SUBDOMAIN}.${PUBLIC_FQDN}"
+      - "homepage.description={Brief description}"
+
+      # Watchtower (optional - for auto-updates)
+      - "com.centurylinklabs.watchtower.enable=false"

@@ -1,7 +1,27 @@
 #!/usr/bin/env bash
+#
+# Script: setup.sh
+# Description: Main installation script for Jacker
+# Usage: ./setup.sh
+# Notes: This script runs in two phases (before and after reboot)
+#
+
+set -euo pipefail
+
+# Logging setup
+LOGDIR="$(cd "$(dirname "$0")" && pwd)/logs"
+mkdir -p "$LOGDIR"
+LOGFILE="$LOGDIR/jacker-setup-$(date +%Y%m%d-%H%M%S).log"
+exec 1> >(tee -a "$LOGFILE")
+exec 2>&1
+
+echo "Jacker Setup Started at $(date)"
+echo "Log file: $LOGFILE"
+echo ""
+
 unknown_os ()
 {
-  echo "Unfortunately, your operating system distribution and version are not supported by Jacker."
+  echo "ERROR: Unfortunately, your operating system distribution and version are not supported by Jacker."
   echo
   echo "You can override the OS detection by setting os= and dist= prior to running this script."
   echo
@@ -111,6 +131,52 @@ detect_apt_version ()
   echo "Detected apt version as ${apt_version_full}"
 }
 
+validate_hostname ()
+{
+  local hostname=$1
+  # Check hostname format (alphanumeric and hyphens, not starting/ending with hyphen)
+  if [[ ! "$hostname" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]]; then
+    echo "ERROR: Invalid hostname format. Use only alphanumeric characters and hyphens."
+    return 1
+  fi
+  return 0
+}
+
+validate_domain ()
+{
+  local domain=$1
+  # Basic domain validation
+  if [[ ! "$domain" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$ ]]; then
+    echo "ERROR: Invalid domain format. Example: example.com"
+    return 1
+  fi
+  return 0
+}
+
+validate_email ()
+{
+  local email=$1
+  # Basic email validation
+  if [[ ! "$email" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+    echo "ERROR: Invalid email format."
+    return 1
+  fi
+  return 0
+}
+
+validate_email_list ()
+{
+  local email_list=$1
+  IFS=',' read -ra emails <<< "$email_list"
+  for email in "${emails[@]}"; do
+    email=$(echo "$email" | xargs) # trim whitespace
+    if ! validate_email "$email"; then
+      return 1
+    fi
+  done
+  return 0
+}
+
 create_env_files()
 {
   source .env.defaults
@@ -123,10 +189,23 @@ create_env_files()
   export DOCKERDIR=`eval pwd`
   export DATADIR=$DOCKERDIR/data
 
-  read -r -p "Enter your Host Name (e.g. mybox): " response
-  export HOSTNAME=$response
-  read -r -p "Enter your Domain Name (e.g. example.com): " response
-  export DOMAINNAME=$response
+  # Validate and set hostname
+  while true; do
+    read -r -p "Enter your Host Name (e.g. mybox): " response
+    if validate_hostname "$response"; then
+      export HOSTNAME=$response
+      break
+    fi
+  done
+
+  # Validate and set domain name
+  while true; do
+    read -r -p "Enter your Domain Name (e.g. example.com): " response
+    if validate_domain "$response"; then
+      export DOMAINNAME=$response
+      break
+    fi
+  done
   export PUBLIC_FQDN=$HOSTNAME.$DOMAINNAME
   export LOCAL_IPS=$LOCAL_IPS
   export CODE_TRAEFIK_SUBNET_IP=$CODE_TRAEFIK_SUBNET_IP
@@ -154,11 +233,23 @@ create_env_files()
   read -r -p "Enter your OAuth client secret: " response
   export OAUTH_CLIENT_SECRET=$response
   export OAUTH_SECRET=`openssl rand -hex 16`
-  read -r -p "Enter comma separated emails whick will get access to all your SSO applications (e.g. a@example.com,b@example.com): " response
-  export OAUTH_WHITELIST=$response
+  # Validate OAuth whitelist emails
+  while true; do
+    read -r -p "Enter comma separated emails which will get access to all your SSO applications (e.g. a@example.com,b@example.com): " response
+    if validate_email_list "$response"; then
+      export OAUTH_WHITELIST=$response
+      break
+    fi
+  done
 
-  read -r -p "Enter Email address for Let's Encrypt SSL Certificates: " response
-  export LETSENCRYPT_EMAIL=$response
+  # Validate Let's Encrypt email
+  while true; do
+    read -r -p "Enter Email address for Let's Encrypt SSL Certificates: " response
+    if validate_email "$response"; then
+      export LETSENCRYPT_EMAIL=$response
+      break
+    fi
+  done
 
   export CROWDSEC_API_PORT=$CROWDSEC_API_PORT
   export CROWDSEC_TRAEFIK_BOUNCER_API_KEY=`openssl rand -hex 64`
@@ -218,10 +309,12 @@ first_round()
     read -r -p "Existing .env file. Reinstall Jacker? (.env will be moved to .env.bak) [y/N] " response
     case $response in
       [yY][eE][sS]|[yY])
+        echo "Backing up existing .env to .env.bak..."
         mv .env .env.bak
       ;;
       *)
-        exit -1
+        echo "Installation cancelled."
+        exit 1
       ;;
     esac
   fi

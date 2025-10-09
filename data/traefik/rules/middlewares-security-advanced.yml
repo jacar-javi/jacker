@@ -1,0 +1,197 @@
+http:
+  middlewares:
+    # Request Size Limit - Prevent large payload attacks
+    # Apply with: middlewares=request-size-limit@file
+    request-size-limit:
+      buffering:
+        maxRequestBodyBytes: 10485760  # 10MB limit
+        memRequestBodyBytes: 2097152   # 2MB in memory
+        maxResponseBodyBytes: 10485760 # 10MB response limit
+        memResponseBodyBytes: 2097152  # 2MB in memory
+        retryExpression: "IsNetworkError() && Attempts() < 3"
+
+    # Strict Request Size Limit - For APIs that don't need large uploads
+    # Apply with: middlewares=request-size-limit-strict@file
+    request-size-limit-strict:
+      buffering:
+        maxRequestBodyBytes: 1048576  # 1MB limit
+        memRequestBodyBytes: 524288   # 512KB in memory
+        maxResponseBodyBytes: 1048576 # 1MB response limit
+        memResponseBodyBytes: 524288  # 512KB in memory
+        retryExpression: "IsNetworkError() && Attempts() < 2"
+
+    # IP Whitelist - Restrict access to specific IPs
+    # Apply with: middlewares=ip-whitelist@file
+    # Configure IPs in environment variable: TRAEFIK_IP_WHITELIST
+    ip-whitelist:
+      ipWhiteList:
+        sourceRange:
+          - "127.0.0.1/32"
+          - "10.0.0.0/8"
+          - "192.168.0.0/16"
+          - "172.16.0.0/12"
+        # Uncomment to use X-Forwarded-For header (when behind proxy/CDN)
+        # ipStrategy:
+        #   depth: 1
+        #   excludedIPs:
+        #     - "127.0.0.1/32"
+
+    # IP Whitelist for Admin Services - Very restrictive
+    # Apply with: middlewares=ip-whitelist-admin@file
+    ip-whitelist-admin:
+      ipWhiteList:
+        sourceRange:
+          - "127.0.0.1/32"
+          # Add your admin IP addresses here
+          # - "1.2.3.4/32"
+
+    # Enhanced Rate Limiting - Protection against brute force and DDoS
+    # Apply with: middlewares=rate-limit-enhanced@file
+    rate-limit-enhanced:
+      rateLimit:
+        average: 100      # Average requests per second
+        period: 1s        # Time period
+        burst: 50         # Burst size (requests allowed above average)
+        sourceCriterion:
+          requestHost: true
+          ipStrategy:
+            depth: 1
+            excludedIPs:
+              - "127.0.0.1/32"
+
+    # Strict Rate Limiting - For sensitive endpoints (login, API)
+    # Apply with: middlewares=rate-limit-strict@file
+    rate-limit-strict:
+      rateLimit:
+        average: 10       # Only 10 requests per second
+        period: 1s
+        burst: 5          # Burst of 5
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+    # API Rate Limiting - For API endpoints
+    # Apply with: middlewares=rate-limit-api@file
+    rate-limit-api:
+      rateLimit:
+        average: 50       # 50 requests per second
+        period: 1s
+        burst: 20         # Burst of 20
+        sourceCriterion:
+          requestHeaderName: "X-API-Key"  # Rate limit per API key
+          requestHost: true
+
+    # In-Flight Requests Limiter - Prevent resource exhaustion
+    # Apply with: middlewares=inflight-limit@file
+    inflight-limit:
+      inFlightReq:
+        amount: 100       # Maximum 100 concurrent requests
+        sourceCriterion:
+          requestHost: true
+          ipStrategy:
+            depth: 1
+
+    # Strict In-Flight Requests - For resource-intensive services
+    # Apply with: middlewares=inflight-limit-strict@file
+    inflight-limit-strict:
+      inFlightReq:
+        amount: 10        # Maximum 10 concurrent requests
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+    # Circuit Breaker - Protect backend from cascading failures
+    # Apply with: middlewares=circuit-breaker@file
+    circuit-breaker:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.30 || ResponseCodeRatio(500, 600, 0, 600) > 0.25"
+        checkPeriod: 10s
+        fallbackDuration: 30s
+        recoveryDuration: 30s
+
+    # Retry Middleware - Automatic retry on failures
+    # Apply with: middlewares=retry@file
+    retry:
+      retry:
+        attempts: 3
+        initialInterval: 100ms
+
+    # Path Prefix Strip - For legacy applications
+    # Apply with: middlewares=strip-prefix@file
+    # Example: /api/v1/users -> /users
+    strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/api/v1"
+          - "/api"
+        forceSlash: false
+
+    # Add Prefix - Add path prefix to requests
+    # Apply with: middlewares=add-prefix@file
+    add-prefix:
+      addPrefix:
+        prefix: "/api"
+
+    # Custom Error Pages
+    # Apply with: middlewares=error-pages@file
+    error-pages:
+      errors:
+        status:
+          - "400-599"
+        service: error-pages-service
+        query: "/{status}.html"
+
+    # Redirect WWW to non-WWW
+    # Apply with: middlewares=redirect-non-www@file
+    redirect-non-www:
+      redirectRegex:
+        regex: "^https://www\\.(.+)"
+        replacement: "https://${1}"
+        permanent: true
+
+    # Redirect non-WWW to WWW
+    # Apply with: middlewares=redirect-www@file
+    redirect-www:
+      redirectRegex:
+        regex: "^https://(?:www\\.)?(.+)"
+        replacement: "https://www.${1}"
+        permanent: true
+
+    # Block User Agents - Bot protection
+    # Apply with: middlewares=block-bots@file
+    block-bots:
+      plugin:
+        modSecurity:
+          enabled: true
+          # Block common bad bots
+          userAgentBlacklist:
+            - "(?i)(bot|crawler|spider|scraper|headless)"
+            - "(?i)(curl|wget|python|java|perl|ruby|php)"
+
+    # Allowed Paths Only - Restrict access to specific paths
+    # Apply with: middlewares=allowed-paths@file
+    allowed-paths:
+      plugin:
+        rewrite:
+          # Only allow specific paths
+          # All other paths will return 404
+          includes:
+            - "^/$"
+            - "^/api/"
+            - "^/health$"
+            - "^/metrics$"
+
+    # Block Specific Paths - Deny access to sensitive paths
+    # Apply with: middlewares=block-paths@file
+    block-paths:
+      plugin:
+        rewriteBody:
+          # Block access to common sensitive files
+          paths:
+            - "/.env"
+            - "/.git/"
+            - "/admin/"
+            - "/config/"
+            - "/.htaccess"
+            - "/composer.json"
+            - "/package.json"

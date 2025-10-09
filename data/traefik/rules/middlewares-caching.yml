@@ -1,0 +1,62 @@
+http:
+  middlewares:
+    # Static content caching headers
+    # Apply to static assets: middlewares=cache-static@file
+    cache-static:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "public, max-age=31536000, immutable"  # 1 year
+          X-Cache-Status: "HIT-STATIC"
+
+    # Dynamic content with caching
+    # Apply to API endpoints that can be cached: middlewares=cache-dynamic@file
+    cache-dynamic:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "public, max-age=300, s-maxage=600"  # 5 min browser, 10 min CDN
+          X-Cache-Status: "HIT-DYNAMIC"
+          Vary: "Accept-Encoding, Accept"
+
+    # Private content caching (user-specific)
+    # Apply to authenticated content: middlewares=cache-private@file
+    cache-private:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "private, max-age=60"  # 1 minute browser cache only
+          X-Cache-Status: "HIT-PRIVATE"
+
+    # No cache for sensitive content
+    # Apply to admin panels, forms, etc: middlewares=no-cache@file
+    no-cache:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+          Pragma: "no-cache"
+          Expires: "0"
+          X-Cache-Status: "NO-CACHE"
+
+    # Stale-while-revalidate pattern
+    # Serve stale content while fetching fresh: middlewares=cache-swr@file
+    cache-swr:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "public, max-age=60, stale-while-revalidate=300, stale-if-error=86400"
+          X-Cache-Status: "SWR"
+
+    # API responses with short TTL
+    # Apply to frequently changing APIs: middlewares=cache-api@file
+    cache-api:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "public, max-age=30, s-maxage=60"  # 30s browser, 60s CDN
+          X-Cache-Status: "HIT-API"
+          Vary: "Accept-Encoding, Accept, Authorization"
+
+    # Image/media caching
+    # Apply to image services: middlewares=cache-media@file
+    cache-media:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "public, max-age=2592000, immutable"  # 30 days
+          X-Cache-Status: "HIT-MEDIA"
+          Accept-Ranges: "bytes"

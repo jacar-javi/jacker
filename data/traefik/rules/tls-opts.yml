@@ -1,19 +1,65 @@
 tls:
   options:
+    # Default TLS configuration - TLS 1.3 minimum (most secure)
     tls-opts:
-      minVersion: VersionTLS12
-      cipherSuites:
-        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
-        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
-        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
-        - TLS_AES_128_GCM_SHA256
-        - TLS_AES_256_GCM_SHA384
-        - TLS_CHACHA20_POLY1305_SHA256
-        - TLS_FALLBACK_SCSV # Client is doing version fallback. See RFC 7507
+      minVersion: VersionTLS13
+      maxVersion: VersionTLS13
+      # TLS 1.3 cipher suites (auto-negotiated, cannot be configured)
+      # TLS 1.3 uses: TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256
       curvePreferences:
         - CurveP521
         - CurveP384
+        - CurveP256
       sniStrict: true
+      # ALPN protocols
+      alpnProtocols:
+        - h2          # HTTP/2
+        - http/1.1    # HTTP/1.1
+      # Prefer server cipher suites
+      preferServerCipherSuites: true
+
+    # Legacy TLS 1.2 configuration for compatibility (if needed)
+    # Use this option ONLY if you have clients that don't support TLS 1.3
+    # Apply with: tls.options=tls-opts-legacy@file
+    tls-opts-legacy:
+      minVersion: VersionTLS12
+      maxVersion: VersionTLS13
+      # Recommended TLS 1.2+ cipher suites (ordered by preference)
+      cipherSuites:
+        # TLS 1.3 ciphers (preferred)
+        - TLS_AES_256_GCM_SHA384
+        - TLS_CHACHA20_POLY1305_SHA256
+        - TLS_AES_128_GCM_SHA256
+
+        # TLS 1.2 ECDHE ciphers with forward secrecy
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+
+        # Fallback SCSV for downgrade attack protection
+        - TLS_FALLBACK_SCSV
+      curvePreferences:
+        - CurveP521
+        - CurveP384
+        - CurveP256
+      sniStrict: true
+      alpnProtocols:
+        - h2
+        - http/1.1
+      preferServerCipherSuites: true
+
+  # TLS Store configuration for custom certificates
+  stores:
+    default:
+      defaultCertificate:
+        certFile: ""
+        keyFile: ""
+      # defaultGeneratedCert:
+      #   resolver: http
+      #   domain:
+      #     main: "*.example.com"
+      #     sans:
+      #       - "example.com"

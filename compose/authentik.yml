@@ -1,0 +1,157 @@
+services:
+  authentik-postgres:
+    image: postgres:17-alpine
+    container_name: authentik-postgres
+
+    restart: unless-stopped
+
+    networks:
+      - traefik_proxy
+
+    security_opt:
+      - no-new-privileges:true
+
+    volumes:
+      - $DATADIR/authentik/postgres:/var/lib/postgresql/data
+
+    environment:
+      POSTGRES_DB: ${AUTHENTIK_POSTGRES_DB:-authentik}
+      POSTGRES_USER: ${AUTHENTIK_POSTGRES_USER:-authentik}
+      POSTGRES_PASSWORD: ${AUTHENTIK_POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTHENTIK_POSTGRES_USER:-authentik} -d ${AUTHENTIK_POSTGRES_DB:-authentik}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    labels:
+      - "homepage.group=Backend"
+      - "homepage.name=Authentik PostgreSQL"
+      - "homepage.icon=postgres.svg"
+      - "homepage.description=Authentik Database"
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_VERSION:-2024.10.4}
+    container_name: authentik-server
+
+    restart: unless-stopped
+
+    command: server
+
+    networks:
+      - traefik_proxy
+
+    security_opt:
+      - no-new-privileges:true
+
+    depends_on:
+      - authentik-postgres
+      - redis
+
+    volumes:
+      - $DATADIR/authentik/media:/media
+      - $DATADIR/authentik/custom-templates:/templates
+      - $DATADIR/authentik/certs:/certs
+
+    environment:
+      AUTHENTIK_REDIS__HOST: redis
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
+      AUTHENTIK_POSTGRESQL__NAME: ${AUTHENTIK_POSTGRES_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__USER: ${AUTHENTIK_POSTGRES_USER:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_POSTGRES_PASSWORD}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+      AUTHENTIK_LOG_LEVEL: ${AUTHENTIK_LOG_LEVEL:-info}
+      AUTHENTIK_COOKIE_DOMAIN: ${DOMAINNAME}
+      AUTHENTIK_DISABLE_UPDATE_CHECK: "false"
+      AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
+      AUTHENTIK_AVATARS: initials
+      # Email configuration (optional)
+      AUTHENTIK_EMAIL__HOST: ${SMTP_HOST}
+      AUTHENTIK_EMAIL__PORT: ${SMTP_PORT:-587}
+      AUTHENTIK_EMAIL__USERNAME: ${SMTP_USERNAME}
+      AUTHENTIK_EMAIL__PASSWORD: ${SMTP_PASSWORD}
+      AUTHENTIK_EMAIL__USE_TLS: "true"
+      AUTHENTIK_EMAIL__FROM: ${SMTP_FROM}
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+
+      # HTTP Router
+      - "traefik.http.routers.authentik-rtr.entrypoints=websecure"
+      - "traefik.http.routers.authentik-rtr.rule=Host(`auth.${DOMAINNAME}`) || HostRegexp(`{subdomain:[a-z0-9-]+}.${DOMAINNAME}`) && PathPrefix(`/outpost.goauthentik.io/`)"
+      - "traefik.http.routers.authentik-rtr.tls=true"
+      - "traefik.http.routers.authentik-rtr.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.authentik-rtr.tls.options=tls-opts@file"
+
+      # Middlewares
+      - "traefik.http.routers.authentik-rtr.middlewares=chain-no-auth@file"
+
+      # Service
+      - "traefik.http.routers.authentik-rtr.service=authentik-svc"
+      - "traefik.http.services.authentik-svc.loadbalancer.server.port=9000"
+
+      # Homepage Integration
+      - "homepage.group=Core Services"
+      - "homepage.name=Authentik"
+      - "homepage.icon=authentik.svg"
+      - "homepage.href=https://auth.${DOMAINNAME}"
+      - "homepage.description=Identity Provider & SSO"
+      - "homepage.weight=3"
+      - "homepage.widget.type=authentik"
+      - "homepage.widget.url=https://auth.${DOMAINNAME}"
+      - "homepage.widget.key=${AUTHENTIK_API_TOKEN}"
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:${AUTHENTIK_VERSION:-2024.10.4}
+    container_name: authentik-worker
+
+    restart: unless-stopped
+
+    command: worker
+
+    networks:
+      - traefik_proxy
+
+    security_opt:
+      - no-new-privileges:true
+
+    depends_on:
+      - authentik-postgres
+      - redis
+
+    volumes:
+      - $DATADIR/authentik/media:/media
+      - $DATADIR/authentik/custom-templates:/templates
+      - $DATADIR/authentik/certs:/certs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    environment:
+      AUTHENTIK_REDIS__HOST: redis
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgres
+      AUTHENTIK_POSTGRESQL__NAME: ${AUTHENTIK_POSTGRES_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__USER: ${AUTHENTIK_POSTGRES_USER:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_POSTGRES_PASSWORD}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+      AUTHENTIK_LOG_LEVEL: ${AUTHENTIK_LOG_LEVEL:-info}
+      AUTHENTIK_COOKIE_DOMAIN: ${DOMAINNAME}
+      AUTHENTIK_DISABLE_UPDATE_CHECK: "false"
+      AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
+      # Email configuration (optional)
+      AUTHENTIK_EMAIL__HOST: ${SMTP_HOST}
+      AUTHENTIK_EMAIL__PORT: ${SMTP_PORT:-587}
+      AUTHENTIK_EMAIL__USERNAME: ${SMTP_USERNAME}
+      AUTHENTIK_EMAIL__PASSWORD: ${SMTP_PASSWORD}
+      AUTHENTIK_EMAIL__USE_TLS: "true"
+      AUTHENTIK_EMAIL__FROM: ${SMTP_FROM}
+
+    labels:
+      - "homepage.group=Backend"
+      - "homepage.name=Authentik Worker"
+      - "homepage.icon=authentik.svg"
+      - "homepage.description=Background Tasks"

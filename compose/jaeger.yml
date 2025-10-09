@@ -1,0 +1,101 @@
+services:
+  # Jaeger - Distributed Tracing Platform
+  # OPTIONAL: Enable this service only if TRAEFIK_TRACING_ENABLED=true
+  # Jaeger provides distributed tracing to monitor and troubleshoot microservices
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    container_name: jaeger
+
+    security_opt:
+      - no-new-privileges:true
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:14269/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    networks:
+      - traefik_proxy
+
+    # Jaeger Ports:
+    # 5775/udp   - accept zipkin.thrift over compact thrift protocol (deprecated)
+    # 6831/udp   - accept jaeger.thrift over compact thrift protocol
+    # 6832/udp   - accept jaeger.thrift over binary thrift protocol
+    # 5778/tcp   - serve configs
+    # 16686/tcp  - serve frontend (Jaeger UI)
+    # 14268/tcp  - accept jaeger.thrift directly from clients
+    # 14250/tcp  - accept model.proto
+    # 14269/tcp  - health check
+    # 4317/tcp   - OTLP gRPC receiver
+    # 4318/tcp   - OTLP HTTP receiver
+
+    # Only expose collector and agent ports internally
+    # UI will be exposed through Traefik
+    expose:
+      - "5778"   # Config server
+      - "6831"   # Jaeger agent (thrift compact)
+      - "6832"   # Jaeger agent (thrift binary)
+      - "14250"  # gRPC
+      - "14268"  # HTTP collector
+      - "14269"  # Health check
+      - "4317"   # OTLP gRPC
+      - "4318"   # OTLP HTTP
+      - "16686"  # Jaeger UI
+
+    environment:
+      # Collector settings
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+
+      # Storage settings
+      - SPAN_STORAGE_TYPE=badger  # Use embedded database (badger)
+      # Alternative: use memory (ephemeral, for testing only)
+      # - SPAN_STORAGE_TYPE=memory
+
+      # Badger storage configuration
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+
+      # Sampling configuration
+      - SAMPLING_STRATEGIES_FILE=/etc/jaeger/sampling_strategies.json
+
+      # Query settings
+      - QUERY_BASE_PATH=/
+
+      # Log level
+      - LOG_LEVEL=info
+
+      # Timezone
+      - TZ=$TZ
+
+    volumes:
+      # Persistent storage for traces
+      - $DATADIR/jaeger/badger:/badger
+      # Sampling configuration
+      - $DATADIR/jaeger/sampling_strategies.json:/etc/jaeger/sampling_strategies.json:ro
+
+    labels:
+      - "traefik.enable=true"
+
+      # Jaeger UI Router
+      - "traefik.http.routers.jaeger.rule=Host(`jaeger.$PUBLIC_FQDN`)"
+      - "traefik.http.routers.jaeger.entrypoints=websecure"
+      - "traefik.http.routers.jaeger.service=jaeger-ui"
+      - "traefik.http.routers.jaeger.middlewares=chain-oauth@file"
+
+      # Jaeger UI Service
+      - "traefik.http.services.jaeger-ui.loadbalancer.server.port=16686"
+
+      # Homepage Integration
+      - "homepage.group=Monitoring"
+      - "homepage.name=Jaeger Tracing"
+      - "homepage.icon=jaeger.svg"
+      - "homepage.href=https://jaeger.$PUBLIC_FQDN"
+      - "homepage.description=Distributed Tracing"
+      - "homepage.widget.type=jaeger"
+      - "homepage.widget.url=http://jaeger:16686"

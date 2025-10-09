@@ -1,10 +1,13 @@
 http:
   middlewares:
+    # Standard OAuth chain with CrowdSec protection
+    # Apply with: middlewares=chain-oauth@file
     chain-oauth:
       chain:
         middlewares:
-          - middlewares-traefik-bouncer # leave this out if you are not using CrowdSec
-          - middlewares-rate-limit
-          - middlewares-secure-headers
-          - middlewares-oauth
-          - middlewares-compress
+          - middlewares-traefik-bouncer  # CrowdSec IPS protection
+          - rate-limit-enhanced@file     # Enhanced rate limiting
+          - security-headers@file        # Security headers
+          - request-size-limit@file      # Prevent large payload attacks
+          - middlewares-oauth            # OAuth authentication
+          - middlewares-compress         # Compression

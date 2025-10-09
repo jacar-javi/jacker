@@ -1,0 +1,78 @@
+groups:
+  - name: security_alerts
+    interval: 30s
+    rules:
+      # SSL Certificate Alerts
+      - alert: SSLCertificateExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.instance }} will expire in {{ $value }} days"
+
+      - alert: SSLCertificateExpiryCritical
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 7
+        for: 1h
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "SSL certificate expiring very soon"
+          description: "SSL certificate for {{ $labels.instance }} will expire in {{ $value }} days"
+
+      # OAuth Alerts
+      - alert: OAuthServiceDown
+        expr: up{job="oauth"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "OAuth service is down"
+          description: "OAuth authentication service has been down for more than 2 minutes. Users cannot authenticate!"
+
+      # Failed Authentication Attempts
+      - alert: HighFailedAuthAttempts
+        expr: sum(rate(traefik_service_requests_total{code="401"}[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "High number of failed authentication attempts"
+          description: "There are {{ $value }} failed authentication attempts per second. Possible brute force attack."
+
+      # CrowdSec Security Events
+      - alert: CrowdSecMultipleBansFromSameIP
+        expr: count by (ip) (crowdsec_lapi_decisions_total) > 5
+        for: 10m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "Multiple bans from same IP"
+          description: "IP {{ $labels.ip }} has been banned {{ $value }} times. Persistent attack attempt."
+
+      - alert: CrowdSecHighAlertVolume
+        expr: sum(rate(crowdsec_lapi_machine_hits_total[5m])) > 100
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "High volume of security alerts"
+          description: "CrowdSec is receiving {{ $value }} alerts/second. Possible DDoS or scanning activity."
+
+      # Firewall Alerts
+      - alert: HighPacketDropRate
+        expr: rate(node_netstat_IpExt_InDiscards[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "High packet drop rate detected"
+          description: "System is dropping {{ $value }} packets/second. Possible network attack or misconfiguration."

@@ -1,7 +1,7 @@
 services:
   # Homepage - Application Dashboard
   homepage:
-    image: ghcr.io/gethomepage/homepage:main
+    image: ghcr.io/gethomepage/homepage:v1.5.0
     container_name: homepage
     depends_on:
       socket-proxy:
@@ -9,6 +9,14 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
     networks:
       - traefik_proxy
       - socket_proxy

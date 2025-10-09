@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+#
+# Script: 05-install_iptables-bouncer.sh
+# Description: Install CrowdSec iptables bouncer
+# Usage: ./05-install_iptables-bouncer.sh
+# Requirements: .env file must exist
+#
+
+set -euo pipefail
+
+cd "$(dirname "$0")"
+source ../.env
+
+echo "Installing CrowdSec iptables bouncer..."
+
+# Download and verify the installation script
+TEMP_SCRIPT=$(mktemp)
+trap 'rm -f "$TEMP_SCRIPT"' EXIT
+
+echo "Downloading CrowdSec repository script..."
+curl -fsSL https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.deb.sh -o "$TEMP_SCRIPT"
+
+# Verify the script was downloaded successfully
+if [ ! -s "$TEMP_SCRIPT" ]; then
+    echo "ERROR: Failed to download CrowdSec repository script"
+    exit 1
+fi
+
+# Execute the script
+echo "Adding CrowdSec repository..."
+sudo bash "$TEMP_SCRIPT"
+
+echo "Installing crowdsec-firewall-bouncer-iptables..."
+sudo apt-get update &> /dev/null
+sudo apt-get install crowdsec-firewall-bouncer-iptables -y &> /dev/null
+
+echo "CrowdSec iptables bouncer installed successfully."

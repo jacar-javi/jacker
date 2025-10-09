@@ -1,0 +1,1018 @@
+#!/usr/bin/env bash
+
+#================================================================
+# JACKER STACK MANAGER
+#================================================================
+# Interactive menu-driven stack management system
+# Version: 2.0.0
+#================================================================
+
+set -euo pipefail
+
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Directories
+STACKS_DIR="$PROJECT_ROOT/jacker-stacks"
+INSTALLED_DIR="$PROJECT_ROOT/stacks"
+CONFIG_DIR="$PROJECT_ROOT/.jacker"
+
+# Ensure directories exist
+mkdir -p "$INSTALLED_DIR" "$CONFIG_DIR"
+
+#================================================================
+# COLORS & FORMATTING
+#================================================================
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+WHITE='\033[1;37m'
+GRAY='\033[0;90m'
+NC='\033[0m' # No Color
+
+# Text formatting
+BOLD='\033[1m'
+DIM='\033[2m'
+UNDERLINE='\033[4m'
+BLINK='\033[5m'
+REVERSE='\033[7m'
+
+# Box drawing characters
+BOX_H="━"
+BOX_V="┃"
+BOX_TL="┏"
+BOX_TR="┓"
+BOX_BL="┗"
+BOX_BR="┛"
+BOX_ML="┣"
+BOX_MR="┫"
+BOX_TM="┳"
+BOX_BM="┻"
+BOX_MC="╋"
+
+#================================================================
+# HELPER FUNCTIONS
+#================================================================
+
+# Get terminal width
+get_terminal_width() {
+    tput cols 2>/dev/null || echo 80
+}
+
+# Print centered text
+print_centered() {
+    local text="$1"
+    local width=$(get_terminal_width)
+    local padding=$(( (width - ${#text}) / 2 ))
+    printf "%${padding}s%s\n" "" "$text"
+}
+
+# Print a horizontal line
+print_line() {
+    local char="${1:-$BOX_H}"
+    local width=$(get_terminal_width)
+    printf "${char}%.0s" $(seq 1 $width)
+    echo
+}
+
+# Print header
+print_header() {
+    local title="$1"
+    local width=$(get_terminal_width)
+
+    clear
+    echo -e "${BLUE}"
+    print_line "$BOX_H"
+    echo ""
+    echo -e "${BOLD}${WHITE}"
+    print_centered "🎯 JACKER STACK MANAGER"
+    echo -e "${NC}${BLUE}"
+    if [[ -n "$title" ]]; then
+        echo -e "${CYAN}"
+        print_centered "$title"
+    fi
+    echo -e "${BLUE}"
+    print_line "$BOX_H"
+    echo -e "${NC}"
+    echo ""
+}
+
+# Print success message
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+# Print error message
+print_error() {
+    echo -e "${RED}✗${NC} $1" >&2
+}
+
+# Print warning message
+print_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
+# Print info message
+print_info() {
+    echo -e "${BLUE}ℹ${NC} $1"
+}
+
+# Print section header
+print_section() {
+    echo ""
+    echo -e "${CYAN}${BOLD}$1${NC}"
+    echo -e "${GRAY}$(print_line ─)${NC}"
+}
+
+# Wait for user input
+press_enter() {
+    echo ""
+    echo -e "${GRAY}Press ${WHITE}ENTER${GRAY} to continue...${NC}"
+    read -r
+}
+
+#================================================================
+# STACK DISCOVERY
+#================================================================
+
+# Get all available stacks
+get_available_stacks() {
+    local stacks=()
+
+    if [[ -d "$STACKS_DIR" ]]; then
+        while IFS= read -r -d '' compose_file; do
+            local stack_dir=$(dirname "$compose_file")
+            local stack_name=$(basename "$stack_dir")
+            local category=$(basename "$(dirname "$stack_dir")")
+
+            # Get description from README or stack.yml
+            local description=""
+            if [[ -f "$stack_dir/stack.yml" ]]; then
+                description=$(grep "^description:" "$stack_dir/stack.yml" | cut -d'"' -f2 | head -n1)
+            elif [[ -f "$stack_dir/README.md" ]]; then
+                description=$(head -n 10 "$stack_dir/README.md" | grep -v "^#" | grep -v "^$" | head -n1 | cut -c1-60)
+            fi
+
+            # Check if installed
+            local installed="false"
+            [[ -d "$INSTALLED_DIR/$stack_name" ]] && installed="true"
+
+            # Check if systemd service exists
+            local systemd="false"
+            [[ -f "/etc/systemd/system/jacker-${stack_name}.service" ]] && systemd="true"
+
+            stacks+=("${category}|${stack_name}|${description}|${installed}|${systemd}")
+        done < <(find "$STACKS_DIR" -mindepth 2 -maxdepth 3 -name "docker-compose.yml" -print0 2>/dev/null)
+    fi
+
+    printf '%s\n' "${stacks[@]}" | sort
+}
+
+# Get stack categories
+get_categories() {
+    get_available_stacks | cut -d'|' -f1 | sort -u
+}
+
+# Count stacks by category
+count_stacks_by_category() {
+    local category="$1"
+    get_available_stacks | grep "^${category}|" | wc -l
+}
+
+# Count installed stacks
+count_installed() {
+    get_available_stacks | grep "|true|" | wc -l
+}
+
+# Count total stacks
+count_total() {
+    get_available_stacks | wc -l
+}
+
+#================================================================
+# MAIN MENU
+#================================================================
+
+show_main_menu() {
+    while true; do
+        print_header "Main Menu"
+
+        # Statistics
+        local total=$(count_total)
+        local installed=$(count_installed)
+
+        echo -e "${CYAN}📊 Stack Statistics${NC}"
+        echo -e "   Total Available: ${WHITE}${total}${NC}"
+        echo -e "   Installed: ${GREEN}${installed}${NC}"
+        echo ""
+
+        print_section "Main Menu"
+        echo -e "  ${WHITE}1${NC}) 📚 Browse All Stacks"
+        echo -e "  ${WHITE}2${NC}) 📁 Browse by Category"
+        echo -e "  ${WHITE}3${NC}) 🔍 Search Stacks"
+        echo -e "  ${WHITE}4${NC}) 💾 Installed Stacks"
+        echo -e "  ${WHITE}5${NC}) ⚙️  Systemd Services"
+        echo -e "  ${WHITE}6${NC}) 🔧 Stack Repositories"
+        echo ""
+        echo -e "  ${WHITE}0${NC}) 🚪 Exit"
+        echo ""
+
+        echo -ne "${CYAN}Select option: ${NC}"
+        read -r choice
+
+        case $choice in
+            1) browse_all_stacks ;;
+            2) browse_by_category ;;
+            3) search_stacks ;;
+            4) show_installed_stacks ;;
+            5) systemd_menu ;;
+            6) repository_menu ;;
+            0) echo -e "\n${GREEN}Goodbye!${NC}\n"; exit 0 ;;
+            *) print_error "Invalid option"; sleep 1 ;;
+        esac
+    done
+}
+
+#================================================================
+# BROWSE ALL STACKS
+#================================================================
+
+browse_all_stacks() {
+    while true; do
+        print_header "All Available Stacks"
+
+        local stacks=()
+        local idx=1
+
+        echo -e "${CYAN}Category${NC} ${GRAY}|${NC} ${CYAN}Stack Name${NC} ${GRAY}|${NC} ${CYAN}Status${NC} ${GRAY}|${NC} ${CYAN}Description${NC}"
+        print_line "─"
+
+        local current_category=""
+        while IFS='|' read -r category name description installed systemd; do
+            if [[ "$category" != "$current_category" ]]; then
+                if [[ -n "$current_category" ]]; then
+                    echo ""
+                fi
+                echo -e "${MAGENTA}${BOLD}📁 $category${NC}"
+                current_category="$category"
+            fi
+
+            # Status indicators
+            local status=""
+            if [[ "$installed" == "true" ]]; then
+                status="${GREEN}[Installed]${NC}"
+                if [[ "$systemd" == "true" ]]; then
+                    status="${status} ${BLUE}[Systemd]${NC}"
+                fi
+            else
+                status="${GRAY}[Available]${NC}"
+            fi
+
+            # Truncate description
+            local desc_short="${description:0:50}"
+            [[ ${#description} -gt 50 ]] && desc_short="${desc_short}..."
+
+            echo -e "  ${WHITE}${idx}${NC}) ${CYAN}${name}${NC} ${status}"
+            echo -e "     ${GRAY}${desc_short}${NC}"
+
+            stacks[$idx]="${category}/${name}"
+            ((idx++))
+        done < <(get_available_stacks)
+
+        echo ""
+        print_line "─"
+        echo -e "  ${WHITE}0${NC}) 🔙 Back to Main Menu"
+        echo ""
+
+        echo -ne "${CYAN}Select stack number (or 0 to go back): ${NC}"
+        read -r choice
+
+        if [[ "$choice" == "0" ]]; then
+            return
+        elif [[ "$choice" =~ ^[0-9]+$ ]] && [[ -n "${stacks[$choice]:-}" ]]; then
+            show_stack_details "${stacks[$choice]}"
+        else
+            print_error "Invalid selection"
+            sleep 1
+        fi
+    done
+}
+
+#================================================================
+# BROWSE BY CATEGORY
+#================================================================
+
+browse_by_category() {
+    while true; do
+        print_header "Browse by Category"
+
+        local categories=()
+        local idx=1
+
+        print_section "Available Categories"
+
+        while IFS= read -r category; do
+            local count=$(count_stacks_by_category "$category")
+            echo -e "  ${WHITE}${idx}${NC}) ${MAGENTA}${category}${NC} ${GRAY}(${count} stacks)${NC}"
+            categories[$idx]="$category"
+            ((idx++))
+        done < <(get_categories)
+
+        echo ""
+        echo -e "  ${WHITE}0${NC}) 🔙 Back to Main Menu"
+        echo ""
+
+        echo -ne "${CYAN}Select category: ${NC}"
+        read -r choice
+
+        if [[ "$choice" == "0" ]]; then
+            return
+        elif [[ "$choice" =~ ^[0-9]+$ ]] && [[ -n "${categories[$choice]:-}" ]]; then
+            show_category_stacks "${categories[$choice]}"
+        else
+            print_error "Invalid selection"
+            sleep 1
+        fi
+    done
+}
+
+show_category_stacks() {
+    local selected_category="$1"
+
+    while true; do
+        print_header "Category: $selected_category"
+
+        local stacks=()
+        local idx=1
+
+        echo -e "${CYAN}Stack Name${NC} ${GRAY}|${NC} ${CYAN}Status${NC} ${GRAY}|${NC} ${CYAN}Description${NC}"
+        print_line "─"
+
+        while IFS='|' read -r category name description installed systemd; do
+            [[ "$category" != "$selected_category" ]] && continue
+
+            local status=""
+            if [[ "$installed" == "true" ]]; then
+                status="${GREEN}[Installed]${NC}"
+                [[ "$systemd" == "true" ]] && status="${status} ${BLUE}[Systemd]${NC}"
+            else
+                status="${GRAY}[Available]${NC}"
+            fi
+
+            local desc_short="${description:0:60}"
+            [[ ${#description} -gt 60 ]] && desc_short="${desc_short}..."
+
+            echo -e "  ${WHITE}${idx}${NC}) ${CYAN}${name}${NC} ${status}"
+            echo -e "     ${GRAY}${desc_short}${NC}"
+
+            stacks[$idx]="${category}/${name}"
+            ((idx++))
+        done < <(get_available_stacks)
+
+        echo ""
+        print_line "─"
+        echo -e "  ${WHITE}0${NC}) 🔙 Back to Categories"
+        echo ""
+
+        echo -ne "${CYAN}Select stack number: ${NC}"
+        read -r choice
+
+        if [[ "$choice" == "0" ]]; then
+            return
+        elif [[ "$choice" =~ ^[0-9]+$ ]] && [[ -n "${stacks[$choice]:-}" ]]; then
+            show_stack_details "${stacks[$choice]}"
+        else
+            print_error "Invalid selection"
+            sleep 1
+        fi
+    done
+}
+
+#================================================================
+# STACK DETAILS & ACTIONS
+#================================================================
+
+show_stack_details() {
+    local stack_path="$1"
+    local stack_name=$(basename "$stack_path")
+    local category=$(dirname "$stack_path")
+    local stack_full_path="$STACKS_DIR/$stack_path"
+
+    while true; do
+        print_header "Stack: $stack_name"
+
+        # Check installation status
+        local is_installed=false
+        [[ -d "$INSTALLED_DIR/$stack_name" ]] && is_installed=true
+
+        # Check systemd status
+        local has_systemd=false
+        local systemd_enabled=false
+        local systemd_active=false
+        if [[ -f "/etc/systemd/system/jacker-${stack_name}.service" ]]; then
+            has_systemd=true
+            systemctl is-enabled "jacker-${stack_name}.service" &>/dev/null && systemd_enabled=true
+            systemctl is-active "jacker-${stack_name}.service" &>/dev/null && systemd_active=true
+        fi
+
+        # Stack information
+        print_section "Stack Information"
+        echo -e "  Name: ${WHITE}${stack_name}${NC}"
+        echo -e "  Category: ${MAGENTA}${category}${NC}"
+
+        # Status
+        if [[ "$is_installed" == "true" ]]; then
+            echo -e "  Status: ${GREEN}✓ Installed${NC}"
+            echo -e "  Location: ${GRAY}${INSTALLED_DIR}/${stack_name}${NC}"
+        else
+            echo -e "  Status: ${GRAY}○ Not Installed${NC}"
+        fi
+
+        # Systemd status
+        if [[ "$has_systemd" == "true" ]]; then
+            echo -e "  Systemd: ${BLUE}✓ Configured${NC}"
+            if [[ "$systemd_enabled" == "true" ]]; then
+                echo -e "  Auto-start: ${GREEN}✓ Enabled${NC}"
+            else
+                echo -e "  Auto-start: ${GRAY}○ Disabled${NC}"
+            fi
+            if [[ "$systemd_active" == "true" ]]; then
+                echo -e "  Service: ${GREEN}● Running${NC}"
+            else
+                echo -e "  Service: ${YELLOW}○ Stopped${NC}"
+            fi
+        fi
+
+        # Description from stack.yml or README
+        if [[ -f "$stack_full_path/stack.yml" ]]; then
+            echo ""
+            print_section "Description"
+            local desc=$(grep "^description:" "$stack_full_path/stack.yml" | cut -d'"' -f2)
+            echo -e "  ${desc}"
+
+            # Features
+            if grep -q "^tags:" "$stack_full_path/stack.yml"; then
+                echo ""
+                echo -e "  ${CYAN}Tags:${NC}"
+                grep -A 10 "^tags:" "$stack_full_path/stack.yml" | grep "  - " | sed 's/  - /    /' | while read -r tag; do
+                    echo -e "  ${GRAY}•${NC}${tag}"
+                done
+            fi
+        elif [[ -f "$stack_full_path/README.md" ]]; then
+            echo ""
+            print_section "Description"
+            head -n 5 "$stack_full_path/README.md" | tail -n +2 | sed 's/^/  /'
+        fi
+
+        # Available actions
+        echo ""
+        print_section "Available Actions"
+
+        if [[ "$is_installed" == "false" ]]; then
+            echo -e "  ${WHITE}1${NC}) 📥 Install Stack"
+            echo -e "  ${WHITE}2${NC}) ℹ️  View Stack Info"
+        else
+            echo -e "  ${WHITE}1${NC}) 🗑️  Uninstall Stack"
+            echo -e "  ${WHITE}2${NC}) 🔄 Update Stack"
+            echo -e "  ${WHITE}3${NC}) 📋 View Logs"
+            echo -e "  ${WHITE}4${NC}) 📊 Check Status"
+
+            if [[ "$has_systemd" == "false" ]]; then
+                echo -e "  ${WHITE}5${NC}) ⚙️  Create Systemd Service"
+            else
+                echo -e "  ${WHITE}5${NC}) ⚙️  Manage Systemd Service"
+            fi
+        fi
+
+        echo ""
+        echo -e "  ${WHITE}0${NC}) 🔙 Back"
+        echo ""
+
+        echo -ne "${CYAN}Select action: ${NC}"
+        read -r choice
+
+        case $choice in
+            0) return ;;
+            1)
+                if [[ "$is_installed" == "false" ]]; then
+                    install_stack "$stack_name" "$stack_path"
+                else
+                    uninstall_stack "$stack_name"
+                fi
+                ;;
+            2)
+                if [[ "$is_installed" == "false" ]]; then
+                    view_stack_info "$stack_full_path"
+                else
+                    update_stack "$stack_name"
+                fi
+                ;;
+            3)
+                [[ "$is_installed" == "true" ]] && view_stack_logs "$stack_name"
+                ;;
+            4)
+                [[ "$is_installed" == "true" ]] && check_stack_status "$stack_name"
+                ;;
+            5)
+                [[ "$is_installed" == "true" ]] && manage_systemd_service "$stack_name"
+                ;;
+            *)
+                print_error "Invalid option"
+                sleep 1
+                ;;
+        esac
+    done
+}
+
+#================================================================
+# STACK OPERATIONS
+#================================================================
+
+install_stack() {
+    local stack_name="$1"
+    local stack_path="$2"
+    local source_path="$STACKS_DIR/$stack_path"
+    local dest_path="$INSTALLED_DIR/$stack_name"
+
+    print_header "Installing: $stack_name"
+
+    # Check if already installed
+    if [[ -d "$dest_path" ]]; then
+        print_error "Stack '$stack_name' is already installed"
+        press_enter
+        return 1
+    fi
+
+    print_info "Installing stack from: $source_path"
+    print_info "Destination: $dest_path"
+    echo ""
+
+    # Copy files
+    cp -r "$source_path" "$dest_path"
+    print_success "Files copied"
+
+    # Create .env from sample
+    if [[ -f "$dest_path/.env.sample" ]] || [[ -f "$dest_path/.env-sample" ]]; then
+        local env_sample="$dest_path/.env.sample"
+        [[ -f "$dest_path/.env-sample" ]] && env_sample="$dest_path/.env-sample"
+
+        if [[ ! -f "$dest_path/.env" ]]; then
+            cp "$env_sample" "$dest_path/.env"
+            print_success "Created .env file from sample"
+        fi
+    fi
+
+    # Create directories
+    for dir in data logs backups config; do
+        if [[ ! -d "$dest_path/$dir" ]]; then
+            mkdir -p "$dest_path/$dir"
+        fi
+    done
+    print_success "Created directories"
+
+    # Run install script if exists
+    if [[ -x "$dest_path/scripts/install.sh" ]]; then
+        print_info "Running installation script..."
+        (cd "$dest_path" && ./scripts/install.sh)
+    fi
+
+    echo ""
+    print_success "Stack '$stack_name' installed successfully!"
+    echo ""
+    print_warning "Next steps:"
+    echo "  1. cd $dest_path"
+    echo "  2. Edit .env file with your configuration"
+    echo "  3. docker compose up -d"
+    echo ""
+
+    press_enter
+}
+
+uninstall_stack() {
+    local stack_name="$1"
+    local stack_path="$INSTALLED_DIR/$stack_name"
+
+    print_header "Uninstalling: $stack_name"
+
+    if [[ ! -d "$stack_path" ]]; then
+        print_error "Stack '$stack_name' is not installed"
+        press_enter
+        return 1
+    fi
+
+    echo -e "${YELLOW}⚠ WARNING: This will remove all stack files and data!${NC}"
+    echo ""
+    echo -ne "Type 'yes' to confirm: "
+    read -r confirm
+
+    if [[ "$confirm" != "yes" ]]; then
+        print_warning "Uninstall cancelled"
+        press_enter
+        return 0
+    fi
+
+    # Stop containers
+    print_info "Stopping containers..."
+    (cd "$stack_path" && docker compose down 2>/dev/null) || true
+    print_success "Containers stopped"
+
+    # Remove systemd service if exists
+    if [[ -f "/etc/systemd/system/jacker-${stack_name}.service" ]]; then
+        print_info "Removing systemd service..."
+        sudo systemctl stop "jacker-${stack_name}.service" 2>/dev/null || true
+        sudo systemctl disable "jacker-${stack_name}.service" 2>/dev/null || true
+        sudo rm "/etc/systemd/system/jacker-${stack_name}.service"
+        sudo systemctl daemon-reload
+        print_success "Systemd service removed"
+    fi
+
+    # Remove directory
+    print_info "Removing stack files..."
+    rm -rf "$stack_path"
+    print_success "Stack removed"
+
+    echo ""
+    print_success "Stack '$stack_name' uninstalled successfully!"
+    press_enter
+}
+
+update_stack() {
+    local stack_name="$1"
+    print_header "Updating: $stack_name"
+
+    print_info "Pulling latest images..."
+    (cd "$INSTALLED_DIR/$stack_name" && docker compose pull)
+    print_success "Images updated"
+
+    print_info "Recreating containers..."
+    (cd "$INSTALLED_DIR/$stack_name" && docker compose up -d --force-recreate)
+    print_success "Containers recreated"
+
+    echo ""
+    print_success "Stack '$stack_name' updated successfully!"
+    press_enter
+}
+
+view_stack_logs() {
+    local stack_name="$1"
+    print_header "Logs: $stack_name"
+
+    (cd "$INSTALLED_DIR/$stack_name" && docker compose logs --tail=50)
+    press_enter
+}
+
+check_stack_status() {
+    local stack_name="$1"
+    print_header "Status: $stack_name"
+
+    (cd "$INSTALLED_DIR/$stack_name" && docker compose ps)
+    press_enter
+}
+
+view_stack_info() {
+    local stack_path="$1"
+    print_header "Stack Information"
+
+    if [[ -f "$stack_path/README.md" ]]; then
+        less "$stack_path/README.md"
+    else
+        print_warning "No README.md found"
+        press_enter
+    fi
+}
+
+#================================================================
+# SYSTEMD MANAGEMENT
+#================================================================
+
+manage_systemd_service() {
+    local stack_name="$1"
+    local service_name="jacker-${stack_name}.service"
+
+    while true; do
+        print_header "Systemd Service: $stack_name"
+
+        local has_service=false
+        local is_enabled=false
+        local is_active=false
+
+        if [[ -f "/etc/systemd/system/$service_name" ]]; then
+            has_service=true
+            systemctl is-enabled "$service_name" &>/dev/null && is_enabled=true
+            systemctl is-active "$service_name" &>/dev/null && is_active=true
+        fi
+
+        print_section "Service Status"
+        if [[ "$has_service" == "true" ]]; then
+            echo -e "  Service: ${GREEN}✓ Configured${NC}"
+            echo -e "  Enabled: $([ "$is_enabled" == "true" ] && echo "${GREEN}✓ Yes${NC}" || echo "${GRAY}○ No${NC}")"
+            echo -e "  Active: $([ "$is_active" == "true" ] && echo "${GREEN}● Running${NC}" || echo "${YELLOW}○ Stopped${NC}")"
+        else
+            echo -e "  Service: ${GRAY}○ Not Configured${NC}"
+        fi
+
+        echo ""
+        print_section "Available Actions"
+
+        if [[ "$has_service" == "false" ]]; then
+            echo -e "  ${WHITE}1${NC}) ⚙️  Create Systemd Service"
+        else
+            echo -e "  ${WHITE}1${NC}) 🗑️  Remove Systemd Service"
+            echo -e "  ${WHITE}2${NC}) $([ "$is_enabled" == "true" ] && echo "🔴 Disable" || echo "🟢 Enable") Auto-start"
+            echo -e "  ${WHITE}3${NC}) $([ "$is_active" == "true" ] && echo "🛑 Stop" || echo "▶️  Start") Service"
+            echo -e "  ${WHITE}4${NC}) 🔄 Restart Service"
+            echo -e "  ${WHITE}5${NC}) 📊 View Status"
+            echo -e "  ${WHITE}6${NC}) 📋 View Logs"
+        fi
+
+        echo ""
+        echo -e "  ${WHITE}0${NC}) 🔙 Back"
+        echo ""
+
+        echo -ne "${CYAN}Select action: ${NC}"
+        read -r choice
+
+        case $choice in
+            0) return ;;
+            1)
+                if [[ "$has_service" == "false" ]]; then
+                    # Create systemd service (call original jacker-stack function)
+                    source "$SCRIPT_DIR/jacker-stack"
+                    systemd_create "$stack_name"
+                    press_enter
+                else
+                    # Remove systemd service
+                    source "$SCRIPT_DIR/jacker-stack"
+                    systemd_remove "$stack_name"
+                    press_enter
+                fi
+                ;;
+            2)
+                if [[ "$has_service" == "true" ]]; then
+                    if [[ "$is_enabled" == "true" ]]; then
+                        sudo systemctl disable "$service_name"
+                        print_success "Service disabled"
+                    else
+                        sudo systemctl enable "$service_name"
+                        print_success "Service enabled"
+                    fi
+                    press_enter
+                fi
+                ;;
+            3)
+                if [[ "$has_service" == "true" ]]; then
+                    if [[ "$is_active" == "true" ]]; then
+                        sudo systemctl stop "$service_name"
+                        print_success "Service stopped"
+                    else
+                        sudo systemctl start "$service_name"
+                        print_success "Service started"
+                    fi
+                    press_enter
+                fi
+                ;;
+            4)
+                if [[ "$has_service" == "true" ]]; then
+                    sudo systemctl restart "$service_name"
+                    print_success "Service restarted"
+                    press_enter
+                fi
+                ;;
+            5)
+                if [[ "$has_service" == "true" ]]; then
+                    sudo systemctl status "$service_name" --no-pager
+                    press_enter
+                fi
+                ;;
+            6)
+                if [[ "$has_service" == "true" ]]; then
+                    sudo journalctl -u "$service_name" -n 50 --no-pager
+                    press_enter
+                fi
+                ;;
+            *)
+                print_error "Invalid option"
+                sleep 1
+                ;;
+        esac
+    done
+}
+
+systemd_menu() {
+    while true; do
+        print_header "Systemd Services"
+
+        print_section "Jacker Systemd Services"
+
+        local services=$(systemctl list-unit-files "jacker-*.service" --no-legend 2>/dev/null | awk '{print $1}')
+
+        if [[ -z "$services" ]]; then
+            echo -e "  ${YELLOW}No systemd services found${NC}"
+        else
+            local idx=1
+            declare -A service_map
+
+            while IFS= read -r service; do
+                local stack_name=$(echo "$service" | sed 's/jacker-//;s/.service//')
+                local enabled=$(systemctl is-enabled "$service" 2>/dev/null || echo "disabled")
+                local active=$(systemctl is-active "$service" 2>/dev/null || echo "inactive")
+
+                local status_color=$YELLOW
+                [[ "$active" == "active" ]] && status_color=$GREEN
+                [[ "$active" == "failed" ]] && status_color=$RED
+
+                local enabled_marker=""
+                [[ "$enabled" == "enabled" ]] && enabled_marker="${BLUE}[auto-start]${NC}"
+
+                echo -e "  ${WHITE}${idx}${NC}) ${CYAN}${stack_name}${NC} - ${status_color}${active}${NC} ${enabled_marker}"
+                service_map[$idx]="$stack_name"
+                ((idx++))
+            done <<< "$services"
+
+            echo ""
+            echo -e "  ${WHITE}0${NC}) 🔙 Back to Main Menu"
+            echo ""
+
+            echo -ne "${CYAN}Select service to manage (or 0 to go back): ${NC}"
+            read -r choice
+
+            if [[ "$choice" == "0" ]]; then
+                return
+            elif [[ -n "${service_map[$choice]:-}" ]]; then
+                manage_systemd_service "${service_map[$choice]}"
+            else
+                print_error "Invalid selection"
+                sleep 1
+            fi
+        fi
+
+        if [[ -z "$services" ]]; then
+            press_enter
+            return
+        fi
+    done
+}
+
+#================================================================
+# SEARCH
+#================================================================
+
+search_stacks() {
+    print_header "Search Stacks"
+
+    echo -ne "${CYAN}Enter search term: ${NC}"
+    read -r query
+
+    if [[ -z "$query" ]]; then
+        print_warning "No search term entered"
+        press_enter
+        return
+    fi
+
+    print_header "Search Results: $query"
+
+    local found=0
+    local stacks=()
+    local idx=1
+
+    while IFS='|' read -r category name description installed systemd; do
+        if [[ "$name" =~ $query ]] || [[ "$description" =~ $query ]] || [[ "$category" =~ $query ]]; then
+            local status=""
+            if [[ "$installed" == "true" ]]; then
+                status="${GREEN}[Installed]${NC}"
+            else
+                status="${GRAY}[Available]${NC}"
+            fi
+
+            echo -e "  ${WHITE}${idx}${NC}) ${MAGENTA}${category}${NC} / ${CYAN}${name}${NC} ${status}"
+            echo -e "     ${GRAY}${description:0:60}${NC}"
+
+            stacks[$idx]="${category}/${name}"
+            ((idx++))
+            ((found++))
+        fi
+    done < <(get_available_stacks)
+
+    if [[ $found -eq 0 ]]; then
+        echo ""
+        print_warning "No stacks found matching '$query'"
+        press_enter
+        return
+    fi
+
+    echo ""
+    print_line "─"
+    echo -e "  ${WHITE}0${NC}) 🔙 Back to Main Menu"
+    echo ""
+
+    echo -ne "${CYAN}Select stack number (or 0 to go back): ${NC}"
+    read -r choice
+
+    if [[ "$choice" == "0" ]]; then
+        return
+    elif [[ "$choice" =~ ^[0-9]+$ ]] && [[ -n "${stacks[$choice]:-}" ]]; then
+        show_stack_details "${stacks[$choice]}"
+    fi
+}
+
+#================================================================
+# INSTALLED STACKS
+#================================================================
+
+show_installed_stacks() {
+    while true; do
+        print_header "Installed Stacks"
+
+        local installed_list=()
+        local idx=1
+
+        if [[ ! -d "$INSTALLED_DIR" ]] || [[ -z "$(ls -A "$INSTALLED_DIR" 2>/dev/null)" ]]; then
+            echo -e "  ${YELLOW}No stacks installed${NC}"
+            echo ""
+            press_enter
+            return
+        fi
+
+        print_section "Your Installed Stacks"
+
+        for stack_dir in "$INSTALLED_DIR"/*; do
+            if [[ -d "$stack_dir" ]]; then
+                local stack_name=$(basename "$stack_dir")
+
+                # Check if running
+                local status="${YELLOW}○ stopped${NC}"
+                if [[ -f "$stack_dir/docker-compose.yml" ]]; then
+                    if (cd "$stack_dir" && docker compose ps --format json 2>/dev/null | jq -e '. | length > 0' >/dev/null 2>&1); then
+                        status="${GREEN}● running${NC}"
+                    fi
+                fi
+
+                # Check systemd
+                local systemd=""
+                if [[ -f "/etc/systemd/system/jacker-${stack_name}.service" ]]; then
+                    systemd="${BLUE}[systemd]${NC}"
+                fi
+
+                echo -e "  ${WHITE}${idx}${NC}) ${CYAN}${stack_name}${NC} - ${status} ${systemd}"
+                installed_list[$idx]="unknown/$stack_name"  # We don't know category for installed stacks
+                ((idx++))
+            fi
+        done
+
+        echo ""
+        echo -e "  ${WHITE}0${NC}) 🔙 Back to Main Menu"
+        echo ""
+
+        echo -ne "${CYAN}Select stack to manage: ${NC}"
+        read -r choice
+
+        if [[ "$choice" == "0" ]]; then
+            return
+        elif [[ "$choice" =~ ^[0-9]+$ ]] && [[ -n "${installed_list[$choice]:-}" ]]; then
+            show_stack_details "${installed_list[$choice]}"
+        else
+            print_error "Invalid selection"
+            sleep 1
+        fi
+    done
+}
+
+#================================================================
+# REPOSITORY MANAGEMENT
+#================================================================
+
+repository_menu() {
+    print_header "Stack Repositories"
+
+    echo -e "${CYAN}Repository management is available via:${NC}"
+    echo ""
+    echo "  • jacker-stack repos"
+    echo "  • jacker-stack repo-add <url>"
+    echo "  • jacker-stack repo-remove <name>"
+    echo ""
+
+    press_enter
+}
+
+#================================================================
+# MAIN
+#================================================================
+
+main() {
+    # Check if running with command line arguments (legacy mode)
+    if [[ $# -gt 0 ]]; then
+        # Call original jacker-stack with all arguments
+        exec "$SCRIPT_DIR/jacker-stack" "$@"
+    fi
+
+    # Interactive mode
+    show_main_menu
+}
+
+main "$@"

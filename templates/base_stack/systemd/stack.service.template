@@ -1,0 +1,40 @@
+[Unit]
+Description={STACK_NAME} - Jacker Stack
+Documentation={DOCS_URL}
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/path/to/{stack-name}
+User={USER}
+Group={USER}
+
+# Start command
+ExecStart=/usr/bin/docker compose up -d
+
+# Stop command
+ExecStop=/usr/bin/docker compose down
+
+# Reload command
+ExecReload=/usr/bin/docker compose restart
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+# Timeouts
+TimeoutStartSec=60s
+TimeoutStopSec=30s
+
+# Security
+NoNewPrivileges=true
+
+# Environment
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+EnvironmentFile=/path/to/{stack-name}/.env
+
+[Install]
+WantedBy=multi-user.target

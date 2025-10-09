@@ -1,12 +1,26 @@
 #!/usr/bin/env bash
-LAST_PWD=`pwd`
+#
+# Script: clean.sh
+# Description: Remove all Jacker data and configuration
+# Usage: ./clean.sh
+# WARNING: This will delete all data!
+#
+
+set -euo pipefail
+
+LAST_PWD=$(pwd)
 cd "$(dirname "$0")"
 
 read -r -p "All existing data will be removed. Do you want to continue? [y/N] " response
 case $response in
   [yY][eE][sS]|[yY])
-    docker compose down & > /dev/null
-    docker image prune -a -f & > /dev/null
+    echo "Stopping containers..."
+    docker compose down &> /dev/null || true
+
+    echo "Pruning images..."
+    docker image prune -a -f &> /dev/null || true
+
+    echo "Removing data directories..."
     sudo rm -rf data/crowdsec || true
     sudo rm -rf data/grafana/data/* || true
     sudo rm -rf data/mysql || true
@@ -16,12 +30,17 @@ case $response in
     sudo rm -rf logs || true
     sudo rm -rf .env || true
     sudo rm -rf .FIRST_ROUND || true
+
+    echo "Cleaning bashrc..."
     SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )/setup.sh
-    sed -i -e "\|$SCRIPT_PATH|d" ~/.bashrc
+    sed -i -e "\|$SCRIPT_PATH|d" ~/.bashrc || true
+
+    echo "Clean completed successfully."
  ;;
   *)
-    exit -1
+    echo "Clean cancelled."
+    exit 1
   ;;
 esac
 
-cd $LAST_PWD
+cd "$LAST_PWD"

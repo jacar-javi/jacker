@@ -1,0 +1,33 @@
+services:
+  # CrowdSec Bouncer - Traefik Plugin (Modern Alternative)
+  # This replaces the legacy traefik-bouncer container with Traefik's built-in plugin system
+  #
+  # IMPORTANT: This file is an ALTERNATIVE to traefik-bouncer.yml
+  # To use this plugin:
+  # 1. Remove traefik-bouncer.yml from docker-compose.yml includes
+  # 2. Add this file to docker-compose.yml includes
+  # 3. The plugin runs inside Traefik - no separate container needed
+  # 4. Configure bouncer API key in CrowdSec: cscli bouncers add traefik-plugin
+  #
+  # Benefits:
+  # - Actively maintained (last updated July 2025)
+  # - Supports AppSec features from CrowdSec 1.6.0+
+  # - Native Traefik integration
+  # - Better performance (no extra hop)
+  #
+  # Configuration is done via Traefik's dynamic config in data/traefik/rules/middlewares.yml
+  # See: https://plugins.traefik.io/plugins/6335346ca4caa9ddeffda116/crowdsec-bouncer-traefik-plugin
+
+  # No service definition needed - plugin runs inside Traefik
+  # Configuration example for data/traefik/rules/middlewares.yml:
+  #
+  # http:
+  #   middlewares:
+  #     crowdsec-plugin:
+  #       plugin:
+  #         crowdsec-bouncer-traefik-plugin:
+  #           enabled: true
+  #           crowdsecMode: live
+  #           crowdsecLapiKey: ${CROWDSEC_TRAEFIK_BOUNCER_API_KEY}
+  #           crowdsecLapiHost: crowdsec:8080
+  #           crowdsecLapiScheme: http

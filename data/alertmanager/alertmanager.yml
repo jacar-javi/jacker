@@ -1,0 +1,125 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
+  smtp_from: '${SMTP_FROM}'
+  smtp_auth_username: '${SMTP_USERNAME}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
+
+# Templates for custom alert formatting
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# The root route with all parameters, which are inherited by the child routes
+route:
+  receiver: 'default-receiver'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+
+  routes:
+    # Critical alerts go to both email and telegram immediately
+    - receiver: 'critical-alerts'
+      matchers:
+        - severity = critical
+      group_wait: 0s
+      repeat_interval: 5m
+
+    # Warning alerts go to email only
+    - receiver: 'warning-alerts'
+      matchers:
+        - severity = warning
+      group_wait: 30s
+      repeat_interval: 1h
+
+    # Info alerts are logged only
+    - receiver: 'info-alerts'
+      matchers:
+        - severity = info
+      group_wait: 1m
+      repeat_interval: 4h
+
+# Inhibition rules allow to mute a set of alerts given that another alert is firing
+inhibit_rules:
+  # Inhibit warning if critical is firing for the same alertname
+  - source_matchers:
+      - severity = critical
+    target_matchers:
+      - severity = warning
+    equal: ['alertname', 'instance']
+
+receivers:
+  # Default receiver - email only
+  - name: 'default-receiver'
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        headers:
+          Subject: '[Jacker] Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          {{ range .Alerts }}
+          <b>Alert:</b> {{ .Labels.alertname }}<br>
+          <b>Severity:</b> {{ .Labels.severity }}<br>
+          <b>Summary:</b> {{ .Annotations.summary }}<br>
+          <b>Description:</b> {{ .Annotations.description }}<br>
+          {{ end }}
+
+  # Critical alerts - both email and telegram
+  - name: 'critical-alerts'
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        headers:
+          Subject: '[CRITICAL] Jacker Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2 style="color: red;">CRITICAL ALERT</h2>
+          {{ range .Alerts }}
+          <b>Alert:</b> {{ .Labels.alertname }}<br>
+          <b>Instance:</b> {{ .Labels.instance }}<br>
+          <b>Severity:</b> {{ .Labels.severity }}<br>
+          <b>Summary:</b> {{ .Annotations.summary }}<br>
+          <b>Description:</b> {{ .Annotations.description }}<br>
+          <b>Started at:</b> {{ .StartsAt }}<br>
+          {{ end }}
+    telegram_configs:
+      - api_url: 'https://api.telegram.org'
+        bot_token: '${TELEGRAM_BOT_TOKEN}'
+        chat_id: ${TELEGRAM_CHAT_ID}
+        parse_mode: 'HTML'
+        message: |
+          🚨 <b>CRITICAL ALERT</b> 🚨
+          {{ range .Alerts }}
+          <b>Alert:</b> {{ .Labels.alertname }}
+          <b>Instance:</b> {{ .Labels.instance }}
+          <b>Severity:</b> {{ .Labels.severity }}
+          <b>Summary:</b> {{ .Annotations.summary }}
+          <b>Description:</b> {{ .Annotations.description }}
+          {{ end }}
+
+  # Warning alerts - email only
+  - name: 'warning-alerts'
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        headers:
+          Subject: '[WARNING] Jacker Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2 style="color: orange;">WARNING</h2>
+          {{ range .Alerts }}
+          <b>Alert:</b> {{ .Labels.alertname }}<br>
+          <b>Instance:</b> {{ .Labels.instance }}<br>
+          <b>Severity:</b> {{ .Labels.severity }}<br>
+          <b>Summary:</b> {{ .Annotations.summary }}<br>
+          <b>Description:</b> {{ .Annotations.description }}<br>
+          {{ end }}
+
+  # Info alerts - email only
+  - name: 'info-alerts'
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        headers:
+          Subject: '[INFO] Jacker: {{ .GroupLabels.alertname }}'
+        html: |
+          {{ range .Alerts }}
+          <b>Alert:</b> {{ .Labels.alertname }}<br>
+          <b>Summary:</b> {{ .Annotations.summary }}<br>
+          <b>Description:</b> {{ .Annotations.description }}<br>
+          {{ end }}

@@ -2,71 +2,207 @@ global:
   checkNewVersion: true
   sendAnonymousUsage: false
 
+# Certificate Resolvers - Let's Encrypt
 certificatesResolvers:
   http:
     acme:
       storage: /acme.json
       tlsChallenge: {}
+      # Uncomment for production to enable rate limits
+      # caServer: https://acme-v02.api.letsencrypt.org/directory
+      # Uncomment for staging/testing to avoid rate limits
+      # caServer: https://acme-staging-v02.api.letsencrypt.org/directory
 
+# Entry Points Configuration
 entryPoints:
   web:
     address: :80
+    # Redirect all HTTP to HTTPS
     http:
       redirections:
         entrypoint:
           to: websecure
           scheme: https
           permanent: true
+    # Transport configuration for security
+    transport:
+      lifeCycle:
+        requestAcceptGraceTimeout: 0
+        graceTimeOut: 10s
+      respondingTimeouts:
+        readTimeout: 60s
+        writeTimeout: 60s
+        idleTimeout: 180s
+
   websecure:
     address: :443
+    # HTTPS with TLS and HTTP/3 support
     http:
       tls:
         options: tls-opts@file
         certresolver: http
+      # Middleware chains can be added here globally
+      middlewares:
+        - security-headers@file
     http3:
       advertisedPort: 443
+    # Transport configuration for security
+    transport:
+      lifeCycle:
+        requestAcceptGraceTimeout: 0
+        graceTimeOut: 10s
+      respondingTimeouts:
+        readTimeout: 60s
+        writeTimeout: 60s
+        idleTimeout: 180s
+    # Forwarded headers configuration
+    forwardedHeaders:
+      trustedIPs:
+        - 127.0.0.1/32
+        - 10.0.0.0/8
+        - 192.168.0.0/16
+        - 172.16.0.0/12
+      insecure: false
+    # ProxyProtocol configuration (if using cloudflare or similar)
+    proxyProtocol:
+      trustedIPs:
+        - 127.0.0.1/32
+        - 10.0.0.0/8
+        - 192.168.0.0/16
+        - 172.16.0.0/12
+      insecure: false
+
   traefik:
     address: :8080
 
+# API and Dashboard Configuration
 api:
   dashboard: true
-  insecure: true
+  insecure: true  # Dashboard is protected by OAuth
+  debug: false
 
+# Ping endpoint for health checks
 ping:
   entryPoint: traefik
+  manualRouting: false
+  terminatingStatusCode: 503
 
+# Logging Configuration
 log:
-  level: INFO
+  level: INFO  # Can be: DEBUG, INFO, WARN, ERROR, FATAL, PANIC
   filePath: /logs/traefik-error.log
+  format: json  # json or common
+  # Uncomment for more detailed logging
+  # noColor: false
+  # maxSize: 100  # Maximum size in megabytes
+  # maxBackups: 3  # Maximum number of old log files to retain
+  # maxAge: 28     # Maximum number of days to retain old log files
+  # compress: true # Compress rotated files
 
+# Access Logging Configuration
 accessLog:
   filePath: /logs/traefik-access.log
+  format: json  # json or common
   fields:
+    defaultMode: keep
     names:
       StartUTC: drop
+      # ClientUsername: keep
+      # RequestAddr: keep
+      # RequestHost: keep
+      # RequestMethod: keep
+      # RequestPath: keep
+      # RequestProtocol: keep
+    headers:
+      defaultMode: keep
+      names:
+        User-Agent: keep
+        Authorization: drop
+        Content-Type: keep
   bufferingSize: 100
   filters:
     statusCodes:
       - 204-299
       - 400-499
       - 500-599
+    retryAttempts: true
+    minDuration: 10ms
 
+# Providers Configuration
 providers:
   docker:
     endpoint: tcp://socket-proxy:2375
     exposedByDefault: false
     network: traefik_proxy
+    # Security: Only watch running containers
+    watch: true
+    # Constraints to filter containers
+    # constraints: "Label(`traefik.constraint-label-stack`,`jacker`)"
+    swarmMode: false
+    swarmModeRefreshSeconds: 15s
+    httpClientTimeout: 0
+    # Default rule template (can be customized)
+    defaultRule: "Host(`{{ normalize .Name }}.{{ env \"PUBLIC_FQDN\" }}`)"
+
   file:
     directory: /rules
     watch: true
+    debugLogGeneratedTemplate: false
 
+# Metrics Configuration - Prometheus
 metrics:
   prometheus:
     buckets:
-    - 0.1
-    - 0.3
-    - 1.2
-    - 5.0
+      - 0.1
+      - 0.3
+      - 1.2
+      - 5.0
     addEntryPointsLabels: true
     addServicesLabels: true
     addRoutersLabels: true
+    entryPoint: traefik
+    manualRouting: false
+    # headerLabels for custom metric labels
+    # headerLabels:
+    #   User-Agent: keep
+
+# Tracing Configuration (OPTIONAL - Enable via environment variable)
+# Jaeger tracing for distributed tracing
+# Uncomment the section below and set TRAEFIK_TRACING_ENABLED=true to enable
+# tracing:
+#   jaeger:
+#     samplingType: const
+#     samplingParam: 1.0
+#     localAgentHostPort: jaeger:6831
+#     propagation: jaeger
+#     traceContextHeaderName: uber-trace-id
+#     collector:
+#       endpoint: http://jaeger:14268/api/traces
+#       user: ""
+#       password: ""
+#     disableAttemptReconnecting: true
+
+# OTLP (OpenTelemetry) tracing - Modern alternative
+# Uncomment to use OTLP instead of Jaeger
+# tracing:
+#   otlp:
+#     http:
+#       endpoint: http://otel-collector:4318
+#       headers:
+#         Authorization: Bearer <token>
+#       tls:
+#         ca: /path/to/ca.crt
+#         cert: /path/to/cert.crt
+#         key: /path/to/key.key
+#         insecureSkipVerify: false
+#     grpc:
+#       endpoint: otel-collector:4317
+#       insecure: true
+
+# Experimental Features
+experimental:
+  # Enable HTTP/3
+  http3: true
+  # Enable plugins (for CrowdSec plugin)
+  plugins:
+    enabled: false  # Set to true if using CrowdSec Traefik plugin

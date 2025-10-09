@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres
+
+    restart: unless-stopped
+
+    networks:
+      - traefik_proxy
+
+    security_opt:
+      - no-new-privileges:true
+
+    volumes:
+      - $DATADIR/postgres/data:/var/lib/postgresql/data
+      - $DATADIR/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+
+    command: >
+      postgres -c config_file=/etc/postgresql/postgresql.conf
+
+    environment:
+      POSTGRES_DB: $POSTGRES_DB
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      PGDATA: /var/lib/postgresql/data/pgdata
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    labels:
+      # Homepage Integration
+      - "homepage.group=Backend"
+      - "homepage.name=PostgreSQL"
+      - "homepage.icon=postgres.svg"
+      - "homepage.description=Open-Source Relational Database"

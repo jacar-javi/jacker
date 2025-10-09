@@ -1,7 +1,7 @@
 services:
   # Prometheus - Database for sensor data
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.6.0
     container_name: prometheus
 
     security_opt:
@@ -12,6 +12,13 @@ services:
     networks:
       - traefik_proxy
       - default
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
     depends_on:
       - crowdsec

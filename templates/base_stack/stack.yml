@@ -1,0 +1,186 @@
+# Jacker Stack Metadata
+name: {stack-name}
+display_name: "{STACK_NAME}"
+version: "1.0.0"
+category: {category}  # tools, security, cms, collaboration, networking, monitoring, etc.
+description: "{Brief stack description}"
+author: "{Author Name}"
+license: "{License}"
+homepage: "{https://example.com}"
+documentation: "{https://docs.example.com}"
+icon: "{stack-name}.svg"
+
+tags:
+  - {tag1}
+  - {tag2}
+  - {tag3}
+
+requirements:
+  min_jacker_version: "1.4.0"
+  docker_version: "24.0.0"
+  docker_compose_version: "2.20.0"
+
+dependencies:
+  traefik: true              # Requires Traefik reverse proxy
+  oauth: true                # Requires OAuth authentication
+  crowdsec: true             # Uses CrowdSec protection
+  network: "traefik_proxy"   # Required network
+
+services:
+  - name: {service-name}
+    image: "{image:tag}"
+    port: 80
+    healthcheck: false
+    backup: false
+    essential: true
+
+  # Add more services as needed
+  # - name: {service2-name}
+  #   image: "{image2:tag}"
+  #   port: 3306
+  #   healthcheck: true
+  #   backup: true
+  #   essential: true
+
+environment:
+  required:
+    - name: PUBLIC_FQDN
+      description: "Public fully qualified domain name"
+      example: "example.com"
+    - name: TZ
+      description: "Timezone"
+      example: "Europe/Madrid"
+      default: "UTC"
+    # Add stack-specific required variables
+    # - name: {VAR_NAME}
+    #   description: "{Description}"
+    #   example: "{example}"
+
+  optional:
+    - name: PUID
+      description: "User ID"
+      default: "1000"
+    - name: PGID
+      description: "Group ID"
+      default: "1000"
+    # Add stack-specific optional variables
+    # - name: {VAR_NAME}
+    #   description: "{Description}"
+    #   default: "{default}"
+
+systemd:
+  enabled: true
+  service_name: "jacker-{stack_name}"
+  description: "{display_name} - Jacker Stack"
+  after:
+    - docker.service
+    - network-online.target
+  requires:
+    - docker.service
+  restart_policy: "on-failure"
+  restart_sec: "10s"
+  timeout_start_sec: "60s"
+  timeout_stop_sec: "30s"
+  wanted_by: "multi-user.target"
+
+health:
+  enabled: false             # Enable if service has healthcheck
+  endpoint: "/health"        # Health check endpoint
+  interval: "30s"
+  timeout: "10s"
+  retries: 3
+
+monitoring:
+  prometheus: false          # Enable if service exports metrics
+  prometheus_port: 9090
+  grafana_dashboard: false   # Enable if Grafana dashboard available
+  loki: true                 # Log aggregation
+  jaeger: false              # Distributed tracing
+
+security:
+  oauth_required: true                          # OAuth authentication
+  crowdsec_enabled: true                        # CrowdSec IPS protection
+  rate_limiting: true                           # Rate limiting middleware
+  security_headers: "security-headers@file"     # Security headers middleware
+  middleware_chain: "chain-oauth@file"          # Traefik middleware chain
+
+  # If OAuth not required, use:
+  # middleware_chain: "chain-no-oauth@file"
+
+network:
+  external:
+    - traefik_proxy          # External networks
+  internal: []               # Internal networks (if needed)
+
+volumes:
+  # List persistent volumes
+  # - name: {volume_name}
+  #   path: "./data/{volume_name}"
+  #   description: "{Description}"
+  #   backup: true
+
+ports:
+  # Exposed ports (if any need to be exposed to host)
+  # - port: 8080
+  #   protocol: tcp
+  #   description: "{Description}"
+
+backup:
+  enabled: false             # Enable if stack requires backups
+  schedule: "0 2 * * *"      # Cron schedule for backups
+  retention: 7               # Days to keep backups
+  paths:
+    # - "./data/"
+    # - "./config/"
+
+firewall:
+  enabled: false             # Enable if UFW rules needed
+  rules:
+    # - port: 8080
+    #   proto: tcp
+    #   allow_from: "any"
+
+resources:
+  # Optional resource limits
+  limits:
+    cpus: "1.0"
+    memory: "1G"
+  reservations:
+    cpus: "0.25"
+    memory: "256M"
+
+maintenance:
+  auto_update: false         # Enable auto-updates
+  update_schedule: "0 3 * * 0"  # Weekly Sunday at 3 AM
+  pruning: true              # Auto-prune old images/containers
+
+notes: |
+  ## Accessing the Service
+  - URL: https://{service}.yourdomain.com
+  - Protected by OAuth authentication
+
+  ## Features
+  - {Feature 1}
+  - {Feature 2}
+  - {Feature 3}
+
+  ## Important Notes
+  - {Note 1}
+  - {Note 2}
+
+  ## Quick Start
+  1. Configure .env file
+  2. Start: make up
+  3. Access service at URL above
+
+  ## Documentation
+  - See README.md for detailed documentation
+  - Check Makefile for available commands
+
+changelog:
+  - version: "1.0.0"
+    date: "YYYY-MM-DD"
+    changes:
+      - "Initial release"
+      - "{Change 1}"
+      - "{Change 2}"

@@ -1,0 +1,108 @@
+groups:
+  - name: service_alerts
+    interval: 30s
+    rules:
+      # Service Down Alerts
+      - alert: ServiceDown
+        expr: up{job!="node-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: service
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} has been down for more than 2 minutes"
+
+      - alert: NodeExporterDown
+        expr: up{job="node-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: service
+        annotations:
+          summary: "Node Exporter is down"
+          description: "Node Exporter has been down for more than 2 minutes. System metrics unavailable."
+
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: service
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus has been down for more than 1 minute"
+
+      # Traefik Alerts
+      - alert: TraefikHighErrorRate
+        expr: sum(rate(traefik_service_requests_total{code=~"5.."}[5m])) by (service) / sum(rate(traefik_service_requests_total[5m])) by (service) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          category: traefik
+        annotations:
+          summary: "High error rate in Traefik service {{ $labels.service }}"
+          description: "Service {{ $labels.service }} has error rate above 5% (current: {{ $value | humanizePercentage }})"
+
+      - alert: TraefikHighResponseTime
+        expr: histogram_quantile(0.99, sum(rate(traefik_service_request_duration_seconds_bucket[5m])) by (service, le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+          category: traefik
+        annotations:
+          summary: "High response time in Traefik service {{ $labels.service }}"
+          description: "Service {{ $labels.service }} has p99 response time above 1s (current: {{ $value }}s)"
+
+      # CrowdSec Alerts
+      - alert: CrowdSecHighBanRate
+        expr: rate(crowdsec_lapi_decisions_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "High CrowdSec ban rate detected"
+          description: "CrowdSec is creating decisions at a high rate ({{ $value }} decisions/s). Possible attack in progress."
+
+      - alert: CrowdSecServiceDown
+        expr: up{job="crowdsec"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "CrowdSec service is down"
+          description: "CrowdSec has been down for more than 2 minutes. No active protection!"
+
+      # Loki Alerts
+      - alert: LokiDown
+        expr: up{job="loki"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          category: logging
+        annotations:
+          summary: "Loki is down"
+          description: "Loki log aggregation service has been down for more than 2 minutes"
+
+      # Alertmanager Alerts
+      - alert: AlertmanagerDown
+        expr: up{job="alertmanager"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: alerting
+        annotations:
+          summary: "Alertmanager is down"
+          description: "Alertmanager has been down for more than 2 minutes. No alerts will be sent!"
+
+      - alert: AlertmanagerConfigReloadFailed
+        expr: alertmanager_config_last_reload_successful == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: alerting
+        annotations:
+          summary: "Alertmanager configuration reload failed"
+          description: "Alertmanager configuration reload has failed. Check configuration file."
