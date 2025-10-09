@@ -62,7 +62,7 @@ Jacker runs on all major Linux distributions with both x86_64 and ARM64 support:
 | **Azure** | ✅ | ⚠️ | Standard_B2s |
 | **Hetzner** | ✅ | ✅ | CAX11 (ARM) |
 
-**📋 See [COMPATIBILITY.md](jacker-docs/docs/reference/compatibility.md) for detailed platform information, benchmarks, and optimization guides.**
+**📋 See [COMPATIBILITY.md](https://github.com/jacar-javi/jacker-docs/blob/main/docs/reference/compatibility.md) for detailed platform information, benchmarks, and optimization guides.**
 
 ---
 
@@ -115,7 +115,7 @@ flowchart TD
 - **Domain**: A valid domain name pointing to your server
 - **Authentication**: Google OAuth2 credentials ([Setup Guide](https://jacker.jacar.es/first-steps/prepare/#step-2-configure-google-oauth2-service)) or Authentik (self-hosted)
 
-**Note:** See [COMPATIBILITY.md](jacker-docs/docs/reference/compatibility.md) for detailed platform requirements and tested configurations.
+**Note:** See [COMPATIBILITY.md](https://github.com/jacar-javi/jacker-docs/blob/main/docs/reference/compatibility.md) for detailed platform requirements and tested configurations.
 
 ### Installation
 
@@ -315,7 +315,7 @@ make stack-uninstall STACK=wordpress
 - `awesome-compose` - Official Docker Compose examples
 - `compose-examples` - Community-contributed stacks
 
-See [Stack Management Guide](jacker-docs/docs/guides/stack-management.md) for detailed documentation.
+See [Stack Management Guide](https://github.com/jacar-javi/jacker-docs/blob/main/docs/guides/stack-management.md) for detailed documentation.
 
 ---
 
@@ -400,7 +400,7 @@ cscli bouncers list
 docker compose logs crowdsec
 ```
 
-For more detailed troubleshooting, see [Troubleshooting Guide](jacker-docs/docs/guides/troubleshooting.md)
+For more detailed troubleshooting, see [Troubleshooting Guide](https://github.com/jacar-javi/jacker-docs/blob/main/docs/guides/troubleshooting.md)
 
 ---
 
@@ -458,13 +458,13 @@ jacker/
 
 ## Contributing
 
-Contributions are welcome! Please see [Contributing Guide](jacker-docs/docs/reference/contributing.md) for guidelines.
+Contributions are welcome! Please see [Contributing Guide](https://github.com/jacar-javi/jacker-docs/blob/main/docs/reference/contributing.md) for guidelines.
 
 ---
 
 ## Security
 
-For security concerns, please review our [Security Policy](jacker-docs/docs/reference/security.md).
+For security concerns, please review our [Security Policy](https://github.com/jacar-javi/jacker-docs/blob/main/docs/reference/security.md).
 
 ---
 
@@ -482,25 +482,25 @@ The documentation is organized into the following sections:
 - Initial configuration
 
 **⚙️ Operations** - Day-to-day management
-- [Daily Operations](jacker-docs/docs/operations/daily-operations.md) - Service management, monitoring, backups
-- [Migration Guide](jacker-docs/docs/operations/migration.md) - Upgrade paths and component migrations
+- [Daily Operations](https://github.com/jacar-javi/jacker-docs/blob/main/docs/operations/daily-operations.md) - Service management, monitoring, backups
+- [Migration Guide](https://github.com/jacar-javi/jacker-docs/blob/main/docs/operations/migration.md) - Upgrade paths and component migrations
 
 **📖 Guides** - Feature-specific documentation
-- [Stack Management](jacker-docs/docs/guides/stack-management.md) - Browse, install, and manage Docker stacks
-- [Authentik Setup](jacker-docs/docs/guides/authentik.md) - Self-hosted identity provider with SSO, MFA, and LDAP
-- [Authentik Migration](jacker-docs/docs/guides/authentik-migration.md) - Migrate from Google OAuth to Authentik
-- [Logging & Alerting](jacker-docs/docs/guides/logging-alerting.md) - Loki, Promtail, and Alertmanager setup
-- [Troubleshooting](jacker-docs/docs/guides/troubleshooting.md) - Common issues and solutions
+- [Stack Management](https://github.com/jacar-javi/jacker-docs/blob/main/docs/guides/stack-management.md) - Browse, install, and manage Docker stacks
+- [Authentik Setup](https://github.com/jacar-javi/jacker-docs/blob/main/docs/guides/authentik.md) - Self-hosted identity provider with SSO, MFA, and LDAP
+- [Authentik Migration](https://github.com/jacar-javi/jacker-docs/blob/main/docs/guides/authentik-migration.md) - Migrate from Google OAuth to Authentik
+- [Logging & Alerting](https://github.com/jacar-javi/jacker-docs/blob/main/docs/guides/logging-alerting.md) - Loki, Promtail, and Alertmanager setup
+- [Troubleshooting](https://github.com/jacar-javi/jacker-docs/blob/main/docs/guides/troubleshooting.md) - Common issues and solutions
 
 **🔧 Advanced** - In-depth technical guides
-- [Custom Services](jacker-docs/docs/advanced/custom-services.md) - Add your own Docker services with full integration
+- [Custom Services](https://github.com/jacar-javi/jacker-docs/blob/main/docs/advanced/custom-services.md) - Add your own Docker services with full integration
 
 **📋 Reference** - Technical references
-- [Changelog](jacker-docs/docs/reference/changelog.md) - Version history
-- [Version Updates](jacker-docs/docs/reference/version-updates-oct2025.md) - October 2025 updates
-- [Security Policy](jacker-docs/docs/reference/security.md) - Security guidelines
-- [Contributing](jacker-docs/docs/reference/contributing.md) - Contribution guide
-- [Code of Conduct](jacker-docs/docs/reference/code-of-conduct.md) - Community standards
+- [Changelog](https://github.com/jacar-javi/jacker-docs/blob/main/docs/reference/changelog.md) - Version history
+- [Version Updates](https://github.com/jacar-javi/jacker-docs/blob/main/docs/reference/version-updates-oct2025.md) - October 2025 updates
+- [Security Policy](https://github.com/jacar-javi/jacker-docs/blob/main/docs/reference/security.md) - Security guidelines
+- [Contributing](https://github.com/jacar-javi/jacker-docs/blob/main/docs/reference/contributing.md) - Contribution guide
+- [Code of Conduct](https://github.com/jacar-javi/jacker-docs/blob/main/docs/reference/code-of-conduct.md) - Community standards
 
 ### Repositories
 
