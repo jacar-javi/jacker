@@ -37,10 +37,15 @@ scrape_configs:
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
         target_label: 'compose_service'
 
-      # Container labels
-      - action: labelmap
-        regex: __meta_docker_container_label_(.+)
-        replacement: docker_$1
+      # Optional: Add homepage labels if they exist (for organization)
+      - source_labels: ['__meta_docker_container_label_homepage_group']
+        target_label: 'app_group'
+
+      - source_labels: ['__meta_docker_container_label_homepage_name']
+        target_label: 'app_name'
+
+      # Drop all other Docker labels to prevent high cardinality
+      # (prevents HTTP 400 errors from excessive labels)
 
   # System logs
   - job_name: system
