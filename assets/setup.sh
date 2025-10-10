@@ -103,7 +103,7 @@ detect_os ()
     elif [ -e /etc/debian_version ]; then
       # some Debians have jessie/sid in their /etc/debian_version
       # while others have '6.0.7'
-      os=`cat /etc/issue | head -1 | awk '{ print tolower($1) }'`
+      os=`(cat /etc/issue || true) | head -1 | awk '{ print tolower($1) }'`
       if grep -q '/' /etc/debian_version; then
         dist=`cut --delimiter='/' -f1 /etc/debian_version`
       else
@@ -128,7 +128,7 @@ detect_os ()
 
 detect_apt_version ()
 {
-  apt_version_full=`apt-get -v | head -1 | awk '{ print $2 }'`
+  apt_version_full=`(apt-get -v || true) | head -1 | awk '{ print $2 }'`
   apt_version_major=`echo $apt_version_full | cut -d. -f1`
   apt_version_minor=`echo $apt_version_full | cut -d. -f2`
   apt_version_modified="${apt_version_major}${apt_version_minor}0"
