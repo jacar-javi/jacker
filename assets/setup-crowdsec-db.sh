@@ -18,24 +18,22 @@ fi
 
 source .env
 
-# Create database and user for CrowdSec
-echo "Creating CrowdSec database and user..."
+# Create database for CrowdSec
+echo "Creating CrowdSec database..."
 
-docker exec -i postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" <<EOF
--- Create crowdsec database if it doesn't exist
+# Connect to the default 'postgres' database to create crowdsec_db
+docker exec -i postgres psql -U "$POSTGRES_USER" -d postgres <<EOF
+-- Create crowdsec_db if it doesn't exist
 SELECT 'CREATE DATABASE crowdsec_db'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'crowdsec_db')\gexec
+EOF
 
--- Grant privileges
-GRANT ALL PRIVILEGES ON DATABASE crowdsec_db TO $POSTGRES_USER;
-
-\c crowdsec_db
-
+# Now connect to crowdsec_db to set permissions
+docker exec -i postgres psql -U "$POSTGRES_USER" -d crowdsec_db <<EOF
 -- Ensure proper permissions
 GRANT ALL ON SCHEMA public TO $POSTGRES_USER;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO $POSTGRES_USER;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO $POSTGRES_USER;
-
 EOF
 
 if [ $? -eq 0 ]; then
