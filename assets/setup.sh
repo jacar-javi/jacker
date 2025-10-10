@@ -295,11 +295,11 @@ create_env_files()
 
 execute_assets ()
 {
-  assets/01-tune_system.sh
-  assets/02-install_docker.sh
-  assets/03-setup_ufw.sh
-  assets/04-install_assets.sh
-  assets/05-install_iptables-bouncer.sh
+  ./assets/01-tune_system.sh
+  ./assets/02-install_docker-multiplatform.sh
+  ./assets/03-setup_ufw.sh
+  ./assets/04-install_assets.sh
+  ./assets/05-install_firewall-bouncer.sh
 }
 
 first_round()
@@ -397,5 +397,7 @@ main ()
   fi
 }
 
-cd "$(dirname "$0")"
+# Change to Jacker root directory (parent of assets/)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/.."
 main

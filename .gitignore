@@ -1,18 +1,55 @@
+# Environment files
 .env
 .env.bak
+.env.local
+
+# First round setup marker
+.FIRST_ROUND
+
+# Data directories
 data/crowdsec
 data/grafana/data
+data/postgres
+data/authentik
 data/mysql
+data/redis
 data/portainer
 data/prometheus/data
+data/loki
+data/alertmanager
 data/vscode
 data/traefik/acme.json
+data/jaeger
+
+# Logs
+logs/
 logs/traefik/*
+assets/logs/*
+
+# Secrets
 secrets/*
 
+# Stacks
 stacks/*
 !stacks/newstack.sh
 !stacks/README.md
 
+# Development
 dev/*
 
+# Backups
+backups/*
+*.tar.gz
+*.bak
+*.old
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

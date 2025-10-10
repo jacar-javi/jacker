@@ -8,8 +8,9 @@
 
 set -euo pipefail
 
-LAST_PWD=$(pwd)
-cd "$(dirname "$0")"
+# Change to Jacker root directory (parent of assets/)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/.."
 
 read -r -p "All existing data will be removed. Do you want to continue? [y/N] " response
 case $response in
