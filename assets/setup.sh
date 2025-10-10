@@ -442,8 +442,8 @@ create_env_files()
   echo "  Database Configuration (PostgreSQL)"
   echo "=========================================="
 
-  export POSTGRES_DB=${POSTGRES_DB:-jacker_db}
-  export POSTGRES_USER=${POSTGRES_USER:-jacker}
+  export POSTGRES_DB=${POSTGRES_DB:-crowdsec_db}
+  export POSTGRES_USER=${POSTGRES_USER:-crowdsec}
 
   # Keep existing PostgreSQL password if it exists
   if [ -n "${POSTGRES_PASSWORD}" ] && [ "$has_existing" = true ]; then
@@ -543,9 +543,9 @@ create_env_files()
   echo "✓ Alertmanager configuration created"
 
   # Configure Loki
-  mkdir -p data/loki
+  mkdir -p data/loki/data/rules
   cp assets/templates/loki-config.yml.template data/loki/loki-config.yml
-  echo "✓ Loki configuration created"
+  echo "✓ Loki configuration created (with rules directory)"
 
   # Configure Traefik Forward OAuth Secret
   mkdir -p secrets
@@ -666,9 +666,48 @@ second_round ()
 
   echo "Setting up Jacker Stack"
 
+  # Check Redis memory overcommit setting
+  current_overcommit=$(cat /proc/sys/vm/overcommit_memory 2>/dev/null || echo "0")
+  if [ "$current_overcommit" != "1" ]; then
+    echo ""
+    echo "⚠️  WARNING: Redis memory overcommit is not enabled"
+    echo "    This may cause Redis save/replication failures under low memory"
+    echo "    To fix, run on this host:"
+    echo "      sudo sysctl vm.overcommit_memory=1"
+    echo "      echo 'vm.overcommit_memory = 1' | sudo tee -a /etc/sysctl.conf"
+    echo ""
+    sleep 3
+  fi
+
   docker compose up -d &> /dev/null
 
+  echo "Waiting for PostgreSQL to be ready..."
+  for i in {1..30}; do
+    if docker compose exec -T postgres pg_isready -U $POSTGRES_USER -d $POSTGRES_DB &> /dev/null; then
+      echo "✓ PostgreSQL is ready"
+      break
+    fi
+    if [ $i -eq 30 ]; then
+      echo "❌ PostgreSQL failed to start in time"
+      exit 1
+    fi
+    sleep 2
+  done
+
+  # Ensure crowdsec_db database exists (in case POSTGRES_DB was set to something else)
+  echo "Ensuring crowdsec_db database exists..."
+  docker compose exec -T postgres psql -U $POSTGRES_USER -d $POSTGRES_DB -tc "SELECT 1 FROM pg_database WHERE datname='crowdsec_db'" | grep -q 1 || \
+  docker compose exec -T postgres psql -U $POSTGRES_USER -d $POSTGRES_DB -c "CREATE DATABASE crowdsec_db OWNER $POSTGRES_USER;" &> /dev/null
+
+  if [ $? -eq 0 ]; then
+    echo "✓ crowdsec_db database verified/created"
+  else
+    echo "⚠️  Note: crowdsec_db may already exist or there was a connection issue"
+  fi
+
+  echo "Waiting for services to stabilize..."
   sleep 10
+
   echo "Crowdsec: Registering traefik-bouncer"
   cscli bouncers add traefik-bouncer --key $CROWDSEC_TRAEFIK_BOUNCER_API_KEY &> /dev/null
   echo "Crowdsec: Registering iptables-bouncer"
