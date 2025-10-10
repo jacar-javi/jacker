@@ -16,7 +16,10 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
+# Export all variables from .env for envsubst
+set -a
 source .env
+set +a
 
 # Create database for CrowdSec
 echo "Creating CrowdSec database..."

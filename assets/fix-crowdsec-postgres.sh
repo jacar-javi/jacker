@@ -18,7 +18,10 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
+# Export all variables from .env for envsubst
+set -a
 source .env
+set +a
 
 echo "Step 1: Stopping CrowdSec container..."
 docker stop crowdsec 2>/dev/null || true

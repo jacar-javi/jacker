@@ -18,7 +18,10 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
+# Export all variables from .env for envsubst
+set -a
 source .env
+set +a
 
 echo "Step 1: Ensuring PostgreSQL is configured to listen on all interfaces..."
 if ! grep -q "^listen_addresses = '\*'" data/postgres/postgresql.conf 2>/dev/null; then
