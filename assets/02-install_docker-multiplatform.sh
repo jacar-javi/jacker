@@ -234,9 +234,10 @@ sleep 2
 # Verify installation
 echo ""
 echo -e "${BLUE}Verifying Docker installation...${NC}"
-if docker version &> /dev/null; then
-    DOCKER_VERSION=$(docker --version)
-    COMPOSE_VERSION=$(docker compose version)
+# Use sudo for verification since user group changes require re-login
+if sudo docker version &> /dev/null; then
+    DOCKER_VERSION=$(sudo docker --version)
+    COMPOSE_VERSION=$(sudo docker compose version)
     echo -e "${GREEN}✓ Docker installed successfully!${NC}"
     echo "  $DOCKER_VERSION"
     echo "  $COMPOSE_VERSION"
@@ -285,7 +286,7 @@ echo ""
 echo -e "${YELLOW}IMPORTANT:${NC} You need to log out and log back in for group changes to take effect."
 echo "Or run: newgrp docker"
 echo ""
-echo "Docker version: $(docker --version)"
-echo "Docker Compose version: $(docker compose version)"
+echo "Docker version: $(sudo docker --version)"
+echo "Docker Compose version: $(sudo docker compose version)"
 echo ""
 echo -e "${GREEN}✓ System ready for Jacker installation!${NC}"
