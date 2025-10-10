@@ -182,91 +182,325 @@ validate_email_list ()
   return 0
 }
 
+load_existing_env ()
+{
+  if [ -f ".env" ]; then
+    echo "Loading existing .env values..."
+    # Source the .env file to get existing values
+    set -a
+    source .env
+    set +a
+
+    # Store existing values
+    EXISTING_HOSTNAME="${HOSTNAME:-}"
+    EXISTING_DOMAINNAME="${DOMAINNAME:-}"
+    EXISTING_TZ="${TZ:-}"
+    EXISTING_UFW_ALLOW_PORTS="${UFW_ALLOW_PORTS:-}"
+    EXISTING_UFW_ALLOW_SSH="${UFW_ALLOW_SSH:-}"
+    EXISTING_OAUTH_CLIENT_ID="${OAUTH_CLIENT_ID:-}"
+    EXISTING_OAUTH_CLIENT_SECRET="${OAUTH_CLIENT_SECRET:-}"
+    EXISTING_OAUTH_WHITELIST="${OAUTH_WHITELIST:-}"
+    EXISTING_LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
+    EXISTING_LOCAL_IPS="${LOCAL_IPS:-}"
+    EXISTING_DOCKER_SUBNETS="${CODE_TRAEFIK_SUBNET_IP:-},${DOCKER_DEFAULT_SUBNET:-},${TRAEFIK_PROXY_SUBNET:-}"
+
+    # Store PostgreSQL values (no MySQL anymore)
+    EXISTING_POSTGRES_DB="${POSTGRES_DB:-}"
+    EXISTING_POSTGRES_USER="${POSTGRES_USER:-}"
+    EXISTING_POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}"
+
+    # Store alerting values
+    EXISTING_SMTP_HOST="${SMTP_HOST:-}"
+    EXISTING_SMTP_PORT="${SMTP_PORT:-}"
+    EXISTING_SMTP_FROM="${SMTP_FROM:-}"
+    EXISTING_SMTP_USERNAME="${SMTP_USERNAME:-}"
+    EXISTING_SMTP_PASSWORD="${SMTP_PASSWORD:-}"
+    EXISTING_ALERT_EMAIL_TO="${ALERT_EMAIL_TO:-}"
+    EXISTING_TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
+    EXISTING_TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
+
+    return 0
+  fi
+  return 1
+}
+
+prompt_with_default ()
+{
+  local prompt_text="$1"
+  local default_value="$2"
+  local response
+
+  if [ -n "$default_value" ]; then
+    read -r -p "$prompt_text [$default_value]: " response
+    echo "${response:-$default_value}"
+  else
+    read -r -p "$prompt_text: " response
+    echo "$response"
+  fi
+}
+
+confirm_action ()
+{
+  local prompt_text="$1"
+  local default="${2:-N}"
+  local response
+
+  if [ "$default" = "Y" ]; then
+    read -r -p "$prompt_text [Y/n]: " response
+    case "${response:-Y}" in
+      [nN][oO]|[nN]) return 1 ;;
+      *) return 0 ;;
+    esac
+  else
+    read -r -p "$prompt_text [y/N]: " response
+    case "$response" in
+      [yY][eE][sS]|[yY]) return 0 ;;
+      *) return 1 ;;
+    esac
+  fi
+}
+
 create_env_files()
 {
   source .env.defaults
 
+  # Check if we should load existing values
+  local has_existing=false
+  if load_existing_env; then
+    has_existing=true
+    echo ""
+    echo "=========================================="
+    echo "  Existing configuration detected"
+    echo "=========================================="
+    echo "You can keep existing values by pressing Enter"
+    echo ""
+  fi
+
   # Create .env from template
   export PUID=`id -u $USER`
   export PGID=`id -g $USER`
-  export TZ=`cat /etc/timezone`
-  export USERDIR=`eval echo ~$user`
+
+  # Set timezone with default
+  local default_tz="${EXISTING_TZ:-$(cat /etc/timezone 2>/dev/null || echo 'UTC')}"
+  export TZ=$(prompt_with_default "Enter your timezone" "$default_tz")
+
+  export USERDIR=`eval echo ~$USER`
   export DOCKERDIR=`eval pwd`
   export DATADIR=$DOCKERDIR/data
 
+  echo ""
+  echo "=========================================="
+  echo "  Basic Configuration"
+  echo "=========================================="
+
   # Validate and set hostname
   while true; do
-    read -r -p "Enter your Host Name (e.g. mybox): " response
-    if validate_hostname "$response"; then
+    response=$(prompt_with_default "Enter your Host Name (e.g. mybox)" "${EXISTING_HOSTNAME}")
+    if [ -n "$response" ] && validate_hostname "$response"; then
       export HOSTNAME=$response
       break
     fi
+    echo "ERROR: Invalid hostname. Please try again."
   done
 
   # Validate and set domain name
   while true; do
-    read -r -p "Enter your Domain Name (e.g. example.com): " response
-    if validate_domain "$response"; then
+    response=$(prompt_with_default "Enter your Domain Name (e.g. example.com)" "${EXISTING_DOMAINNAME}")
+    if [ -n "$response" ] && validate_domain "$response"; then
       export DOMAINNAME=$response
       break
     fi
+    echo "ERROR: Invalid domain name. Please try again."
   done
+
   export PUBLIC_FQDN=$HOSTNAME.$DOMAINNAME
-  export LOCAL_IPS=$LOCAL_IPS
-  export CODE_TRAEFIK_SUBNET_IP=$CODE_TRAEFIK_SUBNET_IP
-  export DOCKER_DEFAULT_SUBNET=$DOCKER_DEFAULT_SUBNET
-  export SOCKET_PROXY_SUBNET=$SOCKET_PROXY_SUBNET
-  export SOCKET_PROXY_IP=$SOCKET_PROXY_IP
-  export TRAEFIK_PROXY_SUBNET=$TRAEFIK_PROXY_SUBNET
-  export TRAEFIK_PROXY_IP=$TRAEFIK_PROXY_IP
+  echo "Your public FQDN will be: $PUBLIC_FQDN"
+
+  echo ""
+  echo "=========================================="
+  echo "  Network Configuration"
+  echo "=========================================="
+
+  # Ask if user wants to customize network settings
+  if confirm_action "Do you want to customize Docker network subnets?" "N"; then
+    export LOCAL_IPS=$(prompt_with_default "Local IPs (comma separated CIDR)" "${EXISTING_LOCAL_IPS:-$LOCAL_IPS}")
+    export CODE_TRAEFIK_SUBNET_IP=$(prompt_with_default "Code Traefik Subnet IP" "$CODE_TRAEFIK_SUBNET_IP")
+    export DOCKER_DEFAULT_SUBNET=$(prompt_with_default "Docker Default Subnet" "$DOCKER_DEFAULT_SUBNET")
+    export SOCKET_PROXY_SUBNET=$(prompt_with_default "Socket Proxy Subnet" "$SOCKET_PROXY_SUBNET")
+    export SOCKET_PROXY_IP=$(prompt_with_default "Socket Proxy IP" "$SOCKET_PROXY_IP")
+    export TRAEFIK_PROXY_SUBNET=$(prompt_with_default "Traefik Proxy Subnet" "$TRAEFIK_PROXY_SUBNET")
+    export TRAEFIK_PROXY_IP=$(prompt_with_default "Traefik Proxy IP" "$TRAEFIK_PROXY_IP")
+  else
+    export LOCAL_IPS=${EXISTING_LOCAL_IPS:-$LOCAL_IPS}
+    export CODE_TRAEFIK_SUBNET_IP=$CODE_TRAEFIK_SUBNET_IP
+    export DOCKER_DEFAULT_SUBNET=$DOCKER_DEFAULT_SUBNET
+    export SOCKET_PROXY_SUBNET=$SOCKET_PROXY_SUBNET
+    export SOCKET_PROXY_IP=$SOCKET_PROXY_IP
+    export TRAEFIK_PROXY_SUBNET=$TRAEFIK_PROXY_SUBNET
+    export TRAEFIK_PROXY_IP=$TRAEFIK_PROXY_IP
+    echo "Using default network configuration"
+  fi
 
   response=`stat -c '%U' /proc`
   [ "$response" = "root" ] && export HOST_IS_VM=true || export HOST_IS_VM=false
 
+  echo ""
+  echo "=========================================="
+  echo "  Firewall Configuration (UFW)"
+  echo "=========================================="
+
   export UFW_ALLOW_FROM=$UFW_ALLOW_FROM
-  read -r -p "Enter comma separated ports from host that want to ufw allow (e.g. 22,3306): " response
-  [ "$response" != "" ] && export UFW_ALLOW_PORTS=$UFW_ALLOW_PORTS,$response || export UFW_ALLOW_PORTS=$UFW_ALLOW_PORTS
-  
-  read -r -p "Enter comma separated networks/hosts that you want to ufw allow SSH connections to this host (e.g. 1.1.1.1,2.2.2.0/24): " response
-  [ "$response" != "" ] && export UFW_ALLOW_SSH=$UFW_ALLOW_SSH,$response || export UFW_ALLOW_SSH=$UFW_ALLOW_SSH
+
+  response=$(prompt_with_default "Additional UFW ports to allow (e.g. 22,3306)" "${EXISTING_UFW_ALLOW_PORTS}")
+  if [ "$response" != "${EXISTING_UFW_ALLOW_PORTS}" ] && [ -n "$response" ]; then
+    export UFW_ALLOW_PORTS=$UFW_ALLOW_PORTS,$response
+  else
+    export UFW_ALLOW_PORTS=${response:-$UFW_ALLOW_PORTS}
+  fi
+
+  response=$(prompt_with_default "Networks/hosts to allow SSH (e.g. 1.1.1.1,2.2.2.0/24)" "${EXISTING_UFW_ALLOW_SSH}")
+  if [ "$response" != "${EXISTING_UFW_ALLOW_SSH}" ] && [ -n "$response" ]; then
+    export UFW_ALLOW_SSH=$UFW_ALLOW_SSH,$response
+  else
+    export UFW_ALLOW_SSH=${response:-$UFW_ALLOW_SSH}
+  fi
+
+  echo ""
+  echo "=========================================="
+  echo "  OAuth2 Configuration"
+  echo "=========================================="
+  echo "Configure Google OAuth2 Service as shown in:"
+  echo "https://jacker.jacar.es/first-steps/prepare/#step-2-configure-google-oauth2-service"
+  echo ""
 
   export OAUTH_COOKIE_LIFETIME=$OAUTH_COOKIE_LIFETIME
-  
-  echo "Configure Google OAuth2 Service as shown in https://jacker.jacar.es/first-steps/prepare/#step-2-configure-google-oauth2-service"
-  read -r -p "Enter your OAuth client ID: " response
+
+  response=$(prompt_with_default "OAuth Client ID" "${EXISTING_OAUTH_CLIENT_ID}")
   export OAUTH_CLIENT_ID=$response
-  read -r -p "Enter your OAuth client secret: " response
+
+  response=$(prompt_with_default "OAuth Client Secret" "${EXISTING_OAUTH_CLIENT_SECRET}")
   export OAUTH_CLIENT_SECRET=$response
-  export OAUTH_SECRET=`openssl rand -hex 16`
+
+  # Generate new OAuth secret or keep existing
+  if [ -n "${OAUTH_SECRET}" ] && [ "$has_existing" = true ]; then
+    export OAUTH_SECRET=$OAUTH_SECRET
+  else
+    export OAUTH_SECRET=`openssl rand -hex 16`
+  fi
+
   # Validate OAuth whitelist emails
   while true; do
-    read -r -p "Enter comma separated emails which will get access to all your SSO applications (e.g. a@example.com,b@example.com): " response
-    if validate_email_list "$response"; then
+    response=$(prompt_with_default "OAuth whitelist emails (comma separated)" "${EXISTING_OAUTH_WHITELIST}")
+    if [ -n "$response" ] && validate_email_list "$response"; then
       export OAUTH_WHITELIST=$response
       break
     fi
+    echo "ERROR: Invalid email format. Please try again."
   done
+
+  echo ""
+  echo "=========================================="
+  echo "  SSL Certificate Configuration"
+  echo "=========================================="
 
   # Validate Let's Encrypt email
   while true; do
-    read -r -p "Enter Email address for Let's Encrypt SSL Certificates: " response
-    if validate_email "$response"; then
+    response=$(prompt_with_default "Let's Encrypt Email" "${EXISTING_LETSENCRYPT_EMAIL}")
+    if [ -n "$response" ] && validate_email "$response"; then
       export LETSENCRYPT_EMAIL=$response
       break
     fi
+    echo "ERROR: Invalid email format. Please try again."
   done
 
+  echo ""
+  echo "=========================================="
+  echo "  Database Configuration (PostgreSQL)"
+  echo "=========================================="
+
+  export POSTGRES_DB=${POSTGRES_DB:-jacker_db}
+  export POSTGRES_USER=${POSTGRES_USER:-jacker}
+
+  # Keep existing PostgreSQL password if it exists
+  if [ -n "${POSTGRES_PASSWORD}" ] && [ "$has_existing" = true ]; then
+    export POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+    echo "✓ Keeping existing PostgreSQL credentials"
+  else
+    export POSTGRES_PASSWORD=`openssl rand -hex 24`
+    echo "✓ Generated new PostgreSQL password"
+  fi
+
+  echo "PostgreSQL Database: $POSTGRES_DB"
+  echo "PostgreSQL User: $POSTGRES_USER"
+
+  echo ""
+  echo "=========================================="
+  echo "  Security Configuration (CrowdSec)"
+  echo "=========================================="
+  echo "Generating secure API keys for CrowdSec..."
+
   export CROWDSEC_API_PORT=$CROWDSEC_API_PORT
-  export CROWDSEC_TRAEFIK_BOUNCER_API_KEY=`openssl rand -hex 64`
-  export CROWDSEC_IPTABLES_BOUNCER_API_KEY=`openssl rand -hex 64`
-  export CROWDSEC_API_LOCAL_PASSWORD=`openssl rand -hex 36`
-  export MYSQL_ROOT_PASSWORD=`openssl rand -hex 24`
-  export MYSQL_DATABASE=$MYSQL_DATABASE
-  export MYSQL_USER=$MYSQL_USER
-  export MYSQL_PASSWORD=`openssl rand -hex 24`
+
+  # Keep existing API keys if they exist, otherwise generate new ones
+  if [ -n "${CROWDSEC_TRAEFIK_BOUNCER_API_KEY}" ] && [ "$has_existing" = true ]; then
+    export CROWDSEC_TRAEFIK_BOUNCER_API_KEY=$CROWDSEC_TRAEFIK_BOUNCER_API_KEY
+    export CROWDSEC_IPTABLES_BOUNCER_API_KEY=$CROWDSEC_IPTABLES_BOUNCER_API_KEY
+    export CROWDSEC_API_LOCAL_PASSWORD=$CROWDSEC_API_LOCAL_PASSWORD
+    echo "✓ Keeping existing CrowdSec credentials"
+  else
+    export CROWDSEC_TRAEFIK_BOUNCER_API_KEY=`openssl rand -hex 64`
+    export CROWDSEC_IPTABLES_BOUNCER_API_KEY=`openssl rand -hex 64`
+    export CROWDSEC_API_LOCAL_PASSWORD=`openssl rand -hex 36`
+    echo "✓ Generated new CrowdSec credentials"
+  fi
+
+  echo ""
+  echo "=========================================="
+  echo "  Alerting Configuration (Optional)"
+  echo "=========================================="
+  echo "Configure alerting for Alertmanager (optional - skip if not needed)"
+  echo ""
+
+  if confirm_action "Do you want to configure email/telegram alerts?" "N"; then
+    # SMTP Configuration
+    echo ""
+    echo "Email (SMTP) Configuration:"
+    export SMTP_HOST=$(prompt_with_default "SMTP Host (e.g. smtp.gmail.com)" "${SMTP_HOST}")
+    export SMTP_PORT=$(prompt_with_default "SMTP Port" "${SMTP_PORT:-587}")
+    export SMTP_FROM=$(prompt_with_default "From Email Address" "${SMTP_FROM}")
+    export SMTP_USERNAME=$(prompt_with_default "SMTP Username" "${SMTP_USERNAME}")
+    export SMTP_PASSWORD=$(prompt_with_default "SMTP Password" "${SMTP_PASSWORD}")
+    export ALERT_EMAIL_TO=$(prompt_with_default "Alert To Email" "${ALERT_EMAIL_TO}")
+
+    echo ""
+    if confirm_action "Do you want to configure Telegram alerts?" "N"; then
+      echo "Telegram Configuration:"
+      export TELEGRAM_BOT_TOKEN=$(prompt_with_default "Telegram Bot Token" "${TELEGRAM_BOT_TOKEN}")
+      export TELEGRAM_CHAT_ID=$(prompt_with_default "Telegram Chat ID" "${TELEGRAM_CHAT_ID}")
+    else
+      export TELEGRAM_BOT_TOKEN=""
+      export TELEGRAM_CHAT_ID=""
+    fi
+  else
+    export SMTP_HOST=""
+    export SMTP_PORT="587"
+    export SMTP_FROM=""
+    export SMTP_USERNAME=""
+    export SMTP_PASSWORD=""
+    export ALERT_EMAIL_TO=""
+    export TELEGRAM_BOT_TOKEN=""
+    export TELEGRAM_CHAT_ID=""
+    echo "Skipping alerting configuration"
+  fi
+
+  echo ""
+  echo "=========================================="
+  echo "  Finalizing Configuration"
+  echo "=========================================="
 
   # Create .env file
   envsubst < .env.template > .env
+  echo "✓ .env file created"
 
   # Configure Traefik's logrotate
   envsubst < assets/templates/traefik.logrotate.template > assets/templates/traefik
@@ -310,39 +544,80 @@ first_round()
   gpg_check
   detect_apt_version
 
+  echo ""
+  echo "=========================================="
+  echo "  Jacker Installation"
+  echo "=========================================="
+  echo ""
+
+  local reinstall_mode=false
   if [ -f ".env" ]; then
-    read -r -p "Existing .env file. Reinstall Jacker? (.env will be moved to .env.bak) [y/N] " response
+    echo "Existing .env file detected."
+    echo ""
+    echo "Choose an option:"
+    echo "  1) Reinstall (reconfigure, keep existing values as defaults)"
+    echo "  2) Fresh install (backup .env and start from scratch)"
+    echo "  3) Cancel"
+    echo ""
+    read -r -p "Select option [1-3]: " response
     case $response in
-      [yY][eE][sS]|[yY])
-        echo "Backing up existing .env to .env.bak..."
-        mv .env .env.bak
-      ;;
+      1)
+        echo "Starting reinstall mode..."
+        echo "Your existing configuration will be used as defaults."
+        reinstall_mode=true
+        ;;
+      2)
+        timestamp=$(date +%Y%m%d-%H%M%S)
+        echo "Backing up existing .env to .env.bak.$timestamp..."
+        mv .env .env.bak.$timestamp
+        echo "Starting fresh installation..."
+        ;;
       *)
         echo "Installation cancelled."
-        exit 1
-      ;;
+        exit 0
+        ;;
     esac
+    echo ""
   fi
 
   create_env_files
   execute_assets
 
+  echo ""
+  echo "=========================================="
+  echo "  Configuration Summary"
+  echo "=========================================="
+  echo "Hostname: $HOSTNAME"
+  echo "Domain: $DOMAINNAME"
+  echo "FQDN: $PUBLIC_FQDN"
+  echo "Timezone: $TZ"
+  echo "Let's Encrypt Email: $LETSENCRYPT_EMAIL"
+  echo ""
+  echo "Configuration saved to .env"
+  echo ""
+
   # Execute second round after reboot
-  SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )/$(basename "$0") 
+  SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )/$(basename "$0")
   echo $SCRIPT_PATH | tee -a ~/.bashrc &> /dev/null
   touch .FIRST_ROUND
 
-  echo "System needs to be restarted. You can safe say N and do it manually after saving other works."
-  read -r -p "Jacker Setup will continue when you login back. Do you want to reboot your system NOW [y/N] " response
-  case $response in
-    [yY][eE][sS]|[yY])
-      sudo reboot
-    ;;
-    *)
-      exit 1
-    ;;
-  esac
-  sudo reboot
+  echo "=========================================="
+  echo "System needs to be restarted to apply changes."
+  echo "You can safely say N and do it manually after saving other work."
+  echo "Jacker Setup will continue when you login back."
+  echo "=========================================="
+  echo ""
+
+  if confirm_action "Do you want to reboot your system NOW?" "N"; then
+    sudo reboot
+  else
+    echo ""
+    echo "Please reboot manually when ready:"
+    echo "  sudo reboot"
+    echo ""
+    echo "After reboot, the setup will continue automatically."
+    exit 0
+  fi
 }
 
 second_round ()
