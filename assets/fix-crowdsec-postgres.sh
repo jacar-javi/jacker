@@ -28,7 +28,8 @@ echo ""
 
 echo "Step 2: Cleaning old CrowdSec data..."
 # Keep config, remove data to force re-initialization
-rm -rf data/crowdsec/data
+# Use sudo since Docker container creates files with different ownership
+sudo rm -rf data/crowdsec/data
 mkdir -p data/crowdsec/data
 echo "✓ Old data cleared"
 echo ""
