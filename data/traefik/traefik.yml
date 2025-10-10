@@ -44,8 +44,8 @@ entryPoints:
       # Middleware chains can be added here globally
       middlewares:
         - security-headers@file
-    http3:
-      advertisedPort: 443
+    # HTTP/3 configuration (Traefik v3.x syntax)
+    http3: {}
     # Transport configuration for security
     transport:
       lifeCycle:
@@ -201,8 +201,7 @@ metrics:
 
 # Experimental Features
 experimental:
-  # Enable HTTP/3
-  http3: true
   # Enable plugins (for CrowdSec plugin)
   plugins:
     enabled: false  # Set to true if using CrowdSec Traefik plugin
+  # Note: HTTP/3 is configured in entryPoints.websecure.http3
