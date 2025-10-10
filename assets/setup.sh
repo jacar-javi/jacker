@@ -546,8 +546,11 @@ create_env_files()
 
   # Configure Loki
   mkdir -p data/loki/data/rules
+  mkdir -p data/loki/data/chunks
+  mkdir -p data/loki/data/compactor
+  chmod -R 777 data/loki/data  # Loki runs as UID 10001, needs write access
   cp assets/templates/loki-config.yml.template data/loki/loki-config.yml
-  echo "✓ Loki configuration created (with rules directory)"
+  echo "✓ Loki configuration created (with all required directories)"
 
   # Configure Grafana
   mkdir -p data/grafana/data
