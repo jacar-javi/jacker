@@ -542,6 +542,11 @@ create_env_files()
   envsubst < assets/templates/alertmanager.yml.template > data/alertmanager/alertmanager.yml
   echo "✓ Alertmanager configuration created"
 
+  # Configure Loki
+  mkdir -p data/loki
+  cp assets/templates/loki-config.yml.template data/loki/loki-config.yml
+  echo "✓ Loki configuration created"
+
   # Configure Traefik Forward OAuth Secret
   mkdir -p secrets
   envsubst < assets/templates/traefik_forward_oauth.template > secrets/traefik_forward_oauth
