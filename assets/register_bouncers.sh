@@ -8,7 +8,9 @@
 
 set -euo pipefail
 
-cd "$(dirname "$0")"
+# Change to Jacker root directory (parent of assets/)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/.."
 
 # Check if .env exists
 if [ ! -f .env ]; then

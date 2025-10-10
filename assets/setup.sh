@@ -83,8 +83,9 @@ detect_os ()
     if [ -e /etc/lsb-release ]; then
       . /etc/lsb-release
 
-      if [ "${ID}" = "raspbian" ]; then
-        os=${ID}
+      # Check for Raspbian using DISTRIB_ID (from lsb-release)
+      if [ "${DISTRIB_ID:-}" = "Raspbian" ]; then
+        os=raspbian
         dist=`cut --delimiter='.' -f1 /etc/debian_version`
       else
         os=${DISTRIB_ID}

@@ -43,5 +43,3 @@ case $response in
     exit 1
   ;;
 esac
-
-cd "$LAST_PWD"
