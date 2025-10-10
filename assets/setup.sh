@@ -534,8 +534,10 @@ create_env_files()
   sudo logrotate /etc/logrotate.conf
 
   # Configure Crowdsec to use PostgreSQL database
-  mkdir -p data/crowdsec/config
+  mkdir -p data/crowdsec/config/parsers/s02-enrich
+  mkdir -p data/crowdsec/data
   envsubst < assets/templates/config.yaml.local.template > data/crowdsec/config/config.yaml.local
+  echo "✓ CrowdSec directories created"
 
   # Configure Alertmanager
   mkdir -p data/alertmanager
@@ -546,6 +548,11 @@ create_env_files()
   mkdir -p data/loki/data/rules
   cp assets/templates/loki-config.yml.template data/loki/loki-config.yml
   echo "✓ Loki configuration created (with rules directory)"
+
+  # Configure Grafana
+  mkdir -p data/grafana/data
+  chmod 755 data/grafana/data
+  echo "✓ Grafana data directory created"
 
   # Configure Traefik Forward OAuth Secret
   mkdir -p secrets

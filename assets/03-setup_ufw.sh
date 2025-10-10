@@ -33,14 +33,20 @@ fi
 echo ""
 echo "WARNING: This will reset all existing UFW rules!"
 echo "SSH access will be configured for: $UFW_ALLOW_SSH"
-read -r -p "Continue? [y/N] " response
+echo ""
+echo "NOTE: UFW setup is optional. You can configure the firewall manually later."
+read -r -p "Continue with UFW configuration? [y/N] " response
 case $response in
     [yY][eE][sS]|[yY])
         echo "Proceeding with UFW configuration..."
     ;;
     *)
-        echo "UFW configuration cancelled."
-        exit 1
+        echo ""
+        echo "UFW configuration skipped."
+        echo "You can configure UFW manually later by running:"
+        echo "  sudo ./assets/03-setup_ufw.sh"
+        echo ""
+        exit 0
     ;;
 esac
 

@@ -32,7 +32,7 @@ services:
 
     environment:
       COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux crowdsecurity/nginx crowdsecurity/discord-crawler-whitelist crowdsecurity/sshd crowdsecurity/wordpress"
-      GID: "${GID-1000}"
+      GID: "${PGID-1000}"
       TZ: $TZ
       DOCKER_HOST: tcp://socket-proxy:2375
       CUSTOM_HOSTNAME: $HOSTNAME
