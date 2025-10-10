@@ -8,6 +8,10 @@
 
 set -euo pipefail
 
+# Initialize variables that may be set externally
+os="${os:-}"
+dist="${dist:-}"
+
 # Logging setup
 LOGDIR="$(cd "$(dirname "$0")" && pwd)/logs"
 mkdir -p "$LOGDIR"
