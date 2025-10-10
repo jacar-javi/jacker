@@ -4,9 +4,15 @@
 
 set -e
 
-JACKER_DIR="/workspaces/jacker"
-if [ -d "/home/user/jacker" ]; then
-    JACKER_DIR="/home/user/jacker"
+# Get the script's directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Determine Jacker root directory
+# If script is in assets/ subdirectory, go up one level
+if [[ "$SCRIPT_DIR" == */assets ]]; then
+    JACKER_DIR="$(dirname "$SCRIPT_DIR")"
+else
+    JACKER_DIR="$SCRIPT_DIR"
 fi
 
 cd "$JACKER_DIR"

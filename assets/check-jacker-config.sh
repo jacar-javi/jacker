@@ -5,18 +5,27 @@
 echo "=== Jacker Configuration Check ==="
 echo ""
 
-# Find the correct Jacker directory
-if [ -f "/home/user/jacker/.env" ]; then
-    JACKER_DIR="/home/user/jacker"
-elif [ -f "/workspaces/jacker/.env" ]; then
-    JACKER_DIR="/workspaces/jacker"
+# Get the script's directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Determine Jacker root directory
+# If script is in assets/ subdirectory, go up one level
+if [[ "$SCRIPT_DIR" == */assets ]]; then
+    JACKER_DIR="$(dirname "$SCRIPT_DIR")"
 else
-    echo "❌ Cannot find Jacker installation (.env not found)"
-    exit 1
+    JACKER_DIR="$SCRIPT_DIR"
 fi
 
 ENV_FILE="$JACKER_DIR/.env"
 SECRETS_FILE="$JACKER_DIR/secrets/traefik_forward_oauth"
+
+# Verify we found the correct directory
+if [ ! -f "$ENV_FILE" ]; then
+    echo "❌ Cannot find Jacker installation (.env not found)"
+    echo "   Script location: $SCRIPT_DIR"
+    echo "   Expected Jacker directory: $JACKER_DIR"
+    exit 1
+fi
 
 echo "Using Jacker directory: $JACKER_DIR"
 echo ""
