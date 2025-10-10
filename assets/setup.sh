@@ -533,9 +533,14 @@ create_env_files()
   sudo chmod 644 /etc/logrotate.d/traefik
   sudo logrotate /etc/logrotate.conf
 
-  # Configure Crowdsec to use mysql databaes
+  # Configure Crowdsec to use PostgreSQL database
   mkdir -p data/crowdsec/config
   envsubst < assets/templates/config.yaml.local.template > data/crowdsec/config/config.yaml.local
+
+  # Configure Alertmanager
+  mkdir -p data/alertmanager
+  envsubst < assets/templates/alertmanager.yml.template > data/alertmanager/alertmanager.yml
+  echo "✓ Alertmanager configuration created"
 
   # Configure Traefik Forward OAuth Secret
   mkdir -p secrets
