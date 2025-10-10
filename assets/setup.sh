@@ -639,7 +639,15 @@ first_round()
 
   # Execute second round after reboot
   SCRIPT_PATH=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" && pwd )/$(basename "$0")
-  echo $SCRIPT_PATH | tee -a ~/.bashrc &> /dev/null
+
+  # Remove any existing jacker setup entries to prevent duplicates
+  if [ -f ~/.bashrc ]; then
+    grep -v "jacker.*setup\.sh" ~/.bashrc > ~/.bashrc.tmp 2>/dev/null || cp ~/.bashrc ~/.bashrc.tmp
+    mv ~/.bashrc.tmp ~/.bashrc
+  fi
+
+  # Add the script path to bashrc for post-reboot continuation
+  echo "$SCRIPT_PATH" >> ~/.bashrc
   touch .FIRST_ROUND
 
   echo "=========================================="
