@@ -1,0 +1,6 @@
+[submodule "jacker-stacks"]
+	path = jacker-stacks
+	url = https://github.com/jacar-javi/jacker-stacks.git
+[submodule "jacker-docs"]
+	path = jacker-docs
+	url = https://github.com/jacar-javi/jacker-docs.git
