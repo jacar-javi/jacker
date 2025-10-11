@@ -44,7 +44,8 @@ entryPoints:
       # middlewares:
       #   - security-headers@file
     # HTTP/3 configuration (Traefik v3.x syntax)
-    http3: {}
+    # Disabled due to protocol error with OAuth forwardAuth middleware
+    # http3: {}
     # Transport configuration for security
     transport:
       lifeCycle:

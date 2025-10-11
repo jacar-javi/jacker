@@ -3,7 +3,7 @@ services:
   # https://www.smarthomebeginner.com/google-oauth-with-traefik-docker/
   oauth:
     container_name: oauth
-    image: thomseddon/traefik-forward-auth:2.2.0
+    image: thomseddon/traefik-forward-auth:latest
 
     security_opt:
       - no-new-privileges:true
@@ -19,7 +19,7 @@ services:
 
     environment:
       - CONFIG=/config
-      - COOKIE_DOMAIN=.$PUBLIC_FQDN  # Leading dot allows cookies to work across all subdomains
+      - COOKIE_DOMAIN=$PUBLIC_FQDN
       - INSECURE_COOKIE=false
       - AUTH_HOST=oauth.$PUBLIC_FQDN
       - URL_PATH=/_oauth
@@ -38,9 +38,8 @@ services:
       # HTTP Routers
       - "traefik.http.routers.oauth-rtr.entrypoints=websecure"
       - "traefik.http.routers.oauth-rtr.rule=Host(`oauth.$PUBLIC_FQDN`)"
-      # Middlewares - OAuth service must be publicly accessible, no auth required
-      # Using chain-no-oauth-no-crowdsec to prevent CrowdSec from blocking OAuth callbacks
-      - "traefik.http.routers.oauth-rtr.middlewares=chain-no-oauth-no-crowdsec@file"
+      # Middlewares - Use OAuth chain (traefik-forward-auth handles its own callback)
+      - "traefik.http.routers.oauth-rtr.middlewares=chain-oauth-no-crowdsec@file"
       # HTTP Services
       - "traefik.http.routers.oauth-rtr.service=oauth-svc"
       - "traefik.http.services.oauth-svc.loadbalancer.server.port=4181"
