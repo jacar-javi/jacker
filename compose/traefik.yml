@@ -58,7 +58,7 @@ services:
       # Services - API
       - "traefik.http.routers.traefik-rtr.service=api@internal"
       # Middlewares - Using simplified chain for api@internal to avoid HTTP/2 errors
-      # - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth@file"
+      - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth@file"
 
       # Homepage Integration
       - "homepage.group=Reverse Proxy"
