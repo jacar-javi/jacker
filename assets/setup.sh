@@ -18,130 +18,14 @@ source "$SCRIPT_DIR/lib/system.sh"
 source "$SCRIPT_DIR/lib/services.sh"
 
 # ============================================================================
-# Installation Modes
+# Configuration Setup
 # ============================================================================
 
-# Quick setup mode
-quick_setup() {
-    section "Quick Setup Mode"
+# Configuration setup mode
+setup_configuration() {
+    section "Jacker Configuration"
 
-    info "This mode gets you running with minimal prompts"
-    info "Perfect for development, testing, or quick evaluation"
-    echo ""
-
-    # Auto-detect system values
-    export PUID=$(id -u)
-    export PGID=$(id -g)
-    
-    # Use existing TZ if available, otherwise detect
-    export TZ="${TZ:-$(cat /etc/timezone 2>/dev/null || echo 'UTC')}"
-    export USERDIR="$HOME"
-    export DOCKERDIR="$(get_jacker_root)"
-    export DATADIR="$(get_data_dir)"
-
-    # Auto-detect hostname (use existing if available)
-    local detected_hostname=$(hostname -s 2>/dev/null || echo "mybox")
-    export HOSTNAME="${HOSTNAME:-$detected_hostname}"
-
-    # Ask for domain (use existing as default if available)
-    local default_domain="${DOMAINNAME:-${HOSTNAME}.localhost}"
-    export DOMAINNAME=$(prompt_with_default "Enter your Domain Name" "$default_domain")
-    export PUBLIC_FQDN="$HOSTNAME.$DOMAINNAME"
-
-    # Use existing network configuration or defaults
-    export LOCAL_IPS="${LOCAL_IPS:-127.0.0.1/32,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12}"
-    export DOCKER_DEFAULT_SUBNET="${DOCKER_DEFAULT_SUBNET:-192.168.69.0/24}"
-    export SOCKET_PROXY_SUBNET="${SOCKET_PROXY_SUBNET:-192.168.70.0/24}"
-    export TRAEFIK_PROXY_SUBNET="${TRAEFIK_PROXY_SUBNET:-192.168.71.0/24}"
-
-    # Keep existing OAuth if configured, otherwise skip
-    if [ -z "${OAUTH_CLIENT_ID:-}" ] && [ -z "${OAUTH_CLIENT_SECRET:-}" ]; then
-        export OAUTH_CLIENT_ID=""
-        export OAUTH_CLIENT_SECRET=""
-        export OAUTH_SECRET=$(generate_password 16)
-        export OAUTH_WHITELIST=""
-    else
-        # Keep existing OAuth configuration
-        info "Using existing OAuth configuration"
-    fi
-    
-    # Ensure OAUTH_SECRET exists
-    if [ -z "${OAUTH_SECRET:-}" ]; then
-        export OAUTH_SECRET=$(generate_password 16)
-    fi
-
-    # Keep existing Let's Encrypt email if configured
-    if [ -z "${LETSENCRYPT_EMAIL:-}" ]; then
-        export LETSENCRYPT_EMAIL=""
-    else
-        info "Using existing Let's Encrypt email: $LETSENCRYPT_EMAIL"
-    fi
-
-    # Database configuration (keep existing passwords)
-    export POSTGRES_DB="${POSTGRES_DB:-crowdsec_db}"
-    export POSTGRES_USER="${POSTGRES_USER:-crowdsec}"
-    
-    if [ -z "${POSTGRES_PASSWORD:-}" ]; then
-        export POSTGRES_PASSWORD=$(generate_password 24)
-    fi
-
-    # CrowdSec configuration (keep existing keys)
-    export CROWDSEC_API_PORT="${CROWDSEC_API_PORT:-8888}"
-    
-    if [ -z "${CROWDSEC_TRAEFIK_BOUNCER_API_KEY:-}" ]; then
-        export CROWDSEC_TRAEFIK_BOUNCER_API_KEY=$(generate_password 32)
-    fi
-    
-    if [ -z "${CROWDSEC_IPTABLES_BOUNCER_API_KEY:-}" ]; then
-        export CROWDSEC_IPTABLES_BOUNCER_API_KEY=$(generate_password 32)
-    fi
-    
-    if [ -z "${CROWDSEC_API_LOCAL_PASSWORD:-}" ]; then
-        export CROWDSEC_API_LOCAL_PASSWORD=$(generate_password 24)
-    fi
-
-    # Show summary
-    echo ""
-    section "Configuration Summary"
-    echo "Hostname:     $HOSTNAME"
-    echo "Domain:       $DOMAINNAME"
-    echo "Public FQDN:  $PUBLIC_FQDN"
-    echo "Timezone:     $TZ"
-    echo ""
-    
-    # Show OAuth status
-    if [ -n "${OAUTH_CLIENT_ID:-}" ] && [ -n "${OAUTH_CLIENT_SECRET:-}" ]; then
-        info "OAuth:     Configured (Client ID: ${OAUTH_CLIENT_ID:0:20}...)"
-    else
-        warning "OAuth:     Not configured (services will be UNAUTHENTICATED)"
-    fi
-    
-    # Show SSL status
-    if [ -n "${LETSENCRYPT_EMAIL:-}" ]; then
-        info "SSL:       Let's Encrypt ($LETSENCRYPT_EMAIL)"
-    else
-        warning "SSL:       Self-signed certificates will be used"
-    fi
-    
-    echo ""
-    info "To configure OAuth later: make reconfigure-oauth"
-    info "To configure SSL later:   make reconfigure-ssl"
-    echo ""
-
-    if ! confirm_action "Proceed with quick setup?" "Y"; then
-        error "Setup cancelled"
-        exit 0
-    fi
-
-    # Create configuration
-    create_configuration
-}
-
-# Advanced setup mode
-advanced_setup() {
-    section "Advanced Setup Mode"
-
-    info "This mode provides full control over all settings"
+    info "Configure your Jacker installation"
     echo ""
 
     # System configuration
@@ -506,39 +390,8 @@ main() {
         esac
     fi
 
-    # Select setup mode
-    section "Setup Mode Selection"
-
-    echo "Choose your setup mode:"
-    echo ""
-    echo "  [1] $ROCKET Quick Setup (Recommended for testing)"
-    echo "      • Minimal prompts (~2 questions)"
-    echo "      • Auto-detect most settings"
-    echo "      • Get running in under 1 minute"
-    echo ""
-    echo "  [2] 🔧 Advanced Setup (Full customization)"
-    echo "      • Complete control over all settings"
-    echo "      • Configure OAuth, SSL, alerting"
-    echo "      • Production-ready configuration"
-    echo ""
-
-    while true; do
-        read -r -p "Select mode [1/2]: " mode
-
-        case "$mode" in
-            1)
-                quick_setup
-                break
-                ;;
-            2)
-                advanced_setup
-                break
-                ;;
-            *)
-                error "Invalid choice. Please enter 1 or 2."
-                ;;
-        esac
-    done
+    # Run configuration setup
+    setup_configuration
 
     # Run installation
     run_installation
