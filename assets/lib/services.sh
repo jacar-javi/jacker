@@ -292,7 +292,26 @@ setup_loki() {
     ensure_dir "$(get_data_dir)/loki/data/compactor"
 
     # Loki runs as UID 10001, needs write access
-    chmod -R 777 "$(get_data_dir)/loki/data"
+    # First, try to take ownership if files exist from previous runs
+    local loki_data_dir="$(get_data_dir)/loki/data"
+    
+    if [ -d "$loki_data_dir" ] && [ "$(ls -A "$loki_data_dir" 2>/dev/null)" ]; then
+        # Directory exists and has files - need sudo to change ownership
+        info "Fixing Loki file ownership (may require sudo password)"
+        sudo chown -R "$(id -u):$(id -g)" "$loki_data_dir" 2>/dev/null || {
+            warning "Could not change ownership, trying chmod with sudo"
+            sudo chmod -R 777 "$loki_data_dir" 2>/dev/null || {
+                error "Could not fix Loki permissions - please run: sudo chown -R \$(id -u):\$(id -g) $loki_data_dir"
+                return 1
+            }
+        }
+    fi
+    
+    # Now set permissions (should work since we own the files)
+    chmod -R 777 "$loki_data_dir" || {
+        warning "Could not set permissions, trying with sudo"
+        sudo chmod -R 777 "$loki_data_dir"
+    }
 
     # Copy configuration
     local config_file="$(get_data_dir)/loki/loki-config.yml"
