@@ -32,45 +32,73 @@ quick_setup() {
     # Auto-detect system values
     export PUID=$(id -u)
     export PGID=$(id -g)
-    export TZ=$(cat /etc/timezone 2>/dev/null || echo 'UTC')
+    
+    # Use existing TZ if available, otherwise detect
+    export TZ="${TZ:-$(cat /etc/timezone 2>/dev/null || echo 'UTC')}"
     export USERDIR="$HOME"
     export DOCKERDIR="$(get_jacker_root)"
     export DATADIR="$(get_data_dir)"
 
-    # Auto-detect hostname
+    # Auto-detect hostname (use existing if available)
     local detected_hostname=$(hostname -s 2>/dev/null || echo "mybox")
-    export HOSTNAME="$detected_hostname"
+    export HOSTNAME="${HOSTNAME:-$detected_hostname}"
 
-    # Ask for domain
-    local default_domain="${detected_hostname}.localhost"
+    # Ask for domain (use existing as default if available)
+    local default_domain="${DOMAINNAME:-${HOSTNAME}.localhost}"
     export DOMAINNAME=$(prompt_with_default "Enter your Domain Name" "$default_domain")
     export PUBLIC_FQDN="$HOSTNAME.$DOMAINNAME"
 
-    # Use default network configuration
-    export LOCAL_IPS="127.0.0.1/32,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12"
-    export DOCKER_DEFAULT_SUBNET="192.168.69.0/24"
-    export SOCKET_PROXY_SUBNET="192.168.70.0/24"
-    export TRAEFIK_PROXY_SUBNET="192.168.71.0/24"
+    # Use existing network configuration or defaults
+    export LOCAL_IPS="${LOCAL_IPS:-127.0.0.1/32,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12}"
+    export DOCKER_DEFAULT_SUBNET="${DOCKER_DEFAULT_SUBNET:-192.168.69.0/24}"
+    export SOCKET_PROXY_SUBNET="${SOCKET_PROXY_SUBNET:-192.168.70.0/24}"
+    export TRAEFIK_PROXY_SUBNET="${TRAEFIK_PROXY_SUBNET:-192.168.71.0/24}"
 
-    # Skip OAuth (can be configured later)
-    export OAUTH_CLIENT_ID=""
-    export OAUTH_CLIENT_SECRET=""
-    export OAUTH_SECRET=$(generate_password 16)
-    export OAUTH_WHITELIST=""
+    # Keep existing OAuth if configured, otherwise skip
+    if [ -z "${OAUTH_CLIENT_ID:-}" ] && [ -z "${OAUTH_CLIENT_SECRET:-}" ]; then
+        export OAUTH_CLIENT_ID=""
+        export OAUTH_CLIENT_SECRET=""
+        export OAUTH_SECRET=$(generate_password 16)
+        export OAUTH_WHITELIST=""
+    else
+        # Keep existing OAuth configuration
+        info "Using existing OAuth configuration"
+    fi
+    
+    # Ensure OAUTH_SECRET exists
+    if [ -z "${OAUTH_SECRET:-}" ]; then
+        export OAUTH_SECRET=$(generate_password 16)
+    fi
 
-    # Skip Let's Encrypt (use self-signed)
-    export LETSENCRYPT_EMAIL=""
+    # Keep existing Let's Encrypt email if configured
+    if [ -z "${LETSENCRYPT_EMAIL:-}" ]; then
+        export LETSENCRYPT_EMAIL=""
+    else
+        info "Using existing Let's Encrypt email: $LETSENCRYPT_EMAIL"
+    fi
 
-    # PostgreSQL configuration
-    export POSTGRES_DB="crowdsec_db"
-    export POSTGRES_USER="crowdsec"
-    export POSTGRES_PASSWORD=$(generate_password 24)
+    # Database configuration (keep existing passwords)
+    export POSTGRES_DB="${POSTGRES_DB:-crowdsec_db}"
+    export POSTGRES_USER="${POSTGRES_USER:-crowdsec}"
+    
+    if [ -z "${POSTGRES_PASSWORD:-}" ]; then
+        export POSTGRES_PASSWORD=$(generate_password 24)
+    fi
 
-    # CrowdSec configuration
-    export CROWDSEC_API_PORT="8888"
-    export CROWDSEC_TRAEFIK_BOUNCER_API_KEY=$(generate_password 32)
-    export CROWDSEC_IPTABLES_BOUNCER_API_KEY=$(generate_password 32)
-    export CROWDSEC_API_LOCAL_PASSWORD=$(generate_password 24)
+    # CrowdSec configuration (keep existing keys)
+    export CROWDSEC_API_PORT="${CROWDSEC_API_PORT:-8888}"
+    
+    if [ -z "${CROWDSEC_TRAEFIK_BOUNCER_API_KEY:-}" ]; then
+        export CROWDSEC_TRAEFIK_BOUNCER_API_KEY=$(generate_password 32)
+    fi
+    
+    if [ -z "${CROWDSEC_IPTABLES_BOUNCER_API_KEY:-}" ]; then
+        export CROWDSEC_IPTABLES_BOUNCER_API_KEY=$(generate_password 32)
+    fi
+    
+    if [ -z "${CROWDSEC_API_LOCAL_PASSWORD:-}" ]; then
+        export CROWDSEC_API_LOCAL_PASSWORD=$(generate_password 24)
+    fi
 
     # Show summary
     echo ""
@@ -80,8 +108,21 @@ quick_setup() {
     echo "Public FQDN:  $PUBLIC_FQDN"
     echo "Timezone:     $TZ"
     echo ""
-    warning "OAuth:     Not configured (services will be UNAUTHENTICATED)"
-    warning "SSL:       Self-signed certificates will be used"
+    
+    # Show OAuth status
+    if [ -n "${OAUTH_CLIENT_ID:-}" ] && [ -n "${OAUTH_CLIENT_SECRET:-}" ]; then
+        info "OAuth:     Configured (Client ID: ${OAUTH_CLIENT_ID:0:20}...)"
+    else
+        warning "OAuth:     Not configured (services will be UNAUTHENTICATED)"
+    fi
+    
+    # Show SSL status
+    if [ -n "${LETSENCRYPT_EMAIL:-}" ]; then
+        info "SSL:       Let's Encrypt ($LETSENCRYPT_EMAIL)"
+    else
+        warning "SSL:       Self-signed certificates will be used"
+    fi
+    
     echo ""
     info "To configure OAuth later: make reconfigure-oauth"
     info "To configure SSL later:   make reconfigure-ssl"
@@ -106,7 +147,11 @@ advanced_setup() {
     # System configuration
     export PUID=$(id -u)
     export PGID=$(id -g)
-    export TZ=$(prompt_with_default "Enter your timezone" "$(cat /etc/timezone 2>/dev/null || echo 'UTC')")
+    
+    # Use existing TZ if available, otherwise detect
+    local default_tz="${TZ:-$(cat /etc/timezone 2>/dev/null || echo 'UTC')}"
+    export TZ=$(prompt_with_default "Enter your timezone" "$default_tz")
+    
     export USERDIR="$HOME"
     export DOCKERDIR="$(get_jacker_root)"
     export DATADIR="$(get_data_dir)"
@@ -115,7 +160,9 @@ advanced_setup() {
     subsection "Basic Configuration"
 
     while true; do
-        local hostname=$(prompt_with_default "Enter your Host Name" "$(hostname -s)")
+        # Use existing HOSTNAME if available, otherwise detect
+        local default_hostname="${HOSTNAME:-$(hostname -s)}"
+        local hostname=$(prompt_with_default "Enter your Host Name" "$default_hostname")
         if validate_hostname "$hostname"; then
             export HOSTNAME="$hostname"
             break
@@ -123,7 +170,9 @@ advanced_setup() {
     done
 
     while true; do
-        local domain=$(prompt_with_default "Enter your Domain Name" "example.com")
+        # Use existing DOMAINNAME if available, otherwise use example.com
+        local default_domain="${DOMAINNAME:-example.com}"
+        local domain=$(prompt_with_default "Enter your Domain Name" "$default_domain")
         if validate_domain "$domain"; then
             export DOMAINNAME="$domain"
             break
@@ -137,33 +186,43 @@ advanced_setup() {
     subsection "Network Configuration"
 
     if confirm_action "Use default network configuration?" "Y"; then
-        export LOCAL_IPS="127.0.0.1/32,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12"
-        export DOCKER_DEFAULT_SUBNET="192.168.69.0/24"
-        export SOCKET_PROXY_SUBNET="192.168.70.0/24"
-        export TRAEFIK_PROXY_SUBNET="192.168.71.0/24"
+        export LOCAL_IPS="${LOCAL_IPS:-127.0.0.1/32,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12}"
+        export DOCKER_DEFAULT_SUBNET="${DOCKER_DEFAULT_SUBNET:-192.168.69.0/24}"
+        export SOCKET_PROXY_SUBNET="${SOCKET_PROXY_SUBNET:-192.168.70.0/24}"
+        export TRAEFIK_PROXY_SUBNET="${TRAEFIK_PROXY_SUBNET:-192.168.71.0/24}"
     else
-        export LOCAL_IPS=$(prompt_with_default "Local IPs (comma separated CIDR)" "127.0.0.1/32,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12")
-        export DOCKER_DEFAULT_SUBNET=$(prompt_with_default "Docker Default Subnet" "192.168.69.0/24")
-        export SOCKET_PROXY_SUBNET=$(prompt_with_default "Socket Proxy Subnet" "192.168.70.0/24")
-        export TRAEFIK_PROXY_SUBNET=$(prompt_with_default "Traefik Proxy Subnet" "192.168.71.0/24")
+        export LOCAL_IPS=$(prompt_with_default "Local IPs (comma separated CIDR)" "${LOCAL_IPS:-127.0.0.1/32,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12}")
+        export DOCKER_DEFAULT_SUBNET=$(prompt_with_default "Docker Default Subnet" "${DOCKER_DEFAULT_SUBNET:-192.168.69.0/24}")
+        export SOCKET_PROXY_SUBNET=$(prompt_with_default "Socket Proxy Subnet" "${SOCKET_PROXY_SUBNET:-192.168.70.0/24}")
+        export TRAEFIK_PROXY_SUBNET=$(prompt_with_default "Traefik Proxy Subnet" "${TRAEFIK_PROXY_SUBNET:-192.168.71.0/24}")
     fi
 
     # Firewall configuration
     subsection "Firewall Configuration"
 
-    export UFW_ALLOW_PORTS=$(prompt_with_default "Additional UFW ports to allow" "")
-    export UFW_ALLOW_SSH=$(prompt_with_default "Networks/hosts to allow SSH" "any")
+    export UFW_ALLOW_PORTS=$(prompt_with_default "Additional UFW ports to allow" "${UFW_ALLOW_PORTS:-}")
+    export UFW_ALLOW_SSH=$(prompt_with_default "Networks/hosts to allow SSH" "${UFW_ALLOW_SSH:-any}")
 
     # OAuth configuration
     subsection "OAuth Configuration"
 
+    # Check if OAuth was previously configured
+    local oauth_configured=false
+    if [ -n "${OAUTH_CLIENT_ID:-}" ] && [ -n "${OAUTH_CLIENT_SECRET:-}" ]; then
+        oauth_configured=true
+    fi
+
     if confirm_action "Configure OAuth authentication?" "Y"; then
-        export OAUTH_CLIENT_ID=$(prompt_with_default "OAuth Client ID" "")
-        export OAUTH_CLIENT_SECRET=$(prompt_with_default "OAuth Client Secret" "")
-        export OAUTH_SECRET=$(generate_password 16)
+        export OAUTH_CLIENT_ID=$(prompt_with_default "OAuth Client ID" "${OAUTH_CLIENT_ID:-}")
+        export OAUTH_CLIENT_SECRET=$(prompt_with_default "OAuth Client Secret" "${OAUTH_CLIENT_SECRET:-}")
+        
+        # Reuse existing OAUTH_SECRET if available, otherwise generate new
+        if [ -z "${OAUTH_SECRET:-}" ]; then
+            export OAUTH_SECRET=$(generate_password 16)
+        fi
 
         while true; do
-            local whitelist=$(prompt_with_default "OAuth whitelist emails (comma separated)" "")
+            local whitelist=$(prompt_with_default "OAuth whitelist emails (comma separated)" "${OAUTH_WHITELIST:-}")
             if [ -z "$whitelist" ] || validate_email "${whitelist%%,*}"; then
                 export OAUTH_WHITELIST="$whitelist"
                 break
@@ -180,12 +239,20 @@ advanced_setup() {
     # SSL configuration
     subsection "SSL Configuration"
 
+    # Check if Let's Encrypt was previously configured
+    local letsencrypt_configured=false
+    if [ -n "${LETSENCRYPT_EMAIL:-}" ]; then
+        letsencrypt_configured=true
+    fi
+
     if confirm_action "Configure Let's Encrypt SSL?" "Y"; then
         while true; do
-            local email=$(prompt_with_default "Let's Encrypt Email" "")
-            if validate_email "$email"; then
+            local email=$(prompt_with_default "Let's Encrypt Email" "${LETSENCRYPT_EMAIL:-}")
+            if [ -n "$email" ] && validate_email "$email"; then
                 export LETSENCRYPT_EMAIL="$email"
                 break
+            elif [ -z "$email" ]; then
+                warning "Email is required for Let's Encrypt"
             fi
         done
     else
@@ -196,9 +263,13 @@ advanced_setup() {
     # Database configuration
     subsection "Database Configuration"
 
-    export POSTGRES_DB="crowdsec_db"
-    export POSTGRES_USER="crowdsec"
-    export POSTGRES_PASSWORD=$(generate_password 24)
+    export POSTGRES_DB="${POSTGRES_DB:-crowdsec_db}"
+    export POSTGRES_USER="${POSTGRES_USER:-crowdsec}"
+    
+    # Keep existing password if available, otherwise generate new
+    if [ -z "${POSTGRES_PASSWORD:-}" ]; then
+        export POSTGRES_PASSWORD=$(generate_password 24)
+    fi
 
     info "PostgreSQL Database: $POSTGRES_DB"
     info "PostgreSQL User: $POSTGRES_USER"
@@ -206,12 +277,22 @@ advanced_setup() {
     # CrowdSec configuration
     subsection "Security Configuration"
 
-    export CROWDSEC_API_PORT="8888"
-    export CROWDSEC_TRAEFIK_BOUNCER_API_KEY=$(generate_password 32)
-    export CROWDSEC_IPTABLES_BOUNCER_API_KEY=$(generate_password 32)
-    export CROWDSEC_API_LOCAL_PASSWORD=$(generate_password 24)
+    export CROWDSEC_API_PORT="${CROWDSEC_API_PORT:-8888}"
+    
+    # Keep existing API keys if available, otherwise generate new
+    if [ -z "${CROWDSEC_TRAEFIK_BOUNCER_API_KEY:-}" ]; then
+        export CROWDSEC_TRAEFIK_BOUNCER_API_KEY=$(generate_password 32)
+    fi
+    
+    if [ -z "${CROWDSEC_IPTABLES_BOUNCER_API_KEY:-}" ]; then
+        export CROWDSEC_IPTABLES_BOUNCER_API_KEY=$(generate_password 32)
+    fi
+    
+    if [ -z "${CROWDSEC_API_LOCAL_PASSWORD:-}" ]; then
+        export CROWDSEC_API_LOCAL_PASSWORD=$(generate_password 24)
+    fi
 
-    info "CrowdSec API keys generated"
+    info "CrowdSec API keys preserved/generated"
 
     # Create configuration
     create_configuration
