@@ -5,7 +5,7 @@ http:
     chain-no-oauth-no-crowdsec:
       chain:
         middlewares:
-          - rate-limit-enhanced@file     # Enhanced rate limiting
-          - security-headers@file        # Security headers
-          - request-size-limit@file      # Prevent large payload attacks
+          - middlewares-rate-limit       # Rate limiting
+          - security-headers             # Security headers
+          - request-size-limit           # Prevent large payload attacks
           - middlewares-compress         # Compression

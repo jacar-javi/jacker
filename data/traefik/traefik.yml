@@ -39,11 +39,10 @@ entryPoints:
     # HTTPS with TLS and HTTP/3 support
     http:
       tls:
-        options: tls-opts@file
         certResolver: http
       # Middleware chains can be added here globally
-      middlewares:
-        - security-headers@file
+      # middlewares:
+      #   - security-headers@file
     # HTTP/3 configuration (Traefik v3.x syntax)
     http3: {}
     # Transport configuration for security
@@ -89,7 +88,7 @@ ping:
 
 # Logging Configuration
 log:
-  level: INFO  # Can be: DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+  level: DEBUG  # Can be: DEBUG, INFO, WARN, ERROR, FATAL, PANIC
   filePath: /logs/traefik-error.log
   format: json  # json or common
   # Uncomment for more detailed logging

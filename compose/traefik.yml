@@ -58,8 +58,8 @@ services:
       - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.$PUBLIC_FQDN`)"
       # Services - API
       - "traefik.http.routers.traefik-rtr.service=api@internal"
-      # Middlewares
-      - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth@file"
+      # Middlewares - Using chain without CrowdSec to avoid blocking legitimate traffic
+      - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth-no-crowdsec@file"
 
       # Homepage Integration
       - "homepage.group=Reverse Proxy"

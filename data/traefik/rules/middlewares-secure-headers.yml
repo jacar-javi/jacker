@@ -64,7 +64,7 @@ http:
           - OPTIONS
           - PATCH
         accessControlAllowOriginList:
-          - "https://{{env \"PUBLIC_FQDN\"}}"
+          - "https://vps1.jacarsystems.net"
         accessControlMaxAge: 100
         addVaryHeader: true
 
@@ -127,7 +127,7 @@ http:
           - OPTIONS
           - PATCH
         accessControlAllowOriginList:
-          - "https://{{env \"PUBLIC_FQDN\"}}"
+          - "https://vps1.jacarsystems.net"
         accessControlMaxAge: 100
         addVaryHeader: true
 
