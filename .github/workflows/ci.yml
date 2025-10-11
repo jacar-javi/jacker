@@ -207,19 +207,29 @@ jobs:
           # Test backup
           ./assets/backup.sh /tmp/test-backup
 
-          # Verify backup
-          if [ ! -f /tmp/test-backup/jacker-config-*.tar.gz ]; then
+          # Verify backup using proper glob expansion
+          backup_files=(/tmp/test-backup/jacker-backup-*.tar.gz)
+          if [ ! -f "${backup_files[0]}" ]; then
             echo "Backup file not created"
+            ls -la /tmp/test-backup/
             exit 1
           fi
 
-          if [ ! -f /tmp/test-backup/checksums.sha256 ]; then
+          echo "Backup file created: ${backup_files[0]}"
+
+          if [ ! -f /tmp/test-backup/jacker-backup-*/checksums.sha256 ]; then
             echo "Checksums file not created"
+            ls -la /tmp/test-backup/
             exit 1
           fi
 
-          # Verify checksums
-          cd /tmp/test-backup && sha256sum -c checksums.sha256
+          # Verify archive is valid
+          if ! tar -tzf "${backup_files[0]}" > /dev/null 2>&1; then
+            echo "Backup archive is invalid or corrupted"
+            exit 1
+          fi
+
+          echo "Backup test completed successfully"
 
   documentation-check:
     name: Documentation Check

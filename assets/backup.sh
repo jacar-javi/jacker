@@ -64,7 +64,12 @@ fi
 echo "Backing up CrowdSec configuration..."
 mkdir -p "${BACKUP_PATH}/data/crowdsec"
 if [ -d data/crowdsec/config ]; then
-    sudo cp -r data/crowdsec/config "${BACKUP_PATH}/data/crowdsec/" 2>/dev/null || echo "WARNING: Could not backup CrowdSec config"
+    # Try with sudo first, fall back to regular cp
+    if command -v sudo &> /dev/null && sudo -n true 2>/dev/null; then
+        sudo cp -r data/crowdsec/config "${BACKUP_PATH}/data/crowdsec/" 2>/dev/null || echo "WARNING: Could not backup CrowdSec config"
+    else
+        cp -r data/crowdsec/config "${BACKUP_PATH}/data/crowdsec/" 2>/dev/null || echo "WARNING: Could not backup CrowdSec config (no sudo access)"
+    fi
 fi
 
 # Backup secrets
@@ -138,16 +143,16 @@ EOF
 echo "Creating checksums..."
 find "${BACKUP_PATH}" -type f -exec sha256sum {} \; > "${BACKUP_PATH}/checksums.sha256" 2>/dev/null || true
 
-# Fix permissions
-echo "Setting permissions..."
-chmod -R 600 "${BACKUP_PATH}/secrets" 2>/dev/null || true
-chmod 600 "${BACKUP_PATH}/.env" 2>/dev/null || true
-
 # Create compressed archive
 echo "Compressing backup..."
-tar -czf "${BACKUP_PATH}.tar.gz" -C "${BACKUP_DIR}" "${BACKUP_NAME}" 2>/dev/null || {
+if tar -czf "${BACKUP_PATH}.tar.gz" -C "${BACKUP_DIR}" "${BACKUP_NAME}" 2>/dev/null; then
+    ARCHIVE_CREATED=true
+    # Set restrictive permissions on the archive
+    chmod 600 "${BACKUP_PATH}.tar.gz"
+else
+    ARCHIVE_CREATED=false
     echo "WARNING: Could not create compressed archive"
-}
+fi
 
 # Calculate backup size
 if [ -f "${BACKUP_PATH}.tar.gz" ]; then
