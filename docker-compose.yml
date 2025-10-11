@@ -1,22 +1,10 @@
+version: '3.8'
+
 services:
-  traefik:
-    image: traefik:v3.5.3
-    container_name: traefik
-
-  postgres:
-    image: postgres:15
-    container_name: postgres
-
-  redis:
-    image: redis:7
-    container_name: redis
-
-  crowdsec:
-    image: crowdsecurity/crowdsec
-    container_name: crowdsec
+  test:
+    image: alpine:latest
+    command: echo "test"
 
 networks:
   default:
-    name: jacker_network
-  traefik_proxy:
-    name: traefik_proxy
+    name: test_network

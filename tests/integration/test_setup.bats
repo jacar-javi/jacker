@@ -179,10 +179,9 @@ EOF
     }
     export -f is_container_running
 
-    # Create simple health check
+    # Create simple health check (don't source common.sh - use exported mock functions)
     cat > health_check.sh <<'EOF'
 #!/bin/bash
-source "${LIB_DIR}/common.sh"
 
 if is_container_running "traefik"; then
     echo "traefik: healthy"

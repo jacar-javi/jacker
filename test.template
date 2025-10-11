@@ -1,0 +1,4 @@
+server:
+  host: ${HOSTNAME}
+  domain: ${DOMAINNAME}
+  port: ${PORT}
