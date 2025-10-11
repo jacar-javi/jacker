@@ -51,31 +51,91 @@ register_crowdsec_bouncers() {
     # Add 30s buffer for safety = 180s total
     wait_for_healthy "crowdsec" 180 5
 
+    # Additional wait: Health check only verifies CLI works, not database initialization
+    # Give CrowdSec extra time to fully initialize its database connection
+    info "Waiting for CrowdSec database initialization..."
+    sleep 10
+
+    # Verify CrowdSec API is actually responsive (not just health check passing)
+    local max_retries=5
+    local retry=0
+    local api_ready=false
+    
+    while [ $retry -lt $max_retries ]; do
+        if docker compose exec -T crowdsec cscli metrics &>/dev/null; then
+            api_ready=true
+            break
+        fi
+        retry=$((retry + 1))
+        if [ $retry -lt $max_retries ]; then
+            info "CrowdSec API not ready yet, waiting... (attempt $retry/$max_retries)"
+            sleep 5
+        fi
+    done
+
+    if [ "$api_ready" = false ]; then
+        error "CrowdSec API failed to become ready after $max_retries attempts"
+        error "Check CrowdSec logs: docker logs crowdsec"
+        return 1
+    fi
+
+    success "CrowdSec API is ready"
+
     # Get API keys from environment
     local traefik_key="${CROWDSEC_TRAEFIK_BOUNCER_API_KEY:-}"
     local iptables_key="${CROWDSEC_IPTABLES_BOUNCER_API_KEY:-}"
     local hostname="${HOSTNAME:-$(hostname)}"
     local api_password="${CROWDSEC_API_LOCAL_PASSWORD:-}"
 
+    # Register Traefik bouncer (check if already exists first)
     if [ -n "$traefik_key" ]; then
-        info "Registering Traefik bouncer"
-        docker_exec crowdsec cscli bouncers add traefik-bouncer --key "$traefik_key" &> /dev/null || true
+        info "Checking Traefik bouncer registration"
+        if docker compose exec -T crowdsec cscli bouncers list | grep -q "traefik-bouncer"; then
+            info "Traefik bouncer already registered"
+        else
+            info "Registering Traefik bouncer"
+            if docker compose exec -T crowdsec cscli bouncers add traefik-bouncer --key "$traefik_key" &>/dev/null; then
+                success "Traefik bouncer registered"
+            else
+                warning "Failed to register Traefik bouncer (may already exist via BOUNCER_KEY env var)"
+            fi
+        fi
     fi
 
+    # Register iptables bouncer (check if already exists first)
     if [ -n "$iptables_key" ]; then
-        info "Registering iptables bouncer"
-        docker_exec crowdsec cscli bouncers add iptables-bouncer --key "$iptables_key" &> /dev/null || true
+        info "Checking iptables bouncer registration"
+        if docker compose exec -T crowdsec cscli bouncers list | grep -q "iptables-bouncer"; then
+            info "iptables bouncer already registered"
+        else
+            info "Registering iptables bouncer"
+            if docker compose exec -T crowdsec cscli bouncers add iptables-bouncer --key "$iptables_key" &>/dev/null; then
+                success "iptables bouncer registered"
+            else
+                warning "Failed to register iptables bouncer (may already exist via BOUNCER_KEY env var)"
+            fi
+        fi
     fi
 
+    # Register local API machine
     if [ -n "$api_password" ]; then
-        info "Setting local API password"
-        docker_exec crowdsec cscli machines add "$hostname" -p "$api_password" --force &> /dev/null || true
+        info "Checking local API machine registration"
+        if docker compose exec -T crowdsec cscli machines list | grep -q "$hostname"; then
+            info "Local API machine already registered"
+        else
+            info "Registering local API machine: $hostname"
+            if docker compose exec -T crowdsec cscli machines add "$hostname" --password "$api_password" --force &>/dev/null; then
+                success "Local API machine registered"
+            else
+                warning "Failed to register local API machine (non-fatal)"
+            fi
+        fi
     fi
 
-    # Install bash completion
-    docker_exec crowdsec cscli completion bash | sudo tee /etc/bash_completion.d/cscli &> /dev/null
+    # Install bash completion (non-fatal if fails)
+    docker compose exec -T crowdsec cscli completion bash 2>/dev/null | sudo tee /etc/bash_completion.d/cscli &>/dev/null || true
 
-    success "Bouncers registered"
+    success "Bouncer registration complete"
 }
 
 # Install CrowdSec firewall bouncer
