@@ -1,10 +1,11 @@
 global:
   resolve_timeout: 5m
-  smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
-  smtp_from: '${SMTP_FROM}'
-  smtp_auth_username: '${SMTP_USERNAME}'
-  smtp_auth_password: '${SMTP_PASSWORD}'
-  smtp_require_tls: true
+  # SMTP configuration - uncomment and configure to enable email alerts
+  # smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
+  # smtp_from: '${SMTP_FROM}'
+  # smtp_auth_username: '${SMTP_USERNAME}'
+  # smtp_auth_password: '${SMTP_PASSWORD}'
+  # smtp_require_tls: true
 
 # Templates for custom alert formatting
 templates:
@@ -50,76 +51,15 @@ inhibit_rules:
     equal: ['alertname', 'instance']
 
 receivers:
-  # Default receiver - email only
+  # Default receiver - null receiver (no notifications)
+  # Email/Telegram can be configured via Alertmanager UI or by editing this file
   - name: 'default-receiver'
-    email_configs:
-      - to: '${ALERT_EMAIL_TO}'
-        headers:
-          Subject: '[Jacker] Alert: {{ .GroupLabels.alertname }}'
-        html: |
-          {{ range .Alerts }}
-          <b>Alert:</b> {{ .Labels.alertname }}<br>
-          <b>Severity:</b> {{ .Labels.severity }}<br>
-          <b>Summary:</b> {{ .Annotations.summary }}<br>
-          <b>Description:</b> {{ .Annotations.description }}<br>
-          {{ end }}
 
-  # Critical alerts - both email and telegram
+  # Critical alerts - null receiver by default
   - name: 'critical-alerts'
-    email_configs:
-      - to: '${ALERT_EMAIL_TO}'
-        headers:
-          Subject: '[CRITICAL] Jacker Alert: {{ .GroupLabels.alertname }}'
-        html: |
-          <h2 style="color: red;">CRITICAL ALERT</h2>
-          {{ range .Alerts }}
-          <b>Alert:</b> {{ .Labels.alertname }}<br>
-          <b>Instance:</b> {{ .Labels.instance }}<br>
-          <b>Severity:</b> {{ .Labels.severity }}<br>
-          <b>Summary:</b> {{ .Annotations.summary }}<br>
-          <b>Description:</b> {{ .Annotations.description }}<br>
-          <b>Started at:</b> {{ .StartsAt }}<br>
-          {{ end }}
-    telegram_configs:
-      - api_url: 'https://api.telegram.org'
-        bot_token: '${TELEGRAM_BOT_TOKEN}'
-        chat_id: ${TELEGRAM_CHAT_ID}
-        parse_mode: 'HTML'
-        message: |
-          🚨 <b>CRITICAL ALERT</b> 🚨
-          {{ range .Alerts }}
-          <b>Alert:</b> {{ .Labels.alertname }}
-          <b>Instance:</b> {{ .Labels.instance }}
-          <b>Severity:</b> {{ .Labels.severity }}
-          <b>Summary:</b> {{ .Annotations.summary }}
-          <b>Description:</b> {{ .Annotations.description }}
-          {{ end }}
 
-  # Warning alerts - email only
+  # Warning alerts - null receiver by default
   - name: 'warning-alerts'
-    email_configs:
-      - to: '${ALERT_EMAIL_TO}'
-        headers:
-          Subject: '[WARNING] Jacker Alert: {{ .GroupLabels.alertname }}'
-        html: |
-          <h2 style="color: orange;">WARNING</h2>
-          {{ range .Alerts }}
-          <b>Alert:</b> {{ .Labels.alertname }}<br>
-          <b>Instance:</b> {{ .Labels.instance }}<br>
-          <b>Severity:</b> {{ .Labels.severity }}<br>
-          <b>Summary:</b> {{ .Annotations.summary }}<br>
-          <b>Description:</b> {{ .Annotations.description }}<br>
-          {{ end }}
 
-  # Info alerts - email only
+  # Info alerts - null receiver by default
   - name: 'info-alerts'
-    email_configs:
-      - to: '${ALERT_EMAIL_TO}'
-        headers:
-          Subject: '[INFO] Jacker: {{ .GroupLabels.alertname }}'
-        html: |
-          {{ range .Alerts }}
-          <b>Alert:</b> {{ .Labels.alertname }}<br>
-          <b>Summary:</b> {{ .Annotations.summary }}<br>
-          <b>Description:</b> {{ .Annotations.description }}<br>
-          {{ end }}

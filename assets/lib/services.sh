@@ -409,6 +409,7 @@ setup_alertmanager() {
     subsection "Setting up Alertmanager"
 
     ensure_dir "$(get_data_dir)/alertmanager"
+    ensure_dir "$(get_data_dir)/alertmanager/data"
 
     local config_file="$(get_data_dir)/alertmanager/alertmanager.yml"
     local template_file="$(get_assets_dir)/templates/alertmanager.yml.template"
@@ -416,6 +417,9 @@ setup_alertmanager() {
     if [ -f "$template_file" ]; then
         create_from_template "$template_file" "$config_file"
     fi
+
+    # Set permissive permissions for alertmanager data directory (similar to Loki)
+    chmod -R 777 "$(get_data_dir)/alertmanager/data" 2>/dev/null || true
 
     success "Alertmanager configured"
 }
