@@ -52,19 +52,19 @@ echo ""
 test_start() {
     local test_name=$1
     echo -n "Testing: $test_name... "
-    ((TESTS_RUN++))
+    TESTS_RUN=$((TESTS_RUN + 1))
 }
 
 test_pass() {
     echo -e "${GREEN}✓ PASS${NC}"
-    ((TESTS_PASSED++))
+    TESTS_PASSED=$((TESTS_PASSED + 1))
 }
 
 test_fail() {
     local test_name=$1
     local reason=${2:-"Unknown error"}
     echo -e "${RED}✗ FAIL${NC} ($reason)"
-    ((TESTS_FAILED++))
+    TESTS_FAILED=$((TESTS_FAILED + 1))
     FAILED_TESTS+=("$test_name: $reason")
 
     if [ "$CI_MODE" = true ]; then
@@ -76,7 +76,7 @@ test_fail() {
 test_skip() {
     local reason=${1:-""}
     echo -e "${YELLOW}⊘ SKIP${NC} ($reason)"
-    ((TESTS_SKIPPED++))
+    TESTS_SKIPPED=$((TESTS_SKIPPED + 1))
 }
 
 test_info() {
@@ -90,12 +90,29 @@ test_info() {
 echo -e "${BLUE}=== Script Syntax Tests ===${NC}"
 
 test_start "Shell script syntax (bash -n)"
-if bash -n assets/setup.sh 2>/dev/null && bash -n assets/clean.sh 2>/dev/null && \
-   bash -n assets/update.sh 2>/dev/null && bash -n assets/backup.sh 2>/dev/null && \
-   bash -n assets/health-check.sh 2>/dev/null && bash -n assets/register_bouncers.sh 2>/dev/null; then
+syntax_ok=true
+failed_script=""
+for script in assets/setup.sh assets/clean.sh assets/update.sh assets/backup.sh assets/health-check.sh assets/register_bouncers.sh; do
+    if [ ! -f "$script" ]; then
+        syntax_ok=false
+        failed_script="$script (not found)"
+        break
+    fi
+    # Temporarily disable pipefail for this check
+    set +e
+    bash -n "$script" >/dev/null 2>&1
+    result=$?
+    set -e
+    if [ $result -ne 0 ]; then
+        syntax_ok=false
+        failed_script="$script (syntax error)"
+        break
+    fi
+done
+if [ "$syntax_ok" = true ]; then
     test_pass
 else
-    test_fail "Shell script syntax" "Syntax error in main scripts"
+    test_fail "Shell script syntax" "$failed_script"
 fi
 
 test_start "Asset scripts syntax"
@@ -274,9 +291,9 @@ scripts_with_set=0
 total_scripts=0
 for script in assets/*.sh; do
     if [ -f "$script" ]; then
-        ((total_scripts++))
+        total_scripts=$((total_scripts + 1))
         if grep -q "set -euo pipefail" "$script"; then
-            ((scripts_with_set++))
+            scripts_with_set=$((scripts_with_set + 1))
         fi
     fi
 done
@@ -310,7 +327,7 @@ for file in compose/*.yml; do
     while IFS= read -r line; do
         if echo "$line" | grep -q "image:"; then
             if ! echo "$line" | grep -q ":"; then
-                ((images_without_tags++))
+                images_without_tags=$((images_without_tags + 1))
             fi
         fi
     done < "$file"
