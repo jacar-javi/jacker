@@ -176,12 +176,12 @@ if docker ps --format '{{.Names}}' | grep -q "^traefik$"; then
     success "Traefik is running"
 
     # Check Traefik logs for errors
-    ERROR_COUNT=$(docker logs traefik 2>&1 | grep -i "error\|fail" | wc -l)
+    ERROR_COUNT=$(docker logs traefik 2>&1 | grep -i "error\|fail" | wc -l || echo "0")
     if [ "$ERROR_COUNT" -gt 0 ]; then
         warning "Found $ERROR_COUNT errors in Traefik logs"
         echo ""
         echo "Recent errors:"
-        docker logs traefik 2>&1 | grep -i "error\|fail" | tail -5
+        docker logs traefik 2>&1 | grep -i "error\|fail" | tail -5 || true
     fi
 else
     error "Traefik is not running!"
@@ -228,3 +228,6 @@ else
 fi
 
 echo ""
+
+# Exit successfully
+exit 0
