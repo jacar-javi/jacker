@@ -187,6 +187,7 @@ run_integration_tests() {
     local test_files=(
         "${TEST_DIR}/integration/test_setup.bats"
         "${TEST_DIR}/integration/test_full_stack.bats"
+        "${TEST_DIR}/integration/test_traefik_auth.bats"
     )
 
     local failed=0
