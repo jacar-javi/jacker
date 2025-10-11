@@ -1,7 +1,7 @@
 services:
   # VSCode - VSCode Editing
   vscode:
-    image: lscr.io/linuxserver/code-server:latest
+    image: lscr.io/linuxserver/code-server:4.104.3
     container_name: vscode
 
     security_opt:

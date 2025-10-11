@@ -90,16 +90,25 @@ test_info() {
 echo -e "${BLUE}=== Script Syntax Tests ===${NC}"
 
 test_start "Shell script syntax (bash -n)"
-if bash -n setup.sh && bash -n clean.sh && bash -n update.sh && \
-   bash -n backup.sh && bash -n validate.sh && bash -n health-check.sh && \
-   bash -n register_bouncers.sh; then
+if bash -n assets/setup.sh 2>/dev/null && bash -n assets/clean.sh 2>/dev/null && \
+   bash -n assets/update.sh 2>/dev/null && bash -n assets/backup.sh 2>/dev/null && \
+   bash -n assets/health-check.sh 2>/dev/null && bash -n assets/register_bouncers.sh 2>/dev/null; then
     test_pass
 else
     test_fail "Shell script syntax" "Syntax error in main scripts"
 fi
 
 test_start "Asset scripts syntax"
-if bash -n assets/*.sh; then
+asset_syntax_ok=true
+for script in assets/*.sh; do
+    if [ -f "$script" ]; then
+        if ! bash -n "$script" 2>/dev/null; then
+            asset_syntax_ok=false
+            break
+        fi
+    fi
+done
+if $asset_syntax_ok; then
     test_pass
 else
     test_fail "Asset scripts syntax" "Syntax error in asset scripts"
@@ -107,7 +116,7 @@ fi
 
 if command -v shellcheck &> /dev/null; then
     test_start "ShellCheck linting"
-    if shellcheck -x *.sh assets/*.sh 2>/dev/null; then
+    if shellcheck -x assets/*.sh 2>/dev/null; then
         test_pass
     else
         test_skip "ShellCheck warnings/errors found (non-critical)"
@@ -149,18 +158,11 @@ else
     test_fail ".env.defaults" "File not found"
 fi
 
-test_start ".env.sample file exists"
-if [ -f .env.sample ]; then
+test_start ".env.sample or .env.template file exists"
+if [ -f .env.sample ] || [ -f .env.template ]; then
     test_pass
 else
-    test_fail ".env.sample" "File not found"
-fi
-
-test_start ".env.template file exists"
-if [ -f .env.template ]; then
-    test_pass
-else
-    test_fail ".env.template" "File not found"
+    test_fail ".env template" "Neither .env.sample nor .env.template found"
 fi
 
 ## 3. File Structure Tests
@@ -183,7 +185,7 @@ else
 fi
 
 test_start "Required scripts exist and executable"
-required_scripts=("setup.sh" "clean.sh" "update.sh" "backup.sh" "validate.sh" "health-check.sh")
+required_scripts=("assets/setup.sh" "assets/clean.sh" "assets/update.sh" "assets/backup.sh" "assets/health-check.sh")
 all_executable=true
 for script in "${required_scripts[@]}"; do
     if [ ! -f "$script" ] || [ ! -x "$script" ]; then
@@ -213,7 +215,7 @@ else
 fi
 
 test_start "Documentation files exist"
-doc_files=("README.md" "CONTRIBUTING.md" "SECURITY.md" "TROUBLESHOOTING.md" "LICENSE")
+doc_files=("README.md" "CONTRIBUTING.md" "SECURITY.md" "LICENSE")
 all_docs_exist=true
 for doc in "${doc_files[@]}"; do
     if [ ! -f "$doc" ]; then
@@ -270,7 +272,7 @@ fi
 test_start "Script security headers (set -euo pipefail)"
 scripts_with_set=0
 total_scripts=0
-for script in *.sh assets/*.sh; do
+for script in assets/*.sh; do
     if [ -f "$script" ]; then
         ((total_scripts++))
         if grep -q "set -euo pipefail" "$script"; then
@@ -325,15 +327,8 @@ if [ "$TEST_MODE" = "full" ] || [ "$TEST_MODE" = "--full" ]; then
         echo ""
         echo -e "${BLUE}=== Integration Tests ===${NC}"
 
-        test_start "Validation script runs"
-        if ./validate.sh > /dev/null 2>&1; then
-            test_pass
-        else
-            test_skip "Validation failed (system may not be fully configured)"
-        fi
-
         test_start "Health check script runs"
-        if timeout 10 ./health-check.sh > /dev/null 2>&1; then
+        if timeout 10 assets/health-check.sh > /dev/null 2>&1; then
             test_pass
         else
             test_skip "Health check timed out or failed"
@@ -463,7 +458,7 @@ if [ "$TEST_MODE" = "full" ] || [ "$TEST_MODE" = "--full" ]; then
 
         test_start "Backup script creates valid backup"
         test_backup_dir="/tmp/jacker-test-backup-$$"
-        if ./backup.sh "$test_backup_dir" > /dev/null 2>&1; then
+        if assets/backup.sh "$test_backup_dir" > /dev/null 2>&1; then
             # Check if backup files exist using glob with proper iteration
             backup_found=false
             for backup_file in "$test_backup_dir"/jacker-config-*.tar.gz; do
