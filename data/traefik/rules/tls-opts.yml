@@ -55,8 +55,8 @@ tls:
   stores:
     default:
       defaultCertificate:
-        certFile: ""
-        keyFile: ""
+        certFile: /certs/default.crt
+        keyFile: /certs/default.key
       # defaultGeneratedCert:
       #   resolver: http
       #   domain:

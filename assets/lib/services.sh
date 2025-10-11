@@ -192,6 +192,28 @@ setup_traefik() {
     touch "$(get_data_dir)/traefik/acme.json"
     chmod 600 "$(get_data_dir)/traefik/acme.json"
 
+    # Generate default self-signed certificate for TLS store
+    subsection "Generating default TLS certificate"
+    local cert_file="$(get_data_dir)/traefik/default.crt"
+    local key_file="$(get_data_dir)/traefik/default.key"
+    
+    if [ ! -f "$cert_file" ] || [ ! -f "$key_file" ]; then
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout "$key_file" \
+            -out "$cert_file" \
+            -subj "/C=US/ST=State/L=City/O=Organization/CN=traefik-default" \
+            > /dev/null 2>&1
+        
+        if [ $? -eq 0 ]; then
+            success "Default TLS certificate generated"
+        else
+            error "Failed to generate default TLS certificate"
+            return 1
+        fi
+    else
+        info "Default TLS certificate already exists"
+    fi
+
     # Configure Traefik
     configure_traefik
 
