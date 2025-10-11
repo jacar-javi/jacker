@@ -47,8 +47,8 @@ configure_crowdsec_db() {
 register_crowdsec_bouncers() {
     subsection "Registering CrowdSec bouncers"
 
-    # Wait for CrowdSec to be ready
-    wait_for_healthy "crowdsec" 30 2
+    # Wait for CrowdSec to be ready (longer timeout for first-time setup)
+    wait_for_healthy "crowdsec" 90 3
 
     # Get API keys from environment
     local traefik_key="${CROWDSEC_TRAEFIK_BOUNCER_API_KEY:-}"
