@@ -365,7 +365,7 @@ if [ "$TEST_MODE" = "full" ] || [ "$TEST_MODE" = "--full" ]; then
         test_start "OAuth environment variables set"
 # shellcheck source=/dev/null
         source .env 2>/dev/null || true
-        if [ -n "$OAUTH_CLIENT_ID" ] && [ -n "$OAUTH_CLIENT_SECRET" ] && [ -n "$OAUTH_WHITELIST" ]; then
+        if [ -n "${OAUTH_CLIENT_ID:-}" ] && [ -n "${OAUTH_CLIENT_SECRET:-}" ] && [ -n "${OAUTH_WHITELIST:-}" ]; then
             test_pass
         else
             test_skip "OAuth not configured in .env"
@@ -532,7 +532,7 @@ if [ "$TEST_MODE" = "full" ] || [ "$TEST_MODE" = "--full" ]; then
         test_start "Let's Encrypt email configured"
 # shellcheck source=/dev/null
         source .env 2>/dev/null || true
-        if [ -n "$LETSENCRYPT_EMAIL" ] && [ "$LETSENCRYPT_EMAIL" != "" ]; then
+        if [ -n "${LETSENCRYPT_EMAIL:-}" ] && [ "${LETSENCRYPT_EMAIL:-}" != "" ]; then
             test_pass
         else
             test_skip "LETSENCRYPT_EMAIL not set"
