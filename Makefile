@@ -105,9 +105,12 @@ health-watch: ## Watch health status
 diagnose: ## Run network diagnostics (DNS, firewall, SSL)
 	@./assets/diagnose-network.sh
 
-validate: ## Validate configuration
+validate: ## Validate Docker Compose configuration
 	@echo "$(BLUE)Validating configuration...$(NC)"
 	@$(COMPOSE) config > /dev/null && echo "$(GREEN)✓ Configuration is valid$(NC)" || echo "$(RED)✗ Configuration has errors$(NC)"
+
+validate-env: ## Validate .env file variables
+	@./assets/validate-env.sh
 
 # =============================================================================
 ##@ Backup & Restore
