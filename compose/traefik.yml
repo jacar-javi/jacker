@@ -42,7 +42,7 @@ services:
       - $DATADIR/traefik/traefik.yml:/etc/traefik/traefik.yml # Traefik config file
       - $DATADIR/traefik/rules:/rules # Dynamic File Provider directory
       - $DATADIR/traefik/acme.json:/acme.json # Certs File
-      - $DOCKERDIR/traefik/logs:/logs # Traefik logs
+      - $DATADIR/traefik/logs:/logs # Traefik logs
 
     environment:
       - TZ=$TZ
