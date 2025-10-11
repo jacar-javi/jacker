@@ -23,8 +23,7 @@ setup_crowdsec() {
     # Configure CrowdSec for PostgreSQL
     configure_crowdsec_db
 
-    # Register bouncers
-    register_crowdsec_bouncers
+    # Note: Bouncers are registered AFTER services start (in start_jacker_services)
 
     success "CrowdSec setup complete"
 }
