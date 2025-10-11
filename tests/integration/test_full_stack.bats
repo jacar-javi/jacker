@@ -438,6 +438,7 @@ EOF
 
 @test "Grafana dashboards are provisioned" {
     mkdir -p data/grafana/provisioning/dashboards
+    mkdir -p data/grafana/dashboards
 
     # Create dashboard config
     cat > data/grafana/provisioning/dashboards/default.yml <<'EOF'
