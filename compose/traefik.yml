@@ -13,7 +13,7 @@ services:
     depends_on:
       socket-proxy:
         condition: service_healthy
-        
+
     networks:
       traefik_proxy:
         ipv4_address: $TRAEFIK_PROXY_IP
@@ -42,8 +42,6 @@ services:
       - $DATADIR/traefik/traefik.yml:/etc/traefik/traefik.yml # Traefik config file
       - $DATADIR/traefik/rules:/rules # Dynamic File Provider directory
       - $DATADIR/traefik/acme.json:/acme.json # Certs File
-      - $DATADIR/traefik/default.crt:/certs/default.crt:ro # Default TLS certificate
-      - $DATADIR/traefik/default.key:/certs/default.key:ro # Default TLS key
       - $DOCKERDIR/logs/traefik:/logs # Traefik logs
 
     environment:
@@ -58,9 +56,6 @@ services:
       # HTTP Routers
       - "traefik.http.routers.traefik-rtr.entrypoints=websecure"
       - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.$PUBLIC_FQDN`)"
-      # TLS Configuration
-      - "traefik.http.routers.traefik-rtr.tls=true"
-      - "traefik.http.routers.traefik-rtr.tls.certresolver=http"
       # Services - API
       - "traefik.http.routers.traefik-rtr.service=api@internal"
       # Middlewares - Using simplified chain for api@internal to avoid HTTP/2 errors

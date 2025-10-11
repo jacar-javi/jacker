@@ -1,20 +1,9 @@
 http:
   middlewares:
-    # OAuth chain without CrowdSec - Use if CrowdSec is disabled
-    # Apply with: middlewares=chain-oauth-no-crowdsec@file
     chain-oauth-no-crowdsec:
       chain:
         middlewares:
-          - middlewares-rate-limit       # Rate limiting
-          - security-headers             # Security headers
-          - request-size-limit           # Prevent large payload attacks
-          - middlewares-oauth            # OAuth authentication
-          - middlewares-compress         # Compression
-
-    # Simplified OAuth chain for api@internal (Traefik dashboard)
-    # Without compression to avoid HTTP/2 protocol errors
-    chain-oauth-api:
-      chain:
-        middlewares:
-          - security-headers             # Security headers
-          - middlewares-oauth            # OAuth authentication
+          - middlewares-rate-limit
+          - middlewares-secure-headers
+          - middlewares-oauth
+          - middlewares-compress

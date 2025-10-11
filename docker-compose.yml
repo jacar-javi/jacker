@@ -30,9 +30,6 @@ include:
   - compose/redis.yml
 
   # SECURITY & AUTHENTICATION
-  # Choose ONE authentication method:
-  # - Google OAuth (simple, external): compose/oauth.yml
-  # - Authentik (self-hosted, advanced): compose/authentik.yml
   - compose/oauth.yml            # Default: Google OAuth
   # - compose/authentik.yml      # Alternative: Self-hosted Authentik
   - compose/crowdsec.yml

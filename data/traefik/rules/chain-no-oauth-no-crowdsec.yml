@@ -1,11 +1,8 @@
 http:
   middlewares:
-    # Minimal chain - No OAuth, No CrowdSec
-    # Apply with: middlewares=chain-no-oauth-no-crowdsec@file
     chain-no-oauth-no-crowdsec:
       chain:
         middlewares:
-          - middlewares-rate-limit       # Rate limiting
-          - security-headers             # Security headers
-          - request-size-limit           # Prevent large payload attacks
-          - middlewares-compress         # Compression
+          - middlewares-rate-limit
+          - middlewares-secure-headers
+          - middlewares-compress

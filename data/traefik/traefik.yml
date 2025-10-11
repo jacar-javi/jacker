@@ -7,7 +7,6 @@ global:
 certificatesResolvers:
   http:
     acme:
-      email: javi@jacar.es
       storage: /acme.json
       tlsChallenge: {}
       # Production Let's Encrypt server (rate limited)
@@ -38,17 +37,13 @@ entryPoints:
 
   websecure:
     address: :443
-    # HTTPS with TLS - certResolver is configured per-router, not globally
-    # Middleware chains can be added here globally
-    # middlewares:
-    #   - security-headers@file
-    # HTTP/2 configuration - Disabled due to protocol errors with OAuth forwardAuth
-    # Setting maxConcurrentStreams to 0 disables HTTP/2, forcing HTTP/1.1
-    http2:
-      maxConcurrentStreams: 0
-    # HTTP/3 configuration (Traefik v3.x syntax)
-    # Disabled due to protocol error with OAuth forwardAuth middleware
-    # http3: {}
+    http:
+      tls:
+        options: tls-opts@file
+        certresolver: http
+    http3:
+      advertisedPort: 443
+
     # Transport configuration for security
     transport:
       lifeCycle:
@@ -58,22 +53,6 @@ entryPoints:
         readTimeout: 60s
         writeTimeout: 60s
         idleTimeout: 180s
-    # Forwarded headers configuration
-    forwardedHeaders:
-      trustedIPs:
-        - 127.0.0.1/32
-        - 10.0.0.0/8
-        - 192.168.0.0/16
-        - 172.16.0.0/12
-      insecure: false
-    # ProxyProtocol configuration (if using cloudflare or similar)
-    proxyProtocol:
-      trustedIPs:
-        - 127.0.0.1/32
-        - 10.0.0.0/8
-        - 192.168.0.0/16
-        - 172.16.0.0/12
-      insecure: false
 
   traefik:
     address: :8080
@@ -92,44 +71,21 @@ ping:
 
 # Logging Configuration
 log:
-  level: DEBUG  # Can be: DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+  level: INFO  # Can be: DEBUG, INFO, WARN, ERROR, FATAL, PANIC
   filePath: /logs/traefik-error.log
-  format: json  # json or common
-  # Uncomment for more detailed logging
-  # noColor: false
-  # maxSize: 100  # Maximum size in megabytes
-  # maxBackups: 3  # Maximum number of old log files to retain
-  # maxAge: 28     # Maximum number of days to retain old log files
-  # compress: true # Compress rotated files
 
 # Access Logging Configuration
 accessLog:
   filePath: /logs/traefik-access.log
-  format: json  # json or common
   fields:
-    defaultMode: keep
     names:
       StartUTC: drop
-      # ClientUsername: keep
-      # RequestAddr: keep
-      # RequestHost: keep
-      # RequestMethod: keep
-      # RequestPath: keep
-      # RequestProtocol: keep
-    headers:
-      defaultMode: keep
-      names:
-        User-Agent: keep
-        Authorization: drop
-        Content-Type: keep
   bufferingSize: 100
   filters:
     statusCodes:
       - 204-299
       - 400-499
       - 500-599
-    retryAttempts: true
-    minDuration: 10ms
 
 # Providers Configuration
 providers:
@@ -137,19 +93,10 @@ providers:
     endpoint: tcp://socket-proxy:2375
     exposedByDefault: false
     network: traefik_proxy
-    # Security: Only watch running containers
-    watch: true
-    # Constraints to filter containers
-    # constraints: "Label(`traefik.constraint-label-stack`,`jacker`)"
-    # Note: swarmMode removed in Traefik v3 - use swarm provider for Docker Swarm
-    httpClientTimeout: 0
-    # Default rule template (can be customized)
-    defaultRule: "Host(`{{ normalize .Name }}.{{ env \"PUBLIC_FQDN\" }}`)"
 
   file:
     directory: /rules
     watch: true
-    debugLogGeneratedTemplate: false
 
 # Metrics Configuration - Prometheus
 metrics:
@@ -162,11 +109,6 @@ metrics:
     addEntryPointsLabels: true
     addServicesLabels: true
     addRoutersLabels: true
-    entryPoint: traefik
-    manualRouting: false
-    # headerLabels for custom metric labels
-    # headerLabels:
-    #   User-Agent: keep
 
 # Tracing Configuration (OPTIONAL - Enable via environment variable)
 # Jaeger tracing for distributed tracing
@@ -201,9 +143,3 @@ metrics:
 #       endpoint: otel-collector:4317
 #       insecure: true
 
-# Experimental Features
-experimental:
-  # Enable plugins (for CrowdSec plugin)
-  plugins:
-    enabled: false  # Set to true if using CrowdSec Traefik plugin
-  # Note: HTTP/3 is configured in entryPoints.websecure.http3

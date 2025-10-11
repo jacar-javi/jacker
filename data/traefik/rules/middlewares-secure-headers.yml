@@ -1,159 +1,34 @@
 http:
   middlewares:
-    # Standard security headers middleware
-    # Apply to all services with: middlewares=security-headers@file
-    security-headers:
+    middlewares-secure-headers:
       headers:
-        # SSL/TLS Configuration
-        stsSeconds: 63072000  # 2 years HSTS
-        stsIncludeSubdomains: true
-        stsPreload: true  # Submit to HSTS preload list
-        forceSTSHeader: true
-
-        # Frame Options - Prevent clickjacking
-        frameDeny: true
-        # Alternative: Use customFrameOptionsValue for specific domains
-        # customFrameOptionsValue: "SAMEORIGIN"
-
-        # Content Security
-        contentTypeNosniff: true  # Prevent MIME type sniffing
-        browserXssFilter: true    # Enable XSS protection (legacy browsers)
-
-        # Referrer Policy
-        referrerPolicy: "strict-origin-when-cross-origin"
-
-        # Permissions Policy (formerly Feature Policy)
-        # Disable access to browser features
-        permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=(), autoplay=(), encrypted-media=(), picture-in-picture=()"
-
-        # Custom Response Headers
-        customResponseHeaders:
-          # Hide server information
-          Server: ""
-          X-Powered-By: ""
-
-          # SEO and bot control
-          X-Robots-Tag: "none,noarchive,nosnippet,notranslate,noimageindex"
-
-          # Additional security headers
-          X-Content-Type-Options: "nosniff"
-          X-Frame-Options: "DENY"
-          X-XSS-Protection: "1; mode=block"
-
-          # Expect-CT header for certificate transparency
-          Expect-CT: 'max-age=86400, enforce'
-
-          # Cross-Origin policies
-          Cross-Origin-Embedder-Policy: "require-corp"
-          Cross-Origin-Opener-Policy: "same-origin"
-          Cross-Origin-Resource-Policy: "same-origin"
-
-        # Proxy Headers
-        hostsProxyHeaders:
-          - "X-Forwarded-Host"
-          - "X-Forwarded-Proto"
-          - "X-Forwarded-For"
-
-        # Access Control (CORS)
         accessControlAllowMethods:
           - GET
-          - HEAD
-          - POST
-          - PUT
-          - DELETE
           - OPTIONS
-          - PATCH
-        accessControlAllowOriginList:
-          - "https://vps1.jacarsystems.net"
+          - PUT
         accessControlMaxAge: 100
-        addVaryHeader: true
-
-    # Enhanced security headers with CSP
-    # Apply to services that support CSP: middlewares=security-headers-csp@file
-    security-headers-csp:
-      headers:
-        # Inherit all settings from security-headers
+        hostsProxyHeaders:
+          - "X-Forwarded-Host"
+        # sslRedirect: true #replaced with middlewares-https-redirectscheme for v2.5.x
         stsSeconds: 63072000
         stsIncludeSubdomains: true
         stsPreload: true
         forceSTSHeader: true
-        frameDeny: true
+        # frameDeny: true #overwritten by customFrameOptionsValue
+        # customFrameOptionsValue: "allow-from https:{{env "PUBLIC_FQDN"}}" #CSP takes care of this but may be needed for organizr.
         contentTypeNosniff: true
         browserXssFilter: true
-        referrerPolicy: "strict-origin-when-cross-origin"
-        permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
-
-        # Content Security Policy (CSP)
-        # WARNING: This is strict and may break some applications
-        # Test thoroughly before applying to production services
-        contentSecurityPolicy: |
-          default-src 'self';
-          script-src 'self' 'unsafe-inline' 'unsafe-eval';
-          style-src 'self' 'unsafe-inline';
-          img-src 'self' data: https:;
-          font-src 'self' data:;
-          connect-src 'self';
-          media-src 'self';
-          object-src 'none';
-          frame-src 'self';
-          base-uri 'self';
-          form-action 'self';
-          frame-ancestors 'none';
-          upgrade-insecure-requests;
-
-        customResponseHeaders:
-          Server: ""
-          X-Powered-By: ""
-          X-Robots-Tag: "none,noarchive,nosnippet,notranslate,noimageindex"
-          X-Content-Type-Options: "nosniff"
-          X-Frame-Options: "DENY"
-          X-XSS-Protection: "1; mode=block"
-          Expect-CT: 'max-age=86400, enforce'
-          Cross-Origin-Embedder-Policy: "require-corp"
-          Cross-Origin-Opener-Policy: "same-origin"
-          Cross-Origin-Resource-Policy: "same-origin"
-
-        hostsProxyHeaders:
-          - "X-Forwarded-Host"
-          - "X-Forwarded-Proto"
-          - "X-Forwarded-For"
-
-        accessControlAllowMethods:
-          - GET
-          - HEAD
-          - POST
-          - PUT
-          - DELETE
-          - OPTIONS
-          - PATCH
-        accessControlAllowOriginList:
-          - "https://vps1.jacarsystems.net"
-        accessControlMaxAge: 100
-        addVaryHeader: true
-
-    # Relaxed security headers for apps that need it
-    # Apply to compatible applications: middlewares=security-headers-relaxed@file
-    security-headers-relaxed:
-      headers:
-        stsSeconds: 63072000
-        stsIncludeSubdomains: true
-        stsPreload: false  # Don't preload for relaxed mode
-        forceSTSHeader: true
-        customFrameOptionsValue: "SAMEORIGIN"  # Allow same-origin framing
-        contentTypeNosniff: true
-        browserXssFilter: true
+        # sslForceHost: true # add sslHost to all of the services
+        # sslHost: "{{env "DOMAINNAME_WS"}}"
         referrerPolicy: "same-origin"
-        permissionsPolicy: "camera=(), microphone=(), geolocation=()"
-
+        # Setting contentSecurityPolicy is more secure but it can break things. Proper auth will reduce the risk.
+        # the below line also breaks some apps due to 'none' - sonarr, radarr, etc.
+        # contentSecurityPolicy: "frame-ancestors '*.{{env "POBLIC_FQDN"}}:*';object-src 'none';script-src 'none';"
+        # Line below, featurePolicy, was deprecated in v2.5.x in favor permissionPolicy
+        # featurePolicy: "camera 'none'; geolocation 'none'; microphone 'none'; payment 'none'; usb 'none'; vr 'none';"
+        permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), vr=()"
         customResponseHeaders:
-          Server: ""
-          X-Robots-Tag: "none,noarchive,nosnippet,notranslate,noimageindex"
-
-        hostsProxyHeaders:
-          - "X-Forwarded-Host"
-
-        accessControlAllowMethods:
-          - GET
-          - POST
-          - OPTIONS
-        accessControlMaxAge: 100
+          X-Robots-Tag: "none,noarchive,nosnippet,notranslate,noimageindex,"
+          server: ""
+          # https://community.traefik.io/t/how-to-make-websockets-work-with-traefik-2-0-setting-up-rancher/1732
+          # X-Forwarded-Proto: "https"
