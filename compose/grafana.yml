@@ -43,7 +43,7 @@ services:
       - "traefik.http.routers.grafana-rtr.entrypoints=websecure"
       - "traefik.http.routers.grafana-rtr.rule=Host(`grafana.$PUBLIC_FQDN`)"
       # Middlewares
-      - "traefik.http.routers.grafana-rtr.middlewares=chain-oauth@file"
+      - "traefik.http.routers.grafana-rtr.middlewares=chain-oauth-no-crowdsec@file"
       # HTTP Services
       - "traefik.http.routers.grafana-rtr.service=grafana-svc"
       - "traefik.http.services.grafana-svc.loadbalancer.server.port=3000"
