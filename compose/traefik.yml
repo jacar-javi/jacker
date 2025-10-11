@@ -58,6 +58,9 @@ services:
       # HTTP Routers
       - "traefik.http.routers.traefik-rtr.entrypoints=websecure"
       - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.$PUBLIC_FQDN`)"
+      # TLS Configuration
+      - "traefik.http.routers.traefik-rtr.tls=true"
+      - "traefik.http.routers.traefik-rtr.tls.certresolver=http"
       # Services - API
       - "traefik.http.routers.traefik-rtr.service=api@internal"
       # Middlewares - Using simplified chain for api@internal to avoid HTTP/2 errors
