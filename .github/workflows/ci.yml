@@ -93,14 +93,10 @@ jobs:
           echo "client-id=test" > secrets/traefik_forward_oauth
           echo "client-secret=test" >> secrets/traefik_forward_oauth
 
-          # Validate main compose file
+          # Validate main compose file (includes all compose/*.yml files)
           docker compose config > /dev/null
 
-          # Validate individual compose files
-          for file in compose/*.yml; do
-            echo "Validating $file..."
-            docker compose -f "$file" config > /dev/null
-          done
+          echo "Docker Compose validation successful"
 
       - name: Check for image version tags
         run: |
@@ -194,7 +190,7 @@ jobs:
           EOF
 
           # Make scripts executable
-          chmod +x *.sh assets/*.sh
+          find assets -name "*.sh" -type f -exec chmod +x {} +
 
       - name: Run test suite (quick mode)
         run: |
