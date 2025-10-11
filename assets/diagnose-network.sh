@@ -175,13 +175,13 @@ section "Traefik Status"
 if docker ps --format '{{.Names}}' | grep -q "^traefik$"; then
     success "Traefik is running"
 
-    # Check Traefik logs for errors
-    ERROR_COUNT=$(docker logs traefik 2>&1 | grep -i "error\|fail" | wc -l || echo "0")
+    # Check Traefik logs for errors (grep returns 1 if no matches, so use || true)
+    ERROR_COUNT=$(docker logs traefik 2>&1 | { grep -i "error\|fail" || true; } | wc -l)
     if [ "$ERROR_COUNT" -gt 0 ]; then
         warning "Found $ERROR_COUNT errors in Traefik logs"
         echo ""
         echo "Recent errors:"
-        docker logs traefik 2>&1 | grep -i "error\|fail" | tail -5 || true
+        docker logs traefik 2>&1 | { grep -i "error\|fail" || true; } | tail -5
     fi
 else
     error "Traefik is not running!"
@@ -192,7 +192,7 @@ section "Summary & Recommendations"
 echo ""
 
 if [ "$DNS_CONFIGURED" = false ]; then
-    echo "${RED}❌ DNS NOT CONFIGURED${NC}"
+    echo -e "${RED}❌ DNS NOT CONFIGURED${NC}"
     echo ""
     echo "NEXT STEPS:"
     echo "  1. Go to your domain registrar (Namecheap, GoDaddy, Cloudflare, etc.)"
@@ -205,7 +205,7 @@ if [ "$DNS_CONFIGURED" = false ]; then
     echo "  4. Run this script again: ./assets/diagnose-network.sh"
     echo ""
 elif [ "${HTTP_OK:-false}" = false ] || [ "${HTTPS_OK:-false}" = false ]; then
-    echo "${YELLOW}⚠️  DNS CONFIGURED BUT PORTS BLOCKED${NC}"
+    echo -e "${YELLOW}⚠️  DNS CONFIGURED BUT PORTS BLOCKED${NC}"
     echo ""
     echo "NEXT STEPS:"
     echo "  1. Check cloud provider firewall/security groups"
@@ -214,7 +214,7 @@ elif [ "${HTTP_OK:-false}" = false ] || [ "${HTTPS_OK:-false}" = false ]; then
     echo "  4. Check Traefik logs: docker logs traefik"
     echo ""
 else
-    echo "${GREEN}✓ CONFIGURATION LOOKS GOOD${NC}"
+    echo -e "${GREEN}✓ CONFIGURATION LOOKS GOOD${NC}"
     echo ""
     echo "Access your services at:"
     echo "  • https://traefik.$DOMAINNAME"
