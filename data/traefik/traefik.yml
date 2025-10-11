@@ -8,8 +8,8 @@ certificatesResolvers:
     acme:
       storage: /acme.json
       tlsChallenge: {}
-      # Uncomment for production to enable rate limits
-      # caServer: https://acme-v02.api.letsencrypt.org/directory
+      # Production Let's Encrypt server (rate limited)
+      caServer: https://acme-v02.api.letsencrypt.org/directory
       # Uncomment for staging/testing to avoid rate limits
       # caServer: https://acme-staging-v02.api.letsencrypt.org/directory
 
