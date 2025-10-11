@@ -22,6 +22,11 @@ disable=SC2034
 # Rationale: Sometimes echo $(cmd) is used for clarity
 disable=SC2005
 
+# Disable SC2250 - "Prefer putting braces around variable references"
+# Rationale: Style preference. The codebase mixes ${var} and $var based on
+# context. Both are valid and readable. Will not enforce uniformly.
+disable=SC2250
+
 # Note: SC1091 (Not following .env) and SC1090 (Can't follow non-constant source)
 # are handled with per-file directives using # shellcheck source=/dev/null
 

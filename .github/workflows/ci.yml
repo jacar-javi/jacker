@@ -27,6 +27,7 @@ jobs:
           ignore_paths: |
             jacker-stacks
             templates
+            tests/lib
 
   docker-compose-validation:
     name: Docker Compose Validation

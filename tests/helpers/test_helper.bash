@@ -34,7 +34,7 @@ setup() {
     export TEST_TMP_DIR
 
     # Change to temp directory
-    cd "${TEST_TMP_DIR}"
+    cd "${TEST_TMP_DIR}" || return 1
 
     # Copy test fixtures if needed
     if [ -d "${FIXTURES_DIR}" ]; then
@@ -44,6 +44,7 @@ setup() {
     # Load test environment if exists
     if [ -f "${TEST_ENV_FILE}" ]; then
         set -a
+        # shellcheck source=/dev/null
         source "${TEST_ENV_FILE}"
         set +a
     fi
@@ -60,6 +61,7 @@ teardown() {
 # Helper function to source library files
 load_lib() {
     local lib_name="$1"
+    # shellcheck source=/dev/null
     source "${LIB_DIR}/${lib_name}"
 }
 
@@ -159,13 +161,13 @@ assert_file_contains() {
 
 assert_command_succeeds() {
     local cmd="$1"
-    run $cmd
+    run "$cmd"
     assert_success
 }
 
 assert_command_fails() {
     local cmd="$1"
-    run $cmd
+    run "$cmd"
     assert_failure
 }
 
