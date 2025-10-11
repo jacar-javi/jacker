@@ -82,8 +82,8 @@ jobs:
       - name: Check service health
         run: |
           docker compose -f docker-compose.test.yml ps
-          docker compose -f docker-compose.test.yml exec -T test-postgres pg_isready
-          docker compose -f docker-compose.test.yml exec -T test-redis redis-cli ping
+          docker compose -f docker-compose.test.yml exec -T postgres pg_isready
+          docker compose -f docker-compose.test.yml exec -T redis redis-cli ping
 
       - name: Run integration tests
         run: |
