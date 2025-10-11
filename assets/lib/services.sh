@@ -188,9 +188,12 @@ setup_traefik() {
     # Create directories
     ensure_dir "$(get_data_dir)/traefik"
 
-    # Create acme.json with correct permissions
-    touch "$(get_data_dir)/traefik/acme.json"
-    chmod 600 "$(get_data_dir)/traefik/acme.json"
+    # Create acme.json with proper JSON structure for Let's Encrypt
+    local acme_file="$(get_data_dir)/traefik/acme.json"
+    if [ ! -f "$acme_file" ] || [ ! -s "$acme_file" ]; then
+        echo '{}' > "$acme_file"
+    fi
+    chmod 600 "$acme_file"
 
     # Generate default self-signed certificate for TLS store
     subsection "Generating default TLS certificate"
