@@ -2,12 +2,12 @@
 #
 # Script: rotate-secrets.sh
 # Description: Rotate security-sensitive secrets in Jacker
-# Usage: ./rotate-secrets.sh [--all|--oauth|--crowdsec|--mysql]
+# Usage: ./rotate-secrets.sh [--all|--oauth|--crowdsec|--postgres]
 # Options:
 #   --all       Rotate all secrets
 #   --oauth     Rotate OAuth secret only
 #   --crowdsec  Rotate CrowdSec API keys only
-#   --mysql     Rotate MySQL passwords only
+#   --postgres  Rotate PostgreSQL passwords only
 #
 
 set -euo pipefail
@@ -76,16 +76,14 @@ generate_crowdsec_keys() {
     echo -e "${GREEN}✓ CrowdSec API keys rotated${NC}"
 }
 
-generate_mysql_passwords() {
-    echo "Generating new MySQL passwords..."
-    NEW_MYSQL_ROOT_PASSWORD=$(openssl rand -hex 24)
-    NEW_MYSQL_PASSWORD=$(openssl rand -hex 24)
+generate_postgres_passwords() {
+    echo "Generating new PostgreSQL passwords..."
+    NEW_POSTGRES_PASSWORD=$(openssl rand -hex 24)
 
     # Update .env
-    sed -i "s/MYSQL_ROOT_PASSWORD=.*/MYSQL_ROOT_PASSWORD=$NEW_MYSQL_ROOT_PASSWORD/" .env
-    sed -i "s/MYSQL_PASSWORD=.*/MYSQL_PASSWORD=$NEW_MYSQL_PASSWORD/" .env
+    sed -i "s/POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$NEW_POSTGRES_PASSWORD/" .env
 
-    echo -e "${GREEN}✓ MySQL passwords rotated${NC}"
+    echo -e "${GREEN}✓ PostgreSQL passwords rotated${NC}"
 }
 
 # Perform rotation based on mode
@@ -95,7 +93,7 @@ case $ROTATE_MODE in
         echo ""
         generate_oauth_secret
         generate_crowdsec_keys
-        generate_mysql_passwords
+        generate_postgres_passwords
         ;;
     --oauth)
         echo "Rotating OAuth secret only..."
@@ -107,15 +105,15 @@ case $ROTATE_MODE in
         echo ""
         generate_crowdsec_keys
         ;;
-    --mysql)
-        echo "Rotating MySQL passwords only..."
+    --postgres)
+        echo "Rotating PostgreSQL passwords only..."
         echo ""
-        generate_mysql_passwords
+        generate_postgres_passwords
         ;;
     *)
         echo -e "${RED}ERROR: Invalid option: $ROTATE_MODE${NC}"
         echo ""
-        echo "Usage: $0 [--all|--oauth|--crowdsec|--mysql]"
+        echo "Usage: $0 [--all|--oauth|--crowdsec|--postgres]"
         exit 1
         ;;
 esac
@@ -192,18 +190,18 @@ elif [ "$ROTATE_MODE" = "--crowdsec" ]; then
 
     sudo systemctl restart crowdsec-firewall-bouncer.service
 
-elif [ "$ROTATE_MODE" = "--mysql" ]; then
-    echo -e "${YELLOW}WARNING: MySQL password rotation requires manual intervention!${NC}"
+elif [ "$ROTATE_MODE" = "--postgres" ]; then
+    echo -e "${YELLOW}WARNING: PostgreSQL password rotation requires manual intervention!${NC}"
     echo ""
-    echo "To complete MySQL password rotation:"
-    echo "1. Connect to MariaDB container:"
-    echo "   docker compose exec mariadb mysql -u root -p"
-    echo "2. Change root password:"
-    echo "   ALTER USER 'root'@'%' IDENTIFIED BY 'new_password';"
-    echo "   ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_password';"
-    echo "3. Change application user password:"
-    echo "   ALTER USER '$MYSQL_USER'@'%' IDENTIFIED BY 'new_password';"
-    echo "4. Restart services:"
+    echo "To complete PostgreSQL password rotation:"
+    echo "1. Connect to PostgreSQL container:"
+    echo "   docker compose exec postgres psql -U postgres"
+    echo "2. Change postgres user password:"
+    echo "   ALTER USER postgres PASSWORD 'new_password';"
+    echo "3. Change application user password (if applicable):"
+    echo "   ALTER USER $POSTGRES_USER PASSWORD 'new_password';"
+    echo "4. Update .env file with new password"
+    echo "5. Restart services:"
     echo "   docker compose restart"
 fi
 
@@ -219,8 +217,8 @@ echo "2. Check health: ./health-check.sh"
 echo "3. Test authentication and access"
 echo ""
 
-if [ "$ROTATE_MODE" = "--mysql" ]; then
-    echo -e "${YELLOW}Don't forget to complete MySQL password rotation manually!${NC}"
+if [ "$ROTATE_MODE" = "--postgres" ]; then
+    echo -e "${YELLOW}Don't forget to complete PostgreSQL password rotation manually!${NC}"
     echo ""
 fi
 

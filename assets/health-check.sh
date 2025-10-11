@@ -60,11 +60,17 @@ check_health() {
         "oauth:OAuth Authentication"
         "crowdsec:CrowdSec IPS"
         "traefik-bouncer:Traefik Bouncer"
-        "mariadb:MariaDB Database"
+        "postgres:PostgreSQL Database"
+        "redis:Redis Cache"
         "grafana:Grafana Monitoring"
         "prometheus:Prometheus Metrics"
         "node-exporter:Node Exporter"
         "portainer:Portainer Management"
+        "homepage:Homepage Dashboard"
+        "vscode:VS Code Server"
+        "loki:Loki Log Aggregation"
+        "promtail:Promtail Log Collector"
+        "alertmanager:Alert Manager"
     )
 
     for item in "${EXPECTED_CONTAINERS[@]}"; do
