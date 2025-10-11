@@ -22,6 +22,8 @@ services:
       - COOKIE_DOMAIN=$PUBLIC_FQDN
       - INSECURE_COOKIE=false
       - AUTH_HOST=oauth.$PUBLIC_FQDN
+      - COOKIE_NAME=_forward_auth_v2
+      - CSRF_COOKIE_NAME=_forward_auth_csrf_v2
       - URL_PATH=/_oauth
       - LOG_LEVEL=warn
       - LOG_FORMAT=text
