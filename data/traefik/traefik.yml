@@ -6,6 +6,7 @@ global:
 certificatesResolvers:
   http:
     acme:
+      email: ${LETSENCRYPT_EMAIL}
       storage: /acme.json
       tlsChallenge: {}
       # Production Let's Encrypt server (rate limited)
