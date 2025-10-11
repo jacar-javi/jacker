@@ -1,0 +1,35 @@
+# ShellCheck configuration for Jacker project
+# https://github.com/koalaman/shellcheck/wiki/Directive
+
+# Disable SC2155 - "Declare and assign separately to avoid masking return values"
+# Rationale: This is a style preference. The codebase consistently uses
+# `local var=$(command)` for readability. All critical scripts use
+# `set -euo pipefail` for proper error handling, making this safe.
+disable=SC2155
+
+# Disable SC2154 - "Variable is referenced but not assigned"
+# Rationale: Variables are sourced from library files (common.sh for colors)
+# or from .env files (OAUTH_*, POSTGRES_*, etc.). These are intentionally
+# loaded from external sources and ShellCheck cannot trace them.
+disable=SC2154
+
+# Disable SC2034 - "Variable appears unused"
+# Rationale: Some variables are used externally, exported, or reserved
+# for future use. Will be handled case-by-case.
+disable=SC2034
+
+# Disable SC2005 - "Useless echo"
+# Rationale: Sometimes echo $(cmd) is used for clarity
+disable=SC2005
+
+# Note: SC1091 (Not following .env) and SC1090 (Can't follow non-constant source)
+# are handled with per-file directives using # shellcheck source=/dev/null
+
+# Enable all other checks
+enable=all
+
+# Set shell dialect
+shell=bash
+
+# Additional options
+# Use `source=path` directives in individual files for dynamic sourcing

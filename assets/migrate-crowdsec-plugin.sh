@@ -157,6 +157,7 @@ configure_plugin_middleware() {
 
     # Load CROWDSEC_TRAEFIK_BOUNCER_API_KEY from .env
     if [[ -f "$PROJECT_ROOT/.env" ]]; then
+        # shellcheck source=/dev/null
         source "$PROJECT_ROOT/.env"
     else
         print_error ".env file not found"

@@ -366,6 +366,7 @@ if [ "$TEST_MODE" = "full" ] || [ "$TEST_MODE" = "--full" ]; then
         fi
 
         test_start "OAuth environment variables set"
+# shellcheck source=/dev/null
         source .env 2>/dev/null || true
         if [ -n "$OAUTH_CLIENT_ID" ] && [ -n "$OAUTH_CLIENT_SECRET" ] && [ -n "$OAUTH_WHITELIST" ]; then
             test_pass
@@ -463,8 +464,15 @@ if [ "$TEST_MODE" = "full" ] || [ "$TEST_MODE" = "--full" ]; then
         test_start "Backup script creates valid backup"
         test_backup_dir="/tmp/jacker-test-backup-$$"
         if ./backup.sh "$test_backup_dir" > /dev/null 2>&1; then
-            if [ -f "$test_backup_dir/jacker-config-"*".tar.gz" ] && \
-               [ -f "$test_backup_dir/checksums.sha256" ]; then
+            # Check if backup files exist using glob with proper iteration
+            backup_found=false
+            for backup_file in "$test_backup_dir"/jacker-config-*.tar.gz; do
+                if [ -f "$backup_file" ]; then
+                    backup_found=true
+                    break
+                fi
+            done
+            if [ "$backup_found" = true ] && [ -f "$test_backup_dir/checksums.sha256" ]; then
                 test_pass
             else
                 test_fail "Backup validation" "Backup files not created properly"
@@ -525,6 +533,7 @@ if [ "$TEST_MODE" = "full" ] || [ "$TEST_MODE" = "--full" ]; then
         fi
 
         test_start "Let's Encrypt email configured"
+# shellcheck source=/dev/null
         source .env 2>/dev/null || true
         if [ -n "$LETSENCRYPT_EMAIL" ] && [ "$LETSENCRYPT_EMAIL" != "" ]; then
             test_pass

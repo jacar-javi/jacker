@@ -42,7 +42,9 @@ set -euo pipefail
 
 # Script directory and library loading
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=assets/lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=assets/lib/stacks.sh
 source "$SCRIPT_DIR/lib/stacks.sh"
 
 # All colors are defined in common.sh (BLUE, GREEN, YELLOW, CYAN, MAGENTA, NC, etc.)

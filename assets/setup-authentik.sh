@@ -26,6 +26,7 @@ fi
 # Source .env file
 if [ -f .env ]; then
     set -a
+# shellcheck source=/dev/null
     source .env
     set +a
 else

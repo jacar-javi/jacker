@@ -15,7 +15,7 @@ else
     JACKER_DIR="$SCRIPT_DIR"
 fi
 
-cd "$JACKER_DIR"
+cd "$JACKER_DIR" || exit 1
 
 echo "=== Disabling OAuth for Testing ==="
 echo ""
@@ -31,8 +31,9 @@ fi
 
 echo ""
 echo "Creating backup of compose files..."
-mkdir -p .backups/compose-oauth-disabled-$(date +%Y%m%d-%H%M%S)
-cp -r compose/*.yml .backups/compose-oauth-disabled-$(date +%Y%m%d-%H%M%S)/
+BACKUP_DIR=".backups/compose-oauth-disabled-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+cp -r compose/*.yml "$BACKUP_DIR/"
 
 echo "Disabling OAuth on services..."
 

@@ -38,6 +38,7 @@ check_health() {
         return 1
     fi
 
+# shellcheck source=/dev/null
     source .env
 
     # Check Docker daemon

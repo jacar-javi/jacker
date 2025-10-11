@@ -10,8 +10,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Source libraries
+# shellcheck source=assets/lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=assets/lib/system.sh
 source "$SCRIPT_DIR/lib/system.sh"
+# shellcheck source=assets/lib/services.sh
 source "$SCRIPT_DIR/lib/services.sh"
 
 # ============================================================================

@@ -127,7 +127,7 @@ fi
 echo ""
 echo "5. Checking Docker Services..."
 if command -v docker &> /dev/null; then
-    cd "$JACKER_DIR" 2>/dev/null
+    cd "$JACKER_DIR" 2>/dev/null || exit 1
 
     if [ -f "Makefile" ]; then
         TRAEFIK_STATUS=$(make ps 2>/dev/null | grep traefik | awk '{print $7}' || echo "unknown")

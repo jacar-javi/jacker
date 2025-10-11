@@ -14,6 +14,7 @@ echo ""
 
 # Export all variables from .env
 set -a
+# shellcheck source=/dev/null
 source .env
 set +a
 

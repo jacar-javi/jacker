@@ -20,6 +20,7 @@ fi
 
 # Export all variables from .env for envsubst
 set -a
+# shellcheck source=/dev/null
 source .env
 set +a
 

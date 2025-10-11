@@ -43,6 +43,7 @@ BACKUP_ENV=".env.pre-rotation-$(date +%Y%m%d-%H%M%S)"
 echo "Backing up current .env to $BACKUP_ENV..."
 cp .env "$BACKUP_ENV"
 
+# shellcheck source=/dev/null
 source .env
 
 # Generate new secrets
@@ -124,6 +125,7 @@ echo -e "${BLUE}=== Applying Changes ===${NC}"
 echo ""
 
 # Reload environment
+# shellcheck source=/dev/null
 source .env
 
 # Update OAuth secrets file if OAuth was rotated
