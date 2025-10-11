@@ -1,0 +1,256 @@
+{
+  // Editor settings
+  "editor.formatOnSave": true,
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2,
+  "editor.rulers": [80, 120],
+  "editor.wordWrap": "on",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+
+  // Shell script formatting
+  "[shellscript]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format",
+    "editor.tabSize": 4,
+    "files.eol": "\n"
+  },
+
+  // Shell format settings
+  "shellformat.flag": "-i 4 -ci -sr -bn",
+  "shellformat.effectLanguages": [
+    "shellscript",
+    "dockerfile",
+    "dotenv",
+    "hosts",
+    "jvmoptions",
+    "ignore",
+    "gitignore",
+    "properties",
+    "spring-boot-properties",
+    "azcli",
+    "bats"
+  ],
+
+  // ShellCheck settings
+  "shellcheck.enable": true,
+  "shellcheck.enableQuickFix": true,
+  "shellcheck.run": "onSave",
+  "shellcheck.exclude": [
+    "SC1090", // Can't follow non-constant source
+    "SC1091"  // Not following sourced files
+  ],
+  "shellcheck.customArgs": [
+    "-x" // Follow sourced files
+  ],
+
+  // YAML settings
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml",
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+  "yaml.schemas": {
+    "https://json.schemastore.org/docker-compose.json": [
+      "docker-compose*.yml",
+      "docker-compose*.yaml"
+    ],
+    "https://json.schemastore.org/prometheus.json": [
+      "data/prometheus/**/*.yml",
+      "data/prometheus/**/*.yaml"
+    ],
+    "https://json.schemastore.org/github-workflow.json": [
+      ".github/workflows/*.yml",
+      ".github/workflows/*.yaml"
+    ]
+  },
+  "yaml.format.enable": true,
+  "yaml.validate": true,
+
+  // Markdown settings
+  "[markdown]": {
+    "editor.defaultFormatter": "yzhang.markdown-all-in-one",
+    "editor.wordWrap": "on",
+    "files.trimTrailingWhitespace": false
+  },
+  "markdown.extension.toc.levels": "2..6",
+  "markdownlint.config": {
+    "MD013": false, // Line length
+    "MD033": false, // Inline HTML
+    "MD041": false  // First line in file should be a top level heading
+  },
+
+  // Docker settings
+  "docker.languageserver.diagnostics.deprecatedMaintainer": "warning",
+  "docker.languageserver.diagnostics.directiveCasing": "warning",
+  "docker.languageserver.diagnostics.instructionCasing": "warning",
+
+  // File associations
+  "files.associations": {
+    "*.bats": "shellscript",
+    "*.env.defaults": "dotenv",
+    "*.env.sample": "dotenv",
+    "*.env.template": "dotenv",
+    "Makefile*": "makefile",
+    "docker-compose*.yml": "yaml",
+    "*.yml.template": "yaml"
+  },
+
+  // Files to exclude from explorer
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/*.pyc": true,
+    "**/__pycache__": true,
+    "**/node_modules": true,
+    "**/.venv": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true
+  },
+
+  // Search settings
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bower_components": true,
+    "**/*.code-search": true,
+    "**/data/**": true,
+    "**/backup/**": true,
+    "**/backups/**": true,
+    "**/logs/**": true,
+    "**/.venv": true,
+    "**/tests/lib/bats-*/**": true,
+    "**/jacker-stacks/**": true
+  },
+
+  // Git settings
+  "git.ignoreLimitWarning": true,
+  "git.confirmSync": false,
+  "git.autofetch": true,
+  "git.enableSmartCommit": true,
+
+  // TODO Tree settings
+  "todo-tree.general.tags": [
+    "TODO",
+    "FIXME",
+    "HACK",
+    "NOTE",
+    "XXX",
+    "BUG",
+    "IMPORTANT"
+  ],
+  "todo-tree.highlights.defaultHighlight": {
+    "icon": "alert",
+    "type": "text",
+    "foreground": "#000000",
+    "background": "#ffff00",
+    "opacity": 50,
+    "iconColour": "#ffff00"
+  },
+  "todo-tree.highlights.customHighlight": {
+    "TODO": {
+      "icon": "check",
+      "iconColour": "#00ff00"
+    },
+    "FIXME": {
+      "icon": "tools",
+      "iconColour": "#ff0000"
+    },
+    "BUG": {
+      "icon": "bug",
+      "iconColour": "#ff0000"
+    },
+    "IMPORTANT": {
+      "icon": "alert",
+      "iconColour": "#ff00ff"
+    }
+  },
+
+  // Spell checker settings
+  "cSpell.words": [
+    "jacker",
+    "traefik",
+    "crowdsec",
+    "authentik",
+    "oauth",
+    "promtail",
+    "alertmanager",
+    "grafana",
+    "jaeger",
+    "portainer",
+    "loki",
+    "bats",
+    "shellcheck",
+    "dockerdir",
+    "datadir",
+    "userdir",
+    "bashrc",
+    "systemctl",
+    "envsubst",
+    "acme",
+    "middlewares",
+    "postgres",
+    "PGID",
+    "PUID",
+    "FQDN"
+  ],
+  "cSpell.ignorePaths": [
+    "**/node_modules/**",
+    "**/venv/**",
+    "**/.venv/**",
+    "**/data/**",
+    "**/logs/**",
+    "**/tests/lib/bats-*/**"
+  ],
+
+  // Terminal settings
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.scrollback": 10000,
+
+  // Better Comments settings
+  "better-comments.tags": [
+    {
+      "tag": "!",
+      "color": "#FF2D00",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "?",
+      "color": "#3498DB",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "//",
+      "color": "#474747",
+      "strikethrough": true,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "todo",
+      "color": "#FF8C00",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    },
+    {
+      "tag": "*",
+      "color": "#98C379",
+      "strikethrough": false,
+      "underline": false,
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false
+    }
+  ]
+}

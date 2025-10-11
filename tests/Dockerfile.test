@@ -1,0 +1,39 @@
+# Test Runner Docker Image
+FROM ubuntu:22.04
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    bash \
+    git \
+    curl \
+    wget \
+    make \
+    sudo \
+    docker.io \
+    jq \
+    netcat \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install BATS testing framework
+RUN git clone --depth 1 --branch v1.10.0 https://github.com/bats-core/bats-core.git /tmp/bats-core \
+    && cd /tmp/bats-core \
+    && ./install.sh /usr/local \
+    && rm -rf /tmp/bats-core
+
+# Install BATS helper libraries
+RUN git clone --depth 1 https://github.com/bats-core/bats-support.git /usr/local/lib/bats-support \
+    && git clone --depth 1 https://github.com/bats-core/bats-assert.git /usr/local/lib/bats-assert \
+    && git clone --depth 1 https://github.com/bats-core/bats-file.git /usr/local/lib/bats-file
+
+# Create test user
+RUN useradd -m -s /bin/bash testuser \
+    && usermod -aG docker testuser
+
+# Set working directory
+WORKDIR /workspace
+
+# Default command
+CMD ["bats", "--version"]

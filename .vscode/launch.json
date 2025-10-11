@@ -1,0 +1,78 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Shell Script",
+      "type": "bashdb",
+      "request": "launch",
+      "program": "${file}",
+      "cwd": "${workspaceFolder}",
+      "internalConsoleOptions": "openOnSessionStart",
+      "presentation": {
+        "hidden": false,
+        "group": "",
+        "order": 1
+      }
+    },
+    {
+      "name": "Debug Setup Script",
+      "type": "bashdb",
+      "request": "launch",
+      "program": "${workspaceFolder}/assets/setup.sh",
+      "cwd": "${workspaceFolder}",
+      "args": [],
+      "env": {
+        "DEBUG": "1"
+      },
+      "presentation": {
+        "hidden": false,
+        "group": "scripts",
+        "order": 1
+      }
+    },
+    {
+      "name": "Debug Stack Script",
+      "type": "bashdb",
+      "request": "launch",
+      "program": "${workspaceFolder}/assets/stack.sh",
+      "cwd": "${workspaceFolder}",
+      "args": ["list"],
+      "presentation": {
+        "hidden": false,
+        "group": "scripts",
+        "order": 2
+      }
+    },
+    {
+      "name": "Run BATS Test File",
+      "type": "bashdb",
+      "request": "launch",
+      "program": "bats",
+      "args": ["${file}"],
+      "cwd": "${workspaceFolder}",
+      "presentation": {
+        "hidden": false,
+        "group": "tests",
+        "order": 1
+      }
+    },
+    {
+      "name": "Docker: Attach to Container",
+      "type": "docker",
+      "request": "attach",
+      "platform": "linux",
+      "containerName": "${input:containerName}",
+      "sourceFileMap": {
+        "/workspace": "${workspaceFolder}"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "containerName",
+      "type": "promptString",
+      "description": "Enter container name to attach",
+      "default": "jacker_traefik_1"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+# Test Prometheus Configuration
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Test Traefik metrics
+  - job_name: 'test-traefik'
+    static_configs:
+      - targets: ['test-traefik:8080']
+    metrics_path: '/metrics'
+
+  # Test application metrics
+  - job_name: 'test-app'
+    static_configs:
+      - targets: ['test-app:8000']
+    metrics_path: '/metrics'
+
+  # Test Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

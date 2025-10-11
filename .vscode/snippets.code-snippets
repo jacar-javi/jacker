@@ -1,0 +1,182 @@
+{
+  "BATS Test": {
+    "prefix": "bats-test",
+    "scope": "shellscript",
+    "body": [
+      "@test \"${1:description}\" {",
+      "\trun ${2:command}",
+      "\tassert_success",
+      "\tassert_output --partial \"${3:expected}\"",
+      "}"
+    ],
+    "description": "Create a BATS test case"
+  },
+  "BATS Setup": {
+    "prefix": "bats-setup",
+    "scope": "shellscript",
+    "body": [
+      "setup() {",
+      "\tload '../helpers/test_helper'",
+      "\t${1:# Setup code}",
+      "}"
+    ],
+    "description": "Create BATS setup function"
+  },
+  "BATS Teardown": {
+    "prefix": "bats-teardown",
+    "scope": "shellscript",
+    "body": [
+      "teardown() {",
+      "\t${1:# Cleanup code}",
+      "}"
+    ],
+    "description": "Create BATS teardown function"
+  },
+  "Bash Script Header": {
+    "prefix": "bash-header",
+    "scope": "shellscript",
+    "body": [
+      "#!/usr/bin/env bash",
+      "#",
+      "# ${1:script-name.sh} - ${2:Description}",
+      "#",
+      "",
+      "set -euo pipefail",
+      "",
+      "# Script directory detection",
+      "SCRIPT_DIR=\"\\$( cd \"\\$( dirname \"\\${BASH_SOURCE[0]}\" )\" && pwd )\"",
+      "if [[ \"\\$SCRIPT_DIR\" == */assets ]]; then",
+      "\tJACKER_DIR=\"\\$(dirname \"\\$SCRIPT_DIR\")\"",
+      "else",
+      "\tJACKER_DIR=\"\\$SCRIPT_DIR\"",
+      "fi",
+      "cd \"\\$JACKER_DIR\" || exit 1",
+      "",
+      "# Source libraries",
+      "source \"\\${JACKER_DIR}/assets/lib/common.sh\"",
+      "",
+      "${3:# Script logic}",
+      ""
+    ],
+    "description": "Standard Jacker script header"
+  },
+  "Source Library": {
+    "prefix": "source-lib",
+    "scope": "shellscript",
+    "body": [
+      "source \"\\${JACKER_DIR}/assets/lib/${1:common}.sh\""
+    ],
+    "description": "Source a Jacker library file"
+  },
+  "Function Documentation": {
+    "prefix": "func-doc",
+    "scope": "shellscript",
+    "body": [
+      "#",
+      "# ${1:function_name} - ${2:Brief description}",
+      "#",
+      "# Usage: ${1:function_name} ${3:arg1} ${4:arg2}",
+      "#",
+      "# Arguments:",
+      "#   \\$1 - ${5:Description of arg1}",
+      "#   \\$2 - ${6:Description of arg2}",
+      "#",
+      "# Returns:",
+      "#   ${7:0 on success, 1 on failure}",
+      "#",
+      "${1:function_name}() {",
+      "\tlocal ${3:arg1}=\"\\$1\"",
+      "\tlocal ${4:arg2}=\"\\$2\"",
+      "\t",
+      "\t${8:# Function body}",
+      "}"
+    ],
+    "description": "Documented function template"
+  },
+  "Docker Compose Service": {
+    "prefix": "compose-service",
+    "scope": "yaml",
+    "body": [
+      "${1:service-name}:",
+      "  image: ${2:image:tag}",
+      "  container_name: ${3:container_name}",
+      "  restart: unless-stopped",
+      "  networks:",
+      "    - ${4:network}",
+      "  environment:",
+      "    - ${5:ENV_VAR}=\\${${5:ENV_VAR}}",
+      "  volumes:",
+      "    - \\$DATADIR/${1:service-name}:/data",
+      "  labels:",
+      "    - \"traefik.enable=true\"",
+      "    - \"traefik.http.routers.${1:service-name}.rule=Host(\\`${1:service-name}.\\${PUBLIC_FQDN}\\`)\"",
+      "    - \"traefik.http.routers.${1:service-name}.entrypoints=websecure\"",
+      "    - \"traefik.http.routers.${1:service-name}.tls=true\"",
+      "    - \"traefik.http.routers.${1:service-name}.middlewares=chain-oauth@file\"",
+      "  healthcheck:",
+      "    test: [\"CMD\", \"${6:curl}\", \"-f\", \"${7:http://localhost}\"]",
+      "    interval: 30s",
+      "    timeout: 10s",
+      "    retries: 3",
+      "    start_period: 40s"
+    ],
+    "description": "Docker Compose service template for Jacker"
+  },
+  "Makefile Target": {
+    "prefix": "make-target",
+    "scope": "makefile",
+    "body": [
+      "${1:target}: ## ${2:Description}",
+      "\t@${3:command}",
+      ""
+    ],
+    "description": "Makefile target with help comment"
+  },
+  "Error Handler": {
+    "prefix": "error-handler",
+    "scope": "shellscript",
+    "body": [
+      "# Error handler",
+      "error_exit() {",
+      "\tlocal message=\"\\$1\"",
+      "\tlocal code=\"\\${2:-1}\"",
+      "\terror \"\\$message\"",
+      "\texit \"\\$code\"",
+      "}"
+    ],
+    "description": "Error handling function"
+  },
+  "Check Prerequisites": {
+    "prefix": "check-prereq",
+    "scope": "shellscript",
+    "body": [
+      "# Check prerequisites",
+      "check_prerequisites() {",
+      "\tlocal missing=0",
+      "\t",
+      "\tfor cmd in ${1:docker} ${2:docker-compose} ${3:jq}; do",
+      "\t\tif ! command -v \"\\$cmd\" &> /dev/null; then",
+      "\t\t\terror \"Required command not found: \\$cmd\"",
+      "\t\t\t((missing++))",
+      "\t\tfi",
+      "\tdone",
+      "\t",
+      "\tif [ \\$missing -gt 0 ]; then",
+      "\t\terror_exit \"Missing \\$missing required command(s)\"",
+      "\tfi",
+      "}"
+    ],
+    "description": "Check for required commands"
+  },
+  "Confirmation Prompt": {
+    "prefix": "confirm",
+    "scope": "shellscript",
+    "body": [
+      "if ! confirm_action \"${1:Are you sure?}\" \"${2:N}\"; then",
+      "\tinfo \"${3:Operation cancelled}\"",
+      "\texit 0",
+      "fi"
+    ],
+    "description": "User confirmation prompt"
+  }
+}

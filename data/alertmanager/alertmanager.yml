@@ -1,9 +1,9 @@
 global:
   resolve_timeout: 5m
-  smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
-  smtp_from: '${SMTP_FROM}'
-  smtp_auth_username: '${SMTP_USERNAME}'
-  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_smarthost: ':'
+  smtp_from: ''
+  smtp_auth_username: ''
+  smtp_auth_password: ''
   smtp_require_tls: true
 
 # Templates for custom alert formatting
@@ -53,7 +53,7 @@ receivers:
   # Default receiver - email only
   - name: 'default-receiver'
     email_configs:
-      - to: '${ALERT_EMAIL_TO}'
+      - to: ''
         headers:
           Subject: '[Jacker] Alert: {{ .GroupLabels.alertname }}'
         html: |
@@ -67,7 +67,7 @@ receivers:
   # Critical alerts - both email and telegram
   - name: 'critical-alerts'
     email_configs:
-      - to: '${ALERT_EMAIL_TO}'
+      - to: ''
         headers:
           Subject: '[CRITICAL] Jacker Alert: {{ .GroupLabels.alertname }}'
         html: |
@@ -82,8 +82,8 @@ receivers:
           {{ end }}
     telegram_configs:
       - api_url: 'https://api.telegram.org'
-        bot_token: '${TELEGRAM_BOT_TOKEN}'
-        chat_id: ${TELEGRAM_CHAT_ID}
+        bot_token: ''
+        chat_id: 
         parse_mode: 'HTML'
         message: |
           🚨 <b>CRITICAL ALERT</b> 🚨
@@ -98,7 +98,7 @@ receivers:
   # Warning alerts - email only
   - name: 'warning-alerts'
     email_configs:
-      - to: '${ALERT_EMAIL_TO}'
+      - to: ''
         headers:
           Subject: '[WARNING] Jacker Alert: {{ .GroupLabels.alertname }}'
         html: |
@@ -114,7 +114,7 @@ receivers:
   # Info alerts - email only
   - name: 'info-alerts'
     email_configs:
-      - to: '${ALERT_EMAIL_TO}'
+      - to: ''
         headers:
           Subject: '[INFO] Jacker: {{ .GroupLabels.alertname }}'
         html: |

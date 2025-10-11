@@ -19,7 +19,11 @@ data/loki
 data/alertmanager
 data/vscode
 data/traefik/acme.json
+data/traefik/certs/
 data/jaeger
+data/oauth2-proxy/
+data/test/
+data/.update-backup/
 
 # Logs
 logs/
@@ -33,12 +37,15 @@ secrets/*
 stacks/*
 !stacks/newstack.sh
 !stacks/README.md
+.jacker/
 
 # Development
 dev/*
 
 # Backups
 backups/*
+backup/
+restored/
 *.tar.gz
 *.bak
 *.old
@@ -48,10 +55,18 @@ backups/*
 Thumbs.db
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo
 *~
 
 .claude/
+.serena/
+
+# Test artifacts
+tests/results/
+*.tap
+
+secrets/
+stacks/*
+!stacks/.gitkeep

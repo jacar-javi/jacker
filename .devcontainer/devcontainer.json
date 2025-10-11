@@ -1,22 +1,162 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/javascript-node
+// For format details, see https://aka.ms/devcontainer.json
+// Documentation: https://containers.dev/implementors/json_reference/
 {
-	"name": "Node.js",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm"
+	"name": "Jacker Development Container",
+	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bullseye",
 
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+	// Features to add to the dev container
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"version": "latest",
+			"moby": true,
+			"dockerDashComposeVersion": "v2"
+		},
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			"installZsh": true,
+			"installOhMyZsh": true,
+			"upgradePackages": true,
+			"username": "node",
+			"userUid": "automatic",
+			"userGid": "automatic"
+		},
+		"ghcr.io/devcontainers/features/git:1": {
+			"version": "latest",
+			"ppa": true
+		}
+	},
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	// Configure tool-specific properties
+	"customizations": {
+		"vscode": {
+			// Extensions to install in the container
+			"extensions": [
+				// Shell scripting
+				"timonwong.shellcheck",
+				"foxundermoon.shell-format",
+				"mads-hartmann.bash-ide-vscode",
 
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "yarn install",
+				// Docker & Containers
+				"ms-azuretools.vscode-docker",
+				"ms-vscode-remote.remote-containers",
 
-	// Configure tool-specific properties.
-	// "customizations": {},
+				// YAML & Configuration
+				"redhat.vscode-yaml",
+				"dotenv.dotenv-vscode",
 
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+				// Markdown & Documentation
+				"yzhang.markdown-all-in-one",
+				"davidanson.vscode-markdownlint",
+
+				// Git & Version Control
+				"eamodio.gitlens",
+				"mhutchie.git-graph",
+
+				// Testing
+				"jetmartin.bats",
+
+				// Code Quality
+				"editorconfig.editorconfig",
+				"streetsidesoftware.code-spell-checker",
+
+				// Utilities
+				"gruntfuggly.todo-tree",
+				"aaron-bond.better-comments",
+				"oderwat.indent-rainbow"
+			],
+
+			// Settings to apply in the container
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "bash",
+				"terminal.integrated.profiles.linux": {
+					"bash": {
+						"path": "/bin/bash",
+						"icon": "terminal-bash"
+					},
+					"zsh": {
+						"path": "/bin/zsh",
+						"icon": "terminal"
+					}
+				}
+			}
+		}
+	},
+
+	// Mount the project directory
+	"mounts": [
+		"source=${localWorkspaceFolder},target=/workspaces/jacker,type=bind,consistency=cached",
+		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+	],
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally
+	"forwardPorts": [
+		80,   // HTTP
+		443,  // HTTPS
+		3000, // Grafana
+		8080, // Traefik Dashboard
+		9090, // Prometheus
+		9093, // Alertmanager
+		5432  // PostgreSQL
+	],
+
+	// Port attributes for better labeling
+	"portsAttributes": {
+		"80": {
+			"label": "HTTP",
+			"onAutoForward": "notify"
+		},
+		"443": {
+			"label": "HTTPS",
+			"onAutoForward": "notify"
+		},
+		"3000": {
+			"label": "Grafana",
+			"onAutoForward": "notify"
+		},
+		"8080": {
+			"label": "Traefik Dashboard",
+			"onAutoForward": "notify"
+		},
+		"9090": {
+			"label": "Prometheus",
+			"onAutoForward": "silent"
+		},
+		"9093": {
+			"label": "Alertmanager",
+			"onAutoForward": "silent"
+		},
+		"5432": {
+			"label": "PostgreSQL",
+			"onAutoForward": "silent"
+		}
+	},
+
+	// Commands to run after container creation
+	"postCreateCommand": "bash .devcontainer/post-create.sh",
+
+	// Commands to run after the container starts
+	"postStartCommand": "git config --global --add safe.directory /workspaces/jacker",
+
+	// Set environment variables
+	"remoteEnv": {
+		"WORKSPACE_FOLDER": "/workspaces/jacker",
+		"SHELL": "/bin/bash"
+	},
+
+	// Run as non-root user
+	"remoteUser": "node",
+
+	// Configure container specific properties
+	"containerEnv": {
+		"TZ": "UTC"
+	},
+
+	// Lifecycle scripts
+	"initializeCommand": "echo 'Initializing Jacker dev container...'",
+	"onCreateCommand": "echo 'Container created.'",
+
+	// Specify the working directory
+	"workspaceFolder": "/workspaces/jacker",
+
+	// Update remote user's UID/GID to match local user
+	"updateRemoteUserUID": true
 }

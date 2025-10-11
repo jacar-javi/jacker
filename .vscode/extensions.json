@@ -1,0 +1,37 @@
+{
+  "recommendations": [
+    // Shell scripting
+    "timonwong.shellcheck",
+    "foxundermoon.shell-format",
+    "mads-hartmann.bash-ide-vscode",
+
+    // Docker & Containers
+    "ms-azuretools.vscode-docker",
+    "ms-vscode-remote.remote-containers",
+
+    // YAML & Configuration
+    "redhat.vscode-yaml",
+    "dotenv.dotenv-vscode",
+
+    // Markdown & Documentation
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint",
+
+    // Git & Version Control
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // Testing
+    "jetmartin.bats",
+
+    // Code Quality
+    "editorconfig.editorconfig",
+    "streetsidesoftware.code-spell-checker",
+
+    // Utilities
+    "gruntfuggly.todo-tree",
+    "aaron-bond.better-comments",
+    "oderwat.indent-rainbow"
+  ],
+  "unwantedRecommendations": []
+}

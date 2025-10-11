@@ -1,0 +1,341 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    // Installation & Setup
+    {
+      "label": "Install Jacker",
+      "type": "shell",
+      "command": "make install",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "group": "build"
+    },
+    {
+      "label": "Reinstall Jacker",
+      "type": "shell",
+      "command": "make reinstall",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    // Service Management
+    {
+      "label": "Start All Services",
+      "type": "shell",
+      "command": "make up",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Stop All Services",
+      "type": "shell",
+      "command": "make down",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Restart Services",
+      "type": "shell",
+      "command": "make restart",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "View Service Status",
+      "type": "shell",
+      "command": "make ps",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "View Logs (All Services)",
+      "type": "shell",
+      "command": "make logs",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Follow Logs",
+      "type": "shell",
+      "command": "make logs-follow",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      }
+    },
+    // Health & Monitoring
+    {
+      "label": "Health Check",
+      "type": "shell",
+      "command": "make health",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "group": "test"
+    },
+    {
+      "label": "Watch Health Status",
+      "type": "shell",
+      "command": "make health-watch",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "View Resource Usage",
+      "type": "shell",
+      "command": "make stats",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    // Testing
+    {
+      "label": "Run All Tests",
+      "type": "shell",
+      "command": "./tests/run_tests.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Run Unit Tests",
+      "type": "shell",
+      "command": "./tests/run_tests.sh unit",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "group": "test"
+    },
+    {
+      "label": "Run Integration Tests",
+      "type": "shell",
+      "command": "./tests/run_tests.sh integration",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "group": "test"
+    },
+    {
+      "label": "Run ShellCheck",
+      "type": "shell",
+      "command": "./tests/run_tests.sh shellcheck",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "group": "test"
+    },
+    {
+      "label": "Lint All Scripts",
+      "type": "shell",
+      "command": "make lint",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    // Backup & Restore
+    {
+      "label": "Create Backup",
+      "type": "shell",
+      "command": "make backup",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    // Stack Management
+    {
+      "label": "List Available Stacks",
+      "type": "shell",
+      "command": "make stacks",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "List Installed Stacks",
+      "type": "shell",
+      "command": "./assets/stack.sh installed",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    // Configuration
+    {
+      "label": "Validate Configuration",
+      "type": "shell",
+      "command": "make validate",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Show Docker Compose Config",
+      "type": "shell",
+      "command": "make config",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Show Environment Variables",
+      "type": "shell",
+      "command": "make env",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    // CrowdSec
+    {
+      "label": "CrowdSec Status",
+      "type": "shell",
+      "command": "make crowdsec-status",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "CrowdSec Decisions",
+      "type": "shell",
+      "command": "make crowdsec-decisions",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    // Maintenance
+    {
+      "label": "Update All Images",
+      "type": "shell",
+      "command": "make update",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Setup BATS Testing",
+      "type": "shell",
+      "command": "./tests/setup_bats.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      }
+    }
+  ]
+}

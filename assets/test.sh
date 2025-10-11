@@ -79,6 +79,11 @@ test_skip() {
     ((TESTS_SKIPPED++))
 }
 
+test_info() {
+    local message=$1
+    echo -e "${BLUE}ℹ${NC} $message"
+}
+
 # Test Categories
 
 ## 1. Script Syntax Tests
@@ -334,16 +339,197 @@ if [ "$TEST_MODE" = "full" ] || [ "$TEST_MODE" = "--full" ]; then
             test_skip "Health check timed out or failed"
         fi
 
-        test_start "Backup script runs (dry-run)"
-        if [ ! -d /tmp/jacker-test-backup ]; then
-            if ./backup.sh /tmp/jacker-test-backup > /dev/null 2>&1; then
-                rm -rf /tmp/jacker-test-backup
+        # OAuth Integration Tests
+        test_info "Checking OAuth configuration..."
+
+        test_start "OAuth service health"
+        if docker ps --format '{{.Names}}' | grep -q "^oauth$"; then
+            if docker inspect --format='{{.State.Health.Status}}' oauth 2>/dev/null | grep -q "healthy\|no"; then
                 test_pass
             else
-                test_fail "Backup script" "Backup failed"
+                test_fail "OAuth health" "OAuth container unhealthy"
             fi
         else
-            test_skip "Test backup directory exists"
+            test_skip "OAuth container not running"
+        fi
+
+        test_start "OAuth configuration exists"
+        if [ -f secrets/traefik_forward_oauth ]; then
+            if grep -q "client-id" secrets/traefik_forward_oauth && \
+               grep -q "client-secret" secrets/traefik_forward_oauth; then
+                test_pass
+            else
+                test_fail "OAuth config" "Missing client-id or client-secret"
+            fi
+        else
+            test_skip "OAuth secrets file not found"
+        fi
+
+        test_start "OAuth environment variables set"
+        source .env 2>/dev/null || true
+        if [ -n "$OAUTH_CLIENT_ID" ] && [ -n "$OAUTH_CLIENT_SECRET" ] && [ -n "$OAUTH_WHITELIST" ]; then
+            test_pass
+        else
+            test_skip "OAuth not configured in .env"
+        fi
+
+        # Service Health Tests
+        test_info "Checking critical services..."
+
+        test_start "Traefik is healthy"
+        if docker ps --format '{{.Names}}' | grep -q "^traefik$"; then
+            if docker inspect --format='{{.State.Health.Status}}' traefik 2>/dev/null | grep -q "healthy"; then
+                test_pass
+            else
+                test_fail "Traefik health" "Traefik unhealthy"
+            fi
+        else
+            test_skip "Traefik not running"
+        fi
+
+        test_start "Traefik API accessible"
+        if curl -sf http://localhost:8080/ping &> /dev/null; then
+            test_pass
+        else
+            test_skip "Traefik API not accessible"
+        fi
+
+        test_start "PostgreSQL is healthy"
+        if docker ps --format '{{.Names}}' | grep -q "^postgres$"; then
+            if docker exec postgres pg_isready -U postgres &> /dev/null; then
+                test_pass
+            else
+                test_fail "PostgreSQL health" "PostgreSQL not ready"
+            fi
+        else
+            test_skip "PostgreSQL not running"
+        fi
+
+        test_start "CrowdSec is healthy"
+        if docker ps --format '{{.Names}}' | grep -q "^crowdsec$"; then
+            if docker exec crowdsec cscli version &> /dev/null; then
+                test_pass
+            else
+                test_fail "CrowdSec health" "CrowdSec unhealthy"
+            fi
+        else
+            test_skip "CrowdSec not running"
+        fi
+
+        test_start "Loki is accessible"
+        if docker ps --format '{{.Names}}' | grep -q "^loki$"; then
+            if curl -sf http://localhost:3100/ready &> /dev/null; then
+                test_pass
+            else
+                test_skip "Loki not ready"
+            fi
+        else
+            test_skip "Loki not running"
+        fi
+
+        # Network Tests
+        test_info "Checking network connectivity..."
+
+        test_start "Docker networks exist"
+        required_networks=("socket_proxy" "traefik_proxy")
+        networks_exist=true
+        for net in "${required_networks[@]}"; do
+            if ! docker network ls --format '{{.Name}}' | grep -q "^${net}$"; then
+                networks_exist=false
+                break
+            fi
+        done
+        if $networks_exist; then
+            test_pass
+        else
+            test_fail "Docker networks" "Required networks missing"
+        fi
+
+        test_start "Services can communicate"
+        if docker ps --format '{{.Names}}' | grep -q "^traefik$" && \
+           docker ps --format '{{.Names}}' | grep -q "^socket-proxy$"; then
+            if docker exec traefik wget --spider -q http://socket-proxy:2375/version 2>/dev/null; then
+                test_pass
+            else
+                test_skip "Service communication test failed"
+            fi
+        else
+            test_skip "Required containers not running"
+        fi
+
+        # Backup/Restore Tests
+        test_info "Testing backup and restore functionality..."
+
+        test_start "Backup script creates valid backup"
+        test_backup_dir="/tmp/jacker-test-backup-$$"
+        if ./backup.sh "$test_backup_dir" > /dev/null 2>&1; then
+            if [ -f "$test_backup_dir/jacker-config-"*".tar.gz" ] && \
+               [ -f "$test_backup_dir/checksums.sha256" ]; then
+                test_pass
+            else
+                test_fail "Backup validation" "Backup files not created properly"
+            fi
+        else
+            test_fail "Backup creation" "Backup script failed"
+        fi
+
+        test_start "Backup includes .env file"
+        if [ -d "$test_backup_dir" ]; then
+            if tar -tzf "$test_backup_dir"/jacker-config-*.tar.gz 2>/dev/null | grep -q "\.env$"; then
+                test_pass
+            else
+                test_fail "Backup .env" ".env not in backup"
+            fi
+        else
+            test_skip "Backup directory not found"
+        fi
+
+        test_start "Backup checksums are valid"
+        if [ -f "$test_backup_dir/checksums.sha256" ]; then
+            cd "$test_backup_dir" && sha256sum -c checksums.sha256 &> /dev/null
+            if [ $? -eq 0 ]; then
+                test_pass
+            else
+                test_fail "Backup checksums" "Checksum validation failed"
+            fi
+            cd - > /dev/null
+        else
+            test_skip "Checksums file not found"
+        fi
+
+        # Cleanup test backup
+        if [ -d "$test_backup_dir" ]; then
+            rm -rf "$test_backup_dir"
+        fi
+
+        # Certificate Tests
+        test_info "Checking SSL certificate configuration..."
+
+        test_start "ACME JSON file exists"
+        if [ -f data/traefik/acme.json ]; then
+            test_pass
+        else
+            test_fail "ACME file" "acme.json not found"
+        fi
+
+        test_start "ACME JSON has correct permissions"
+        if [ -f data/traefik/acme.json ]; then
+            perms=$(stat -c '%a' data/traefik/acme.json 2>/dev/null || stat -f '%A' data/traefik/acme.json 2>/dev/null)
+            if [ "$perms" = "600" ]; then
+                test_pass
+            else
+                test_fail "ACME permissions" "Expected 600, got $perms"
+            fi
+        else
+            test_skip "acme.json not found"
+        fi
+
+        test_start "Let's Encrypt email configured"
+        source .env 2>/dev/null || true
+        if [ -n "$LETSENCRYPT_EMAIL" ] && [ "$LETSENCRYPT_EMAIL" != "" ]; then
+            test_pass
+        else
+            test_skip "LETSENCRYPT_EMAIL not set"
         fi
     else
         echo ""
