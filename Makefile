@@ -90,6 +90,7 @@ stats: ## Show resource usage
 ##@ Logs & Monitoring
 # =============================================================================
 
+.PHONY: logs logs-follow
 logs: ## View logs (use SERVICE=name for specific service)
 	@$(COMPOSE) logs $(if $(SERVICE),-f $(SERVICE),--tail=100)
 
