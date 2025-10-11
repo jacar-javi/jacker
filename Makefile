@@ -102,6 +102,9 @@ health: ## Check health of all services
 health-watch: ## Watch health status
 	@watch -n 2 ./assets/lib/health-check.sh
 
+diagnose: ## Run network diagnostics (DNS, firewall, SSL)
+	@./assets/diagnose-network.sh
+
 validate: ## Validate configuration
 	@echo "$(BLUE)Validating configuration...$(NC)"
 	@$(COMPOSE) config > /dev/null && echo "$(GREEN)✓ Configuration is valid$(NC)" || echo "$(RED)✗ Configuration has errors$(NC)"

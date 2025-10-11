@@ -244,55 +244,44 @@ create_configuration() {
 create_env_file() {
     subsection "Creating .env file"
 
-    local env_template="$(get_jacker_root)/.env.template"
+    local env_defaults="$(get_jacker_root)/.env.defaults"
     local env_file="$(get_jacker_root)/.env"
 
-    if [ -f "$env_template" ]; then
-        envsubst < "$env_template" > "$env_file"
-        success ".env file created"
+    # Start with .env.defaults as base
+    if [ -f "$env_defaults" ]; then
+        cp "$env_defaults" "$env_file"
+        
+        # Override with user-provided values using sed
+        sed -i "s|^PUID=.*|PUID=$PUID|" "$env_file"
+        sed -i "s|^PGID=.*|PGID=$PGID|" "$env_file"
+        sed -i "s|^TZ=.*|TZ=$TZ|" "$env_file"
+        sed -i "s|^USERDIR=.*|USERDIR=$USERDIR|" "$env_file"
+        sed -i "s|^DOCKERDIR=.*|DOCKERDIR=$DOCKERDIR|" "$env_file"
+        sed -i "s|^DATADIR=.*|DATADIR=$DATADIR|" "$env_file"
+        sed -i "s|^HOSTNAME=.*|HOSTNAME=$HOSTNAME|" "$env_file"
+        sed -i "s|^DOMAINNAME=.*|DOMAINNAME=$DOMAINNAME|" "$env_file"
+        sed -i "s|^PUBLIC_FQDN=.*|PUBLIC_FQDN=$PUBLIC_FQDN|" "$env_file"
+        sed -i "s|^LOCAL_IPS=.*|LOCAL_IPS=$LOCAL_IPS|" "$env_file"
+        sed -i "s|^DOCKER_DEFAULT_SUBNET=.*|DOCKER_DEFAULT_SUBNET=$DOCKER_DEFAULT_SUBNET|" "$env_file"
+        sed -i "s|^SOCKET_PROXY_SUBNET=.*|SOCKET_PROXY_SUBNET=$SOCKET_PROXY_SUBNET|" "$env_file"
+        sed -i "s|^TRAEFIK_PROXY_SUBNET=.*|TRAEFIK_PROXY_SUBNET=$TRAEFIK_PROXY_SUBNET|" "$env_file"
+        sed -i "s|^OAUTH_CLIENT_ID=.*|OAUTH_CLIENT_ID=$OAUTH_CLIENT_ID|" "$env_file"
+        sed -i "s|^OAUTH_CLIENT_SECRET=.*|OAUTH_CLIENT_SECRET=$OAUTH_CLIENT_SECRET|" "$env_file"
+        sed -i "s|^OAUTH_SECRET=.*|OAUTH_SECRET=$OAUTH_SECRET|" "$env_file"
+        sed -i "s|^OAUTH_WHITELIST=.*|OAUTH_WHITELIST=$OAUTH_WHITELIST|" "$env_file"
+        sed -i "s|^LETSENCRYPT_EMAIL=.*|LETSENCRYPT_EMAIL=$LETSENCRYPT_EMAIL|" "$env_file"
+        sed -i "s|^POSTGRES_DB=.*|POSTGRES_DB=$POSTGRES_DB|" "$env_file"
+        sed -i "s|^POSTGRES_USER=.*|POSTGRES_USER=$POSTGRES_USER|" "$env_file"
+        sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$POSTGRES_PASSWORD|" "$env_file"
+        sed -i "s|^CROWDSEC_API_PORT=.*|CROWDSEC_API_PORT=$CROWDSEC_API_PORT|" "$env_file"
+        sed -i "s|^CROWDSEC_TRAEFIK_BOUNCER_API_KEY=.*|CROWDSEC_TRAEFIK_BOUNCER_API_KEY=$CROWDSEC_TRAEFIK_BOUNCER_API_KEY|" "$env_file"
+        sed -i "s|^CROWDSEC_IPTABLES_BOUNCER_API_KEY=.*|CROWDSEC_IPTABLES_BOUNCER_API_KEY=$CROWDSEC_IPTABLES_BOUNCER_API_KEY|" "$env_file"
+        sed -i "s|^CROWDSEC_API_LOCAL_PASSWORD=.*|CROWDSEC_API_LOCAL_PASSWORD=$CROWDSEC_API_LOCAL_PASSWORD|" "$env_file"
+        
+        success ".env file created from defaults with user overrides"
     else
-        # Create minimal .env if template doesn't exist
-        cat > "$env_file" <<EOF
-# Jacker Configuration
-PUID=$PUID
-PGID=$PGID
-TZ=$TZ
-USERDIR=$USERDIR
-DOCKERDIR=$DOCKERDIR
-DATADIR=$DATADIR
-
-# Network
-HOSTNAME=$HOSTNAME
-DOMAINNAME=$DOMAINNAME
-PUBLIC_FQDN=$PUBLIC_FQDN
-LOCAL_IPS=$LOCAL_IPS
-
-# Docker Networks
-DOCKER_DEFAULT_SUBNET=$DOCKER_DEFAULT_SUBNET
-SOCKET_PROXY_SUBNET=$SOCKET_PROXY_SUBNET
-TRAEFIK_PROXY_SUBNET=$TRAEFIK_PROXY_SUBNET
-
-# OAuth
-OAUTH_CLIENT_ID=$OAUTH_CLIENT_ID
-OAUTH_CLIENT_SECRET=$OAUTH_CLIENT_SECRET
-OAUTH_SECRET=$OAUTH_SECRET
-OAUTH_WHITELIST=$OAUTH_WHITELIST
-
-# SSL
-LETSENCRYPT_EMAIL=$LETSENCRYPT_EMAIL
-
-# PostgreSQL
-POSTGRES_DB=$POSTGRES_DB
-POSTGRES_USER=$POSTGRES_USER
-POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-
-# CrowdSec
-CROWDSEC_API_PORT=$CROWDSEC_API_PORT
-CROWDSEC_TRAEFIK_BOUNCER_API_KEY=$CROWDSEC_TRAEFIK_BOUNCER_API_KEY
-CROWDSEC_IPTABLES_BOUNCER_API_KEY=$CROWDSEC_IPTABLES_BOUNCER_API_KEY
-CROWDSEC_API_LOCAL_PASSWORD=$CROWDSEC_API_LOCAL_PASSWORD
-EOF
-        success ".env file created"
+        error ".env.defaults file not found!"
+        return 1
     fi
 }
 
@@ -478,13 +467,42 @@ main() {
 
     success "Jacker has been successfully installed!"
     echo ""
+    
+    # Check if using placeholder domain
+    if [[ "$DOMAINNAME" == "example.com" ]] || [[ "$DOMAINNAME" == *".localhost" ]] || [[ "$DOMAINNAME" == "localhost" ]]; then
+        warning "You are using a test/placeholder domain: $DOMAINNAME"
+        echo ""
+        echo "This is fine for local testing, but for external access you need:"
+        echo "  1. A real domain name (e.g., yourdomain.com)"
+        echo "  2. DNS A records pointing to your server's public IP"
+        echo "  3. Cloud provider firewall allowing ports 80/443"
+        echo ""
+        echo "To reconfigure later:"
+        echo "  • Update domain: make reconfigure-domain"
+        echo "  • Configure SSL: make reconfigure-ssl"
+        echo ""
+    else
+        info "To access services externally, ensure DNS is configured:"
+        echo ""
+        echo "Required DNS configuration:"
+        echo "  1. Add A record: $PUBLIC_FQDN → [your server's public IP]"
+        echo "  2. Add wildcard or specific subdomain records"
+        echo "  3. Wait 5-30 minutes for DNS propagation"
+        echo "  4. Ensure cloud provider firewall allows ports 80/443"
+        echo ""
+        info "Run diagnostics to verify external access:"
+        echo "  make diagnose"
+        echo ""
+    fi
+    
     echo "Access your services:"
     echo "  • Traefik:   https://traefik.$PUBLIC_FQDN"
     echo "  • Portainer: https://portainer.$PUBLIC_FQDN"
     echo "  • Grafana:   https://grafana.$PUBLIC_FQDN"
     echo ""
-    echo "Next steps:"
+    echo "Useful commands:"
     echo "  • Check service health: make health"
+    echo "  • Run network diagnostics: make diagnose"
     echo "  • View logs: make logs"
     echo "  • Configure OAuth: make reconfigure-oauth"
     echo "  • Configure SSL: make reconfigure-ssl"
