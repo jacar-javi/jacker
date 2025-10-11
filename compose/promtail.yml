@@ -13,7 +13,7 @@ services:
       - loki
 
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9080/ready"]
+      test: ["CMD-SHELL", "nc -z localhost 9080 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

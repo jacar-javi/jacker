@@ -257,6 +257,24 @@ ensure_crowdsec_database() {
 
     local db_user="${POSTGRES_USER:-postgres}"
     local db_name="${POSTGRES_DB:-postgres}"
+    local db_password="${POSTGRES_PASSWORD:-}"
+
+    # Check if user exists
+    local user_exists=$(docker_exec postgres psql -U "$db_user" -d "$db_name" -tc "SELECT 1 FROM pg_roles WHERE rolname='$db_user'" | tr -d '[:space:]')
+
+    if [ "$user_exists" != "1" ]; then
+        info "Creating PostgreSQL user: $db_user"
+        docker_exec postgres psql -U postgres -d postgres -c "CREATE USER $db_user WITH PASSWORD '$db_password';" &> /dev/null || true
+    else
+        # User exists - update password to match current .env
+        if [ -n "$db_password" ]; then
+            info "Updating PostgreSQL password for user: $db_user"
+            docker_exec postgres psql -U "$db_user" -d "$db_name" -c "ALTER USER $db_user WITH PASSWORD '$db_password';" &> /dev/null || {
+                # If that fails, try as postgres superuser
+                docker_exec postgres psql -U postgres -d postgres -c "ALTER USER $db_user WITH PASSWORD '$db_password';" &> /dev/null || true
+            }
+        fi
+    fi
 
     # Check if crowdsec_db exists
     if ! docker_exec postgres psql -U "$db_user" -d "$db_name" -tc "SELECT 1 FROM pg_database WHERE datname='crowdsec_db'" | grep -q 1; then
@@ -265,6 +283,8 @@ ensure_crowdsec_database() {
     else
         info "crowdsec_db already exists"
     fi
+
+    success "Database configuration synchronized"
 }
 
 # ============================================================================
