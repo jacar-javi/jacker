@@ -5,3 +5,5 @@ providers.google.client-id=$OAUTH_CLIENT_ID
 providers.google.client-secret=$OAUTH_CLIENT_SECRET
 secret=$OAUTH_SECRET
 whitelist=$OAUTH_WHITELIST
+auth-host=oauth.$PUBLIC_FQDN
+cookie-domain=$PUBLIC_FQDN
