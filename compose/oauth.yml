@@ -19,7 +19,7 @@ services:
 
     environment:
       - CONFIG=/config
-      - COOKIE_DOMAIN=$PUBLIC_FQDN
+      - COOKIE_DOMAIN=.$PUBLIC_FQDN  # Leading dot allows cookies to work across all subdomains
       - INSECURE_COOKIE=false
       - AUTH_HOST=oauth.$PUBLIC_FQDN
       - URL_PATH=/_oauth
