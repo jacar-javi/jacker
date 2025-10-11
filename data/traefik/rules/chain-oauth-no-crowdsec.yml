@@ -10,3 +10,11 @@ http:
           - request-size-limit           # Prevent large payload attacks
           - middlewares-oauth            # OAuth authentication
           - middlewares-compress         # Compression
+
+    # Simplified OAuth chain for api@internal (Traefik dashboard)
+    # Without compression to avoid HTTP/2 protocol errors
+    chain-oauth-api:
+      chain:
+        middlewares:
+          - security-headers             # Security headers
+          - middlewares-oauth            # OAuth authentication
