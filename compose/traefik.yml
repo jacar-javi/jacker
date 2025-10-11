@@ -42,11 +42,10 @@ services:
       - $DATADIR/traefik/traefik.yml:/etc/traefik/traefik.yml # Traefik config file
       - $DATADIR/traefik/rules:/rules # Dynamic File Provider directory
       - $DATADIR/traefik/acme.json:/acme.json # Certs File
-      - $DOCKERDIR/logs/traefik:/logs # Traefik logs
+      - $DOCKERDIR/traefik/logs:/logs # Traefik logs
 
     environment:
       - TZ=$TZ
-      - HTPASSWD_FILE=/run/secrets/basic_auth_credentials # HTTP Basic Auth Credentials
       - TRAEFIK_CERTIFICATESRESOLVERS_http_ACME_EMAIL=$LETSENCRYPT_EMAIL
       - TRAEFIK_ENTRYPOINTS_websecure_FORWARDEDHEADERS_TRUSTEDIPS=$LOCAL_IPS
       - PUBLIC_FQDN # Passing environment variables to traefik container to be able to use the variable in rules
@@ -59,7 +58,7 @@ services:
       # Services - API
       - "traefik.http.routers.traefik-rtr.service=api@internal"
       # Middlewares - Using simplified chain for api@internal to avoid HTTP/2 errors
-      - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth@file"
+      # - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth@file"
 
       # Homepage Integration
       - "homepage.group=Reverse Proxy"
