@@ -16,7 +16,7 @@ services:
     ports:
       - 127.0.0.1:2375:2375
 
-    privileged: $HOST_IS_VM # true for VM. False for unprivileged LXC container.
+    privileged: ${HOST_IS_VM:-true} # true for VM. False for unprivileged LXC container.
 
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"

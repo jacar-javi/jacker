@@ -41,50 +41,15 @@ jobs:
 
       - name: Validate docker-compose.yml
         run: |
-          # Create minimal .env for validation
-          cat > .env << EOF
-          PUID=1000
-          PGID=1000
-          TZ=UTC
-          USERDIR=/home/user
-          DOCKERDIR=/workspaces/jacker
-          DATADIR=/workspaces/jacker/data
-          HOSTNAME=test
-          DOMAINNAME=example.com
-          PUBLIC_FQDN=test.example.com
-          LOCAL_IPS=127.0.0.1/32
-          CODE_TRAEFIK_SUBNET_IP=192.168.71.253
-          DOCKER_DEFAULT_SUBNET=192.168.69.0/24
-          SOCKET_PROXY_SUBNET=192.168.70.0/24
-          SOCKET_PROXY_IP=192.168.70.254
-          TRAEFIK_PROXY_SUBNET=192.168.71.0/24
-          TRAEFIK_PROXY_IP=192.168.71.254
-          HOST_IS_VM=true
-          UFW_ALLOW_FROM=
-          UFW_ALLOW_PORTS=http,https
-          UFW_ALLOW_SSH=192.168.71.253
-          OAUTH_COOKIE_LIFETIME=604800
-          OAUTH_CLIENT_ID=test
-          OAUTH_CLIENT_SECRET=test
-          OAUTH_SECRET=testsecret
-          OAUTH_WHITELIST=test@example.com
-          LETSENCRYPT_EMAIL=test@example.com
-          POSTGRES_DB=crowdsec_db
-          POSTGRES_USER=crowdsec
-          POSTGRES_PASSWORD=testpassword
-          CROWDSEC_API_PORT=8888
-          CROWDSEC_TRAEFIK_BOUNCER_API_KEY=testkey
-          CROWDSEC_IPTABLES_BOUNCER_API_KEY=testkey
-          CROWDSEC_API_LOCAL_PASSWORD=testpassword
-          SMTP_HOST=
-          SMTP_PORT=587
-          SMTP_FROM=
-          SMTP_USERNAME=
-          SMTP_PASSWORD=
-          ALERT_EMAIL_TO=
-          TELEGRAM_BOT_TOKEN=
-          TELEGRAM_CHAT_ID=
-          EOF
+          # Use .env.defaults as base and override with test values
+          cp .env.defaults .env
+
+          # Override paths for CI environment
+          sed -i "s|^USERDIR=.*|USERDIR=/home/runner|" .env
+          sed -i "s|^DOCKERDIR=.*|DOCKERDIR=$(pwd)|" .env
+          sed -i "s|^DATADIR=.*|DATADIR=$(pwd)/data|" .env
+          sed -i "s|^HOSTNAME=.*|HOSTNAME=test|" .env
+          sed -i "s|^DOMAINNAME=.*|DOMAINNAME=example.com|" .env
 
           # Create required directories and files
           mkdir -p data/traefik/rules data/traefik/acme secrets logs
