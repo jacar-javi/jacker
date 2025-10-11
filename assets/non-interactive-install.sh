@@ -11,16 +11,23 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 JACKER_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+export RED='\033[0;31m'
+export GREEN='\033[0;32m'
+export YELLOW='\033[1;33m'
+export BLUE='\033[0;34m'
+export NC='\033[0m'
 
-error() { echo -e "${RED}✗ $*${NC}" >&2; }
-success() { echo -e "${GREEN}✓ $*${NC}"; }
-info() { echo -e "${BLUE}ℹ $*${NC}"; }
-warning() { echo -e "${YELLOW}⚠ $*${NC}"; }
+# Unicode symbols
+export CHECK_MARK="✓"
+export CROSS_MARK="✗"
+export WARNING_SIGN="⚠"
+export INFO_SIGN="ℹ"
+export ROCKET="🚀"
+
+error() { echo -e "${RED}${CROSS_MARK} $*${NC}" >&2; }
+success() { echo -e "${GREEN}${CHECK_MARK} $*${NC}"; }
+info() { echo -e "${BLUE}${INFO_SIGN} $*${NC}"; }
+warning() { echo -e "${YELLOW}${WARNING_SIGN} $*${NC}"; }
 
 # Check if backup .env file is provided
 if [ $# -eq 0 ]; then
@@ -118,7 +125,7 @@ install_crowdsec_firewall_bouncer
 
 # Install systemd services
 if [ -d "$SCRIPT_DIR/templates" ]; then
-    local service_files=(
+    service_files=(
         "jacker-compose.service"
         "jacker-compose-reload.service"
         "jacker-compose-reload.timer"
