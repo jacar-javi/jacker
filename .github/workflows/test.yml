@@ -7,6 +7,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  security-events: write
+
 env:
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
@@ -39,7 +43,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: unit-test-results
           path: test-results/
@@ -93,7 +97,7 @@ jobs:
 
       - name: Upload logs
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: integration-test-logs
           path: logs/
@@ -131,22 +135,38 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Check if documentation exists
+        id: check_docs
+        run: |
+          if [ -d "jacker-docs" ] && [ -f "jacker-docs/mkdocs.yml" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ jacker-docs directory not found - skipping documentation tests"
+          fi
 
       - name: Setup Python
+        if: steps.check_docs.outputs.exists == 'true'
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
       - name: Install MkDocs
+        if: steps.check_docs.outputs.exists == 'true'
         run: |
           pip install mkdocs mkdocs-material
 
       - name: Build documentation
+        if: steps.check_docs.outputs.exists == 'true'
         run: |
           cd jacker-docs
           mkdocs build --strict
 
       - name: Check for broken links
+        if: steps.check_docs.outputs.exists == 'true'
         run: |
           pip install linkchecker
           linkchecker jacker-docs/site || true
@@ -171,7 +191,7 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'

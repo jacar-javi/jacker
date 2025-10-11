@@ -5,6 +5,7 @@
 #
 
 # Source common library
+# shellcheck source=assets/lib/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 # Default backup directory
@@ -232,7 +233,10 @@ compress_backup() {
 
     subsection "Compressing backup"
 
-    cd "$backup_dir"
+    cd "$backup_dir" || {
+        error "Failed to change to backup directory: $backup_dir"
+        return 1
+    }
     tar czf "${backup_name}.tar.gz" "$backup_name" || {
         error "Failed to compress backup"
         return 1
@@ -320,7 +324,11 @@ verify_backup() {
     # Verify checksums
     if [ -f "${backup_dir}/checksums.txt" ]; then
         info "Verifying checksums"
-        cd "$backup_dir"
+        cd "$backup_dir" || {
+            error "Failed to change to backup directory"
+            rm -rf "$temp_dir"
+            return 1
+        }
         if sha256sum -c checksums.txt > /dev/null 2>&1; then
             success "Checksums verified"
         else

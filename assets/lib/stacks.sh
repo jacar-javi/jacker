@@ -12,6 +12,7 @@ readonly JACKER_STACKS_LIB_LOADED=1
 
 # Source common library
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=assets/lib/common.sh
 source "$SCRIPT_DIR/common.sh"
 
 #================================================================

@@ -5,6 +5,7 @@
 #
 
 # Source common library
+# shellcheck source=assets/lib/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 # Service definitions
