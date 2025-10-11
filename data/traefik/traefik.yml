@@ -43,6 +43,10 @@ entryPoints:
       # Middleware chains can be added here globally
       # middlewares:
       #   - security-headers@file
+    # HTTP/2 configuration - Disabled due to protocol errors with OAuth forwardAuth
+    # Setting maxConcurrentStreams to 0 disables HTTP/2, forcing HTTP/1.1
+    http2:
+      maxConcurrentStreams: 0
     # HTTP/3 configuration (Traefik v3.x syntax)
     # Disabled due to protocol error with OAuth forwardAuth middleware
     # http3: {}
