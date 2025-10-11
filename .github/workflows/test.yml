@@ -221,10 +221,30 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Setup environment for docker-compose validation
+        run: |
+          # Use .env.defaults as base and override with test values
+          cp .env.defaults .env
+
+          # Override paths for CI environment
+          sed -i "s|^USERDIR=.*|USERDIR=/home/runner|" .env
+          sed -i "s|^DOCKERDIR=.*|DOCKERDIR=$(pwd)|" .env
+          sed -i "s|^DATADIR=.*|DATADIR=$(pwd)/data|" .env
+          sed -i "s|^HOSTNAME=.*|HOSTNAME=test|" .env
+          sed -i "s|^DOMAINNAME=.*|DOMAINNAME=example.com|" .env
+
+          # Create required directories and files
+          mkdir -p data/traefik/rules data/traefik/acme secrets logs
+          touch data/traefik/acme.json
+          chmod 600 data/traefik/acme.json
+          echo "client-id=test" > secrets/traefik_forward_oauth
+          echo "client-secret=test" >> secrets/traefik_forward_oauth
+
       - name: Test docker-compose configuration
         run: |
-          docker compose -f docker-compose.yml config
-          docker compose -f docker-compose.test.yml config
+          docker compose -f docker-compose.yml config > /dev/null
+          docker compose -f docker-compose.test.yml config > /dev/null
+          echo "Docker Compose configurations validated successfully"
 
   # ============================================================================
   # Performance Tests
