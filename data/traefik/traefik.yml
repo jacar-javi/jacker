@@ -3,10 +3,10 @@ global:
   sendAnonymousUsage: false
 
 # Certificate Resolvers - Let's Encrypt
+# Email is configured via TRAEFIK_CERTIFICATESRESOLVERS_http_ACME_EMAIL environment variable
 certificatesResolvers:
   http:
     acme:
-      email: ${LETSENCRYPT_EMAIL}
       storage: /acme.json
       tlsChallenge: {}
       # Production Let's Encrypt server (rate limited)
