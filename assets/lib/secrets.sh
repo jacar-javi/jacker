@@ -340,7 +340,7 @@ cleanup_env_secrets() {
     fi
 
     # Create backup
-    cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
+    cp .env ".env.backup.$(date +%Y%m%d_%H%M%S)"
 
     # Remove sensitive variables
     local sensitive_vars=(

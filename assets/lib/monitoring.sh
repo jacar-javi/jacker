@@ -555,9 +555,9 @@ show_logs() {
 show_error_logs() {
     log_section "Recent Errors"
 
-    local services=$(docker compose ps --format json | jq -r '.Service' 2>/dev/null)
+    mapfile -t services < <(docker compose ps --format json 2>/dev/null | jq -r '.Service' 2>/dev/null)
 
-    for service in $services; do
+    for service in "${services[@]}"; do
         local errors=$(docker compose logs -n 100 "$service" 2>&1 | grep -iE "error|fail|critical|fatal" | tail -5)
         if [[ -n "$errors" ]]; then
             log_subsection "$service errors"

@@ -26,8 +26,8 @@ detect_system_config() {
     HOSTNAME=$(hostname -s)
 
     # Try to detect existing domain from various sources
-    if [[ -f /etc/letsencrypt/renewal/* ]]; then
-        DETECTED_DOMAIN=$(ls /etc/letsencrypt/renewal/ | head -1 | sed 's/\.conf$//')
+    if compgen -G "/etc/letsencrypt/renewal/*.conf" > /dev/null; then
+        DETECTED_DOMAIN=$(ls /etc/letsencrypt/renewal/*.conf 2>/dev/null | head -1 | xargs basename | sed 's/\.conf$//')
     elif command -v hostname &>/dev/null && hostname -f 2>/dev/null | grep -q '\.'; then
         DETECTED_DOMAIN=$(hostname -f)
     else

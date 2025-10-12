@@ -1,0 +1,199 @@
+#!/usr/bin/env bash
+#
+# Commit-msg hook for Jacker project
+# Validates commit message format and content
+#
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Get the commit message file
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Function to print colored messages
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_info() {
+    echo -e "${BLUE}ℹ${NC} $1"
+}
+
+# ============================================================================
+# Conventional Commits Format
+# ============================================================================
+# Format: <type>(<scope>): <subject>
+#
+# <type> is mandatory
+# <scope> is optional
+# <subject> is mandatory
+
+echo -e "\n${BLUE}Validating commit message...${NC}"
+
+# Skip merge commits
+if echo "$COMMIT_MSG" | grep -qE '^Merge '; then
+    print_info "Merge commit detected - skipping validation"
+    exit 0
+fi
+
+# Skip revert commits
+if echo "$COMMIT_MSG" | grep -qE '^Revert '; then
+    print_info "Revert commit detected - skipping validation"
+    exit 0
+fi
+
+# Valid commit types
+VALID_TYPES="feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert"
+
+# Check if the commit message follows conventional format
+if echo "$COMMIT_MSG" | grep -qE "^($VALID_TYPES)(\(.+\))?: .+"; then
+    print_success "Commit message follows conventional format"
+
+    # Extract components
+    TYPE=$(echo "$COMMIT_MSG" | sed -E "s/^([a-z]+)(\(.+\))?: .*/\1/")
+    SCOPE=$(echo "$COMMIT_MSG" | sed -E "s/^[a-z]+\((.+)\): .*/\1/" 2>/dev/null || echo "")
+    SUBJECT=$(echo "$COMMIT_MSG" | sed -E "s/^[a-z]+(\(.+\))?: (.+)/\2/")
+
+    # Validate type
+    case "$TYPE" in
+        feat)
+            print_success "Type: feat (new feature)"
+            ;;
+        fix)
+            print_success "Type: fix (bug fix)"
+            ;;
+        docs)
+            print_success "Type: docs (documentation)"
+            ;;
+        style)
+            print_success "Type: style (formatting, no code change)"
+            ;;
+        refactor)
+            print_success "Type: refactor (code restructuring)"
+            ;;
+        perf)
+            print_success "Type: perf (performance improvement)"
+            ;;
+        test)
+            print_success "Type: test (adding tests)"
+            ;;
+        chore)
+            print_success "Type: chore (maintenance)"
+            ;;
+        build)
+            print_success "Type: build (build system changes)"
+            ;;
+        ci)
+            print_success "Type: ci (CI configuration)"
+            ;;
+        revert)
+            print_success "Type: revert (reverting changes)"
+            ;;
+        *)
+            print_warning "Unknown type: $TYPE"
+            ;;
+    esac
+
+    # Check subject line length (should be <= 72 characters)
+    FIRST_LINE=$(echo "$COMMIT_MSG" | head -n 1)
+    FIRST_LINE_LENGTH=${#FIRST_LINE}
+
+    if [ $FIRST_LINE_LENGTH -le 72 ]; then
+        print_success "Subject line length: $FIRST_LINE_LENGTH characters (good)"
+    elif [ $FIRST_LINE_LENGTH -le 100 ]; then
+        print_warning "Subject line length: $FIRST_LINE_LENGTH characters (consider shorter)"
+    else
+        print_error "Subject line too long: $FIRST_LINE_LENGTH characters (max 100)"
+        echo "  First line: $FIRST_LINE"
+        exit 1
+    fi
+
+    # Check if subject starts with lowercase
+    SUBJECT_FIRST_CHAR=$(echo "$SUBJECT" | cut -c1)
+    if [[ "$SUBJECT_FIRST_CHAR" =~ [a-z] ]]; then
+        print_success "Subject starts with lowercase letter"
+    else
+        print_warning "Subject should start with lowercase letter"
+    fi
+
+    # Check if subject doesn't end with period
+    if [[ "$SUBJECT" =~ \.$  ]]; then
+        print_warning "Subject should not end with a period"
+    else
+        print_success "Subject format correct (no trailing period)"
+    fi
+
+else
+    print_error "Commit message doesn't follow conventional format!"
+    echo ""
+    echo "Expected format:"
+    echo "  <type>(<scope>): <subject>"
+    echo "  <blank line>"
+    echo "  <body> (optional)"
+    echo "  <blank line>"
+    echo "  <footer> (optional)"
+    echo ""
+    echo "Valid types:"
+    echo "  feat:     A new feature"
+    echo "  fix:      A bug fix"
+    echo "  docs:     Documentation only changes"
+    echo "  style:    Code style changes (formatting, semicolons, etc)"
+    echo "  refactor: Code change that neither fixes a bug nor adds a feature"
+    echo "  perf:     Performance improvements"
+    echo "  test:     Adding or updating tests"
+    echo "  chore:    Maintenance tasks, dependency updates"
+    echo "  build:    Changes to build system or dependencies"
+    echo "  ci:       Changes to CI configuration files and scripts"
+    echo "  revert:   Reverting a previous commit"
+    echo ""
+    echo "Examples:"
+    echo "  feat(auth): add OAuth2 authentication support"
+    echo "  fix(docker): resolve compose validation errors"
+    echo "  docs: update installation instructions"
+    echo "  chore(deps): update Docker images to latest versions"
+    echo ""
+    echo "Your commit message:"
+    echo "  $COMMIT_MSG"
+    echo ""
+    echo "To skip this check (not recommended), use:"
+    echo "  git commit --no-verify"
+    exit 1
+fi
+
+# Check for references to issues or PRs
+if echo "$COMMIT_MSG" | grep -qE "(#[0-9]+|fixes|closes|resolves)"; then
+    print_success "Contains issue/PR references"
+fi
+
+# Check commit body (if present)
+COMMIT_BODY=$(echo "$COMMIT_MSG" | tail -n +3)
+if [ -n "$COMMIT_BODY" ]; then
+    # Check body line length (should wrap at 72 characters)
+    LONG_LINES=$(echo "$COMMIT_BODY" | awk 'length > 100' | wc -l)
+    if [ "$LONG_LINES" -gt 0 ]; then
+        print_warning "Commit body has $LONG_LINES lines over 100 characters"
+        echo "  Consider wrapping at 72 characters for better readability"
+    fi
+fi
+
+# Final success message
+echo ""
+print_success "Commit message validation passed! ✅"
+echo ""
+
+exit 0

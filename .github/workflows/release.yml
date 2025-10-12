@@ -4,48 +4,389 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v3.1.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
+  discussions: write
 
 jobs:
-  create-release:
-    name: Create GitHub Release
+  # ============================================================================
+  # Validate Release
+  # ============================================================================
+  validate:
+    name: Validate Release
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      is_prerelease: ${{ steps.check_version.outputs.is_prerelease }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Generate changelog
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Check version format
+        id: check_version
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+
+          # Validate version format
+          if ! echo "$VERSION" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+\.[0-9]+)?$'; then
+            echo "❌ Invalid version format: $VERSION"
+            echo "Expected format: vX.Y.Z or vX.Y.Z-beta.N"
+            exit 1
+          fi
+
+          # Check if prerelease
+          if echo "$VERSION" | grep -qE '\-(alpha|beta|rc)\.'; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "This is a pre-release version"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "This is a stable release"
+          fi
+
+      - name: Check version in code
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          VERSION_NO_V=${VERSION#v}
+
+          # Check if version is updated in jacker CLI
+          if grep -q "VERSION=\"$VERSION_NO_V\"" jacker; then
+            echo "✅ Version correctly set in jacker CLI"
+          else
+            echo "❌ Version mismatch in jacker CLI"
+            echo "Please update VERSION variable in jacker to: $VERSION_NO_V"
+            exit 1
+          fi
+
+  # ============================================================================
+  # Run Tests
+  # ============================================================================
+  test:
+    name: Pre-release Tests
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run shellcheck
+        run: |
+          echo "Running shellcheck on all scripts..."
+          shellcheck -S error jacker
+          shellcheck -S error assets/lib/*.sh
+          echo "✅ All scripts pass shellcheck"
+
+      - name: Test CLI
+        run: |
+          echo "Testing jacker CLI..."
+          ./jacker version
+          ./jacker help > /dev/null
+          echo "✅ CLI tests passed"
+
+      - name: Validate Docker Compose
+        run: |
+          echo "Validating Docker Compose configuration..."
+
+          # Setup test environment
+          cp .env.defaults .env
+          sed -i "s|^DOCKERDIR=.*|DOCKERDIR=$(pwd)|" .env
+
+          # Create required directories
+          mkdir -p data/traefik/acme secrets
+          touch data/traefik/acme/acme.json
+          chmod 600 data/traefik/acme/acme.json
+
+          # Validate configuration
+          docker compose config > /dev/null
+          echo "✅ Docker Compose configuration valid"
+
+  # ============================================================================
+  # Generate Changelog
+  # ============================================================================
+  changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    needs: [validate, test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate detailed changelog
         id: changelog
         run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+
           # Get previous tag
-          PREVIOUS_TAG=$(git tag --sort=-creatordate | sed -n '2p')
-          CURRENT_TAG=${GITHUB_REF#refs/tags/}
+          PREVIOUS_TAG=$(git tag --sort=-creatordate | grep -E '^v[0-9]' | sed -n '2p')
 
-          echo "Generating changelog from $PREVIOUS_TAG to $CURRENT_TAG"
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "This is the first release"
+            PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
 
-          # Generate changelog
-          {
-            echo "## What's Changed"
-            echo ""
-            git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..$CURRENT_TAG | grep -v "Merge pull request"
-            echo ""
-            echo ""
-            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...$CURRENT_TAG"
-          } > CHANGELOG.md
+          echo "Generating changelog from $PREVIOUS_TAG to $VERSION"
 
+          # Create changelog file
+          cat > CHANGELOG.md << 'EOF'
+          # Release $VERSION
+
+          **Release Date:** $(date -u '+%Y-%m-%d')
+
+          ## What's Changed
+
+          EOF
+
+          # Categorize commits
+          echo "### ✨ Features" >> CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG".."$VERSION" | grep -E "^- (feat|feature):" | sed 's/^- feat[ure]*: /- /' >> CHANGELOG.md || echo "- No new features" >> CHANGELOG.md
+
+          echo "" >> CHANGELOG.md
+          echo "### 🐛 Bug Fixes" >> CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG".."$VERSION" | grep -E "^- fix:" | sed 's/^- fix: /- /' >> CHANGELOG.md || echo "- No bug fixes" >> CHANGELOG.md
+
+          echo "" >> CHANGELOG.md
+          echo "### 🔧 Improvements" >> CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG".."$VERSION" | grep -E "^- (chore|refactor|perf|improve):" | sed 's/^- [a-z]*: /- /' >> CHANGELOG.md || echo "- No improvements" >> CHANGELOG.md
+
+          echo "" >> CHANGELOG.md
+          echo "### 📚 Documentation" >> CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG".."$VERSION" | grep -E "^- docs:" | sed 's/^- docs: /- /' >> CHANGELOG.md || echo "- No documentation changes" >> CHANGELOG.md
+
+          echo "" >> CHANGELOG.md
+          echo "### 🔒 Security" >> CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG".."$VERSION" | grep -E "^- security:" | sed 's/^- security: /- /' >> CHANGELOG.md || echo "- No security updates" >> CHANGELOG.md
+
+          echo "" >> CHANGELOG.md
+          echo "### Other Changes" >> CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG".."$VERSION" | grep -vE "^- (feat|feature|fix|chore|refactor|perf|improve|docs|security|Merge):" >> CHANGELOG.md || echo "- No other changes" >> CHANGELOG.md
+
+          echo "" >> CHANGELOG.md
+          echo "## Contributors" >> CHANGELOG.md
+          git log --pretty=format:"%an" "$PREVIOUS_TAG".."$VERSION" | sort -u | sed 's/^/- @/' >> CHANGELOG.md
+
+          echo "" >> CHANGELOG.md
+          echo "## Statistics" >> CHANGELOG.md
+          COMMIT_COUNT=$(git rev-list --count "$PREVIOUS_TAG".."$VERSION")
+          FILE_CHANGED=$(git diff --stat "$PREVIOUS_TAG".."$VERSION" | tail -1)
+          echo "- Commits: $COMMIT_COUNT" >> CHANGELOG.md
+          echo "- $FILE_CHANGED" >> CHANGELOG.md
+
+          echo "" >> CHANGELOG.md
+          echo "---" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...$VERSION" >> CHANGELOG.md
+
+          # Output for debugging
           cat CHANGELOG.md
+
+      - name: Upload changelog
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog
+          path: CHANGELOG.md
+
+  # ============================================================================
+  # Create Release Bundle
+  # ============================================================================
+  bundle:
+    name: Create Release Bundle
+    runs-on: ubuntu-latest
+    needs: [validate, test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create release archive
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          ARCHIVE_NAME="jacker-$VERSION"
+
+          # Create release directory
+          mkdir -p "release/$ARCHIVE_NAME"
+
+          # Copy essential files
+          cp -r jacker assets compose config "release/$ARCHIVE_NAME/"
+          cp docker-compose.yml .env.defaults .env.sample "release/$ARCHIVE_NAME/"
+          cp README.md LICENSE CONTRIBUTING.md SECURITY.md "release/$ARCHIVE_NAME/"
+          cp Makefile .editorconfig .gitignore "release/$ARCHIVE_NAME/"
+
+          # Create empty directories with .gitkeep
+          mkdir -p "release/$ARCHIVE_NAME/data"
+          mkdir -p "release/$ARCHIVE_NAME/secrets"
+          mkdir -p "release/$ARCHIVE_NAME/stacks"
+          touch "release/$ARCHIVE_NAME/data/.gitkeep"
+          touch "release/$ARCHIVE_NAME/secrets/.gitkeep"
+          touch "release/$ARCHIVE_NAME/stacks/.gitkeep"
+
+          # Create archives
+          cd release
+          tar -czf "$ARCHIVE_NAME.tar.gz" "$ARCHIVE_NAME"
+          zip -r "$ARCHIVE_NAME.zip" "$ARCHIVE_NAME"
+
+          # Calculate checksums
+          sha256sum "$ARCHIVE_NAME.tar.gz" > "$ARCHIVE_NAME.tar.gz.sha256"
+          sha256sum "$ARCHIVE_NAME.zip" > "$ARCHIVE_NAME.zip.sha256"
+
+          # Display checksums
+          echo "### Checksums"
+          cat "$ARCHIVE_NAME.tar.gz.sha256"
+          cat "$ARCHIVE_NAME.zip.sha256"
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: |
+            release/*.tar.gz
+            release/*.zip
+            release/*.sha256
+
+  # ============================================================================
+  # Create GitHub Release
+  # ============================================================================
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate, test, changelog, bundle]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          name: Jacker ${{ needs.validate.outputs.version }}
+          tag_name: ${{ needs.validate.outputs.version }}
           body_path: CHANGELOG.md
           draft: false
-          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+          prerelease: ${{ needs.validate.outputs.is_prerelease == 'true' }}
           files: |
+            release/*.tar.gz
+            release/*.zip
+            release/*.sha256
             LICENSE
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update latest release badge
+        if: needs.validate.outputs.is_prerelease == 'false'
+        run: |
+          echo "Stable release created: ${{ needs.validate.outputs.version }}"
+          # This could trigger an update to documentation or badges
+
+  # ============================================================================
+  # Post-Release Notifications
+  # ============================================================================
+  notify:
+    name: Post-release Tasks
+    runs-on: ubuntu-latest
+    needs: [validate, release]
+    if: success()
+    steps:
+      - name: Create announcement discussion
+        if: needs.validate.outputs.is_prerelease == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ needs.validate.outputs.version }}';
+
+            try {
+              await github.rest.discussions.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🎉 Jacker ${version} Released!`,
+                body: `We're excited to announce the release of Jacker ${version}!
+
+## Installation
+
+\`\`\`bash
+# Clone the repository
+git clone https://github.com/${context.repo.owner}/${context.repo.repo}.git
+cd jacker
+
+# Checkout this release
+git checkout ${version}
+
+# Run the installer
+./jacker init
+\`\`\`
+
+## What's New
+
+Check out the [release notes](https://github.com/${context.repo.owner}/${context.repo.repo}/releases/tag/${version}) for details on what's changed.
+
+## Documentation
+
+- [Installation Guide](https://jacker.jacar.es/installation/)
+- [User Guide](https://jacker.jacar.es/guide/)
+- [Troubleshooting](https://jacker.jacar.es/troubleshooting/)
+
+## Support
+
+If you encounter any issues, please [open an issue](https://github.com/${context.repo.owner}/${context.repo.repo}/issues/new).
+
+Happy self-hosting! 🚀`,
+                category_id: 'DIC_kwDOKZ5Z284CZzYF' // Announcements category
+              });
+            } catch (error) {
+              console.log('Could not create discussion:', error.message);
+            }
+
+      - name: Summary
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+
+          echo "# 🚀 Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Version: $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.validate.outputs.is_prerelease }}" == "true" ]; then
+            echo "**Type:** Pre-release 🧪" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Type:** Stable Release ✅" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Release Assets" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 jacker-$VERSION.tar.gz" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 jacker-$VERSION.zip" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 SHA256 checksums" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Release created successfully" >> $GITHUB_STEP_SUMMARY
+          echo "2. 📢 Announcement posted (if stable)" >> $GITHUB_STEP_SUMMARY
+          echo "3. 📚 Update documentation if needed" >> $GITHUB_STEP_SUMMARY
+          echo "4. 🐦 Share on social media" >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View Release](https://github.com/${{ github.repository }}/releases/tag/$VERSION)" >> $GITHUB_STEP_SUMMARY

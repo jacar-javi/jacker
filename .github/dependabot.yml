@@ -1,33 +1,66 @@
 version: 2
 updates:
-  # Enable version updates for Docker
+  # ============================================================================
+  # Docker Image Updates
+  # ============================================================================
   - package-ecosystem: "docker"
     directory: "/compose"
     schedule:
       interval: "weekly"
-      day: "sunday"
-      time: "04:00"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 10
+    groups:
+      # Group monitoring stack updates together
+      monitoring:
+        patterns:
+          - "prom/prometheus"
+          - "grafana/grafana"
+          - "grafana/loki"
+          - "grafana/promtail"
+          - "prom/alertmanager"
+          - "prom/node-exporter"
+          - "jaegertracing/jaeger"
+      # Group security services together
+      security:
+        patterns:
+          - "crowdsecurity/*"
+          - "thomseddon/traefik-forward-auth"
+      # Group infrastructure services together
+      infrastructure:
+        patterns:
+          - "traefik"
+          - "postgres"
+          - "redis"
+          - "linuxserver/*"
+      # Group management tools together
+      management:
+        patterns:
+          - "portainer/portainer-ce"
+          - "gethomepage/homepage"
     labels:
       - "dependencies"
       - "docker"
-    reviewers:
-      - "ajcborges"
+      - "automated"
     commit-message:
-      prefix: "chore"
+      prefix: "chore(deps)"
       include: "scope"
     pull-request-branch-name:
       separator: "-"
-    open-pull-requests-limit: 10
     ignore:
-      # Don't update socket-proxy as it uses latest by design
+      # Socket proxy uses latest by design
       - dependency-name: "tecnativa/docker-socket-proxy"
-      # Critical services - update manually
+      # Critical services - only patch/minor updates
       - dependency-name: "crowdsecurity/crowdsec"
         update-types: ["version-update:semver-major"]
       - dependency-name: "traefik"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "postgres"
+        update-types: ["version-update:semver-major"]
 
-  # Enable version updates for GitHub Actions
+  # ============================================================================
+  # GitHub Actions Updates
+  # ============================================================================
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -37,8 +70,9 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+      - "automated"
     commit-message:
-      prefix: "ci"
+      prefix: "ci(deps)"
       include: "scope"
     pull-request-branch-name:
       separator: "-"

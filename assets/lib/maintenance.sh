@@ -851,14 +851,14 @@ clean_old_backups() {
     keep_count="${keep_count:-5}"
 
     # Remove old backups
-    local backups=($(ls -t "$backup_dir"))
+    mapfile -t backups < <(ls -t "$backup_dir")
     local count=0
 
     for backup in "${backups[@]}"; do
         ((count++))
         if [[ $count -gt $keep_count ]]; then
             log_info "Removing old backup: $backup"
-            rm -rf "$backup_dir/$backup"
+            rm -rf "${backup_dir:?}/${backup}"
         fi
     done
 
