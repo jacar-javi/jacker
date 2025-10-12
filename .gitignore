@@ -55,8 +55,7 @@ data/.update-backup/
 # ============================================
 # Important: Keep These Tracked
 # ============================================
-# !.claude/
-# !data/**/.gitkeep
+!.gitkeep
 # !data/**/config/
 # !data/**/rules/
 # !data/**/provisioning/
@@ -91,6 +90,7 @@ stacks/*
 # ============================================
 dev/
 .jacker/
+.claude/
 tests/results/
 *.tap
 coverage/
