@@ -1,0 +1,22 @@
+http:
+  middlewares:
+    # API chain with rate limiting and CORS
+    chain-api:
+      chain:
+        middlewares:
+          - middlewares-traefik-bouncer
+          - middlewares-rate-limit-api
+          - middlewares-cors-restrict
+          - middlewares-secure-headers
+          - middlewares-cache-api
+          - middlewares-compress
+
+    # Public API chain with permissive CORS
+    chain-api-public:
+      chain:
+        middlewares:
+          - middlewares-rate-limit-api
+          - middlewares-cors-allow
+          - middlewares-secure-headers
+          - middlewares-cache-api
+          - middlewares-compress

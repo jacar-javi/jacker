@@ -1,8 +1,35 @@
 http:
   middlewares:
+    # OAuth2-Proxy middleware for authentication
     middlewares-oauth:
       forwardAuth:
-        address: "http://oauth:4181" # Make sure you have the OAuth service in docker-compose.yml
+        address: "http://oauth:4180/oauth2/auth"
         trustForwardHeader: true
         authResponseHeaders:
-          - "X-Forwarded-User"
+          - "X-Auth-Request-User"
+          - "X-Auth-Request-Email"
+          - "X-Auth-Request-Access-Token"
+          - "X-Auth-Request-Groups"
+          - "X-Auth-Request-Preferred-Username"
+
+    # OAuth with rate limiting (recommended for login endpoints)
+    middlewares-oauth-ratelimited:
+      chain:
+        middlewares:
+          - middlewares-rate-limit-auth
+          - middlewares-oauth
+
+    # Strict rate limit for authentication endpoints
+    middlewares-rate-limit-auth:
+      rateLimit:
+        average: 10      # 10 requests per minute average
+        burst: 20        # Allow burst of 20
+        period: 1m       # Per minute
+        sourceCriterion:
+          ipStrategy:
+            depth: 1     # Look at real IP
+            excludedIPs:
+              - 127.0.0.1/32
+              - 10.0.0.0/8
+              - 192.168.0.0/16
+              - 172.16.0.0/12

@@ -1,6 +1,29 @@
 http:
   middlewares:
+    # Default rate limit - moderate protection
     middlewares-rate-limit:
       rateLimit:
-        average: 100
-        burst: 50
+        average: 50  # 50 requests per second on average
+        burst: 100   # Allow bursts up to 100 requests
+        period: 1s
+
+    # Strict rate limit - for sensitive endpoints
+    middlewares-rate-limit-strict:
+      rateLimit:
+        average: 10  # 10 requests per second
+        burst: 20    # Allow bursts up to 20 requests
+        period: 1s
+
+    # API rate limit - for API endpoints
+    middlewares-rate-limit-api:
+      rateLimit:
+        average: 100  # 100 requests per minute
+        burst: 50     # Allow bursts up to 50 requests
+        period: 1m
+
+    # Login rate limit - prevent brute force
+    middlewares-rate-limit-auth:
+      rateLimit:
+        average: 5   # 5 requests per minute
+        burst: 10    # Allow small bursts
+        period: 1m

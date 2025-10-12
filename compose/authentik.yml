@@ -114,6 +114,7 @@ services:
 
     networks:
       - traefik_proxy
+      - socket_proxy
 
     security_opt:
       - no-new-privileges:true
@@ -121,12 +122,14 @@ services:
     depends_on:
       - authentik-postgres
       - redis
+      - socket-proxy
 
     volumes:
       - $DATADIR/authentik/media:/media
       - $DATADIR/authentik/custom-templates:/templates
       - $DATADIR/authentik/certs:/certs
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Direct Docker socket access removed - using socket-proxy instead
+      # - /var/run/docker.sock:/var/run/docker.sock:ro
 
     environment:
       AUTHENTIK_REDIS__HOST: redis
@@ -140,6 +143,8 @@ services:
       AUTHENTIK_COOKIE_DOMAIN: ${DOMAINNAME}
       AUTHENTIK_DISABLE_UPDATE_CHECK: "false"
       AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
+      # Configure Docker API access through socket-proxy
+      DOCKER_HOST: tcp://socket-proxy:2375
       # Email configuration (optional)
       AUTHENTIK_EMAIL__HOST: ${SMTP_HOST}
       AUTHENTIK_EMAIL__PORT: ${SMTP_PORT:-587}

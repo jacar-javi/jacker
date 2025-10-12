@@ -1,104 +1,290 @@
-global:
-  checkNewVersion: true
-  sendAnonymousUsage: false
+# Traefik v3 Enhanced Static Configuration
+# Official Documentation: https://doc.traefik.io/traefik/
 
-# Certificate Resolvers - Let's Encrypt
-# Note: Email can be configured here or via TRAEFIK_CERTIFICATESRESOLVERS_http_ACME_EMAIL env var
+# ====================================================================
+# GLOBAL CONFIGURATION
+# ====================================================================
+global:
+  checkNewVersion: false  # Disable version check for security
+  sendAnonymousUsage: false  # Disable telemetry for privacy
+
+# ====================================================================
+# SERVER TRANSPORT - BACKEND COMMUNICATION
+# ====================================================================
+serversTransport:
+  insecureSkipVerify: false  # Always verify certificates
+  maxIdleConnsPerHost: 200  # Connection pool size
+  rootCAs:  # Optional: Custom CA certificates
+    - /certs/ca.crt
+  forwardingTimeouts:
+    dialTimeout: 30s
+    responseHeaderTimeout: 30s
+    idleConnTimeout: 90s
+
+# ====================================================================
+# CERTIFICATE RESOLVERS - ACME/LET'S ENCRYPT
+# ====================================================================
 certificatesResolvers:
+  # Production Let's Encrypt resolver
   http:
     acme:
-      storage: /acme.json
-      tlsChallenge: {}
-      # Production Let's Encrypt server (rate limited)
+      email: ${LETSENCRYPT_EMAIL}
+      storage: /acme/acme.json
+      keyType: EC384  # Elliptic curve for performance
+      certificatesDuration: 2160h  # 90 days
+      httpChallenge:
+        entryPoint: web
+      # Production server
       caServer: https://acme-v02.api.letsencrypt.org/directory
-      # Uncomment for staging/testing to avoid rate limits
-      # caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      # Rate limiting protection
+      caServerTimeout: 30s
 
-# Entry Points Configuration
+  # DNS Challenge resolver for wildcard certificates
+  dns-cloudflare:
+    acme:
+      email: ${LETSENCRYPT_EMAIL}
+      storage: /acme/acme-dns.json
+      keyType: EC384
+      dnsChallenge:
+        provider: cloudflare
+        delayBeforeCheck: 10s
+        resolvers:
+          - "1.1.1.1:53"
+          - "1.0.0.1:53"
+      caServer: https://acme-v02.api.letsencrypt.org/directory
+
+  # Staging resolver for testing
+  staging:
+    acme:
+      email: ${LETSENCRYPT_EMAIL}
+      storage: /acme/acme-staging.json
+      keyType: RSA4096
+      httpChallenge:
+        entryPoint: web
+      # Staging server (no rate limits)
+      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+
+# ====================================================================
+# ENTRY POINTS - NETWORK LISTENERS
+# ====================================================================
 entryPoints:
+  # HTTP Entry Point - Port 80
   web:
     address: :80
-    # Redirect all HTTP to HTTPS
+    # Automatic HTTPS redirect
     http:
       redirections:
-        entrypoint:
+        entryPoint:
           to: websecure
           scheme: https
           permanent: true
-    # Transport configuration for security
-    # transport:
-    #   lifeCycle:
-    #     requestAcceptGraceTimeout: 0
-    #     graceTimeOut: 10s
-    #   respondingTimeouts:
-    #     readTimeout: 60s
-    #     writeTimeout: 60s
-    #     idleTimeout: 180s
+      middlewares:
+        - crowdsec-bouncer@file  # Apply security first
+        - compress@file  # Then compression
+    # Connection limits
+    transport:
+      lifeCycle:
+        requestAcceptGraceTimeout: 10s
+        graceTimeOut: 30s
+      respondingTimeouts:
+        readTimeout: 60s
+        writeTimeout: 60s
+        idleTimeout: 180s
+    # Forwarded headers configuration
+    forwardedHeaders:
+      insecure: false
+      trustedIPs:
+        - 127.0.0.1/32
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+        # Cloudflare IPs
+        - 173.245.48.0/20
+        - 103.21.244.0/22
+        - 103.22.200.0/22
+        - 103.31.4.0/22
+        - 141.101.64.0/18
+    # ProxyProtocol support (if behind another proxy)
+    proxyProtocol:
+      insecure: false
+      trustedIPs:
+        - 127.0.0.1/32
 
+  # HTTPS Entry Point - Port 443
   websecure:
     address: :443
+    # TLS Configuration
     http:
       tls:
         options: tls-opts@file
-        certresolver: http
+        certResolver: http
+        domains:
+          - main: ${PUBLIC_FQDN}
+            sans:
+              - "*.${PUBLIC_FQDN}"
+      middlewares:
+        - crowdsec-bouncer@file
+        - secure-headers@file
+        - compress@file
+    # HTTP/3 Support
     http3:
       advertisedPort: 443
+    # HTTP/2 Configuration
+    http2:
+      maxConcurrentStreams: 250
+    # Connection configuration
+    transport:
+      lifeCycle:
+        requestAcceptGraceTimeout: 10s
+        graceTimeOut: 30s
+      respondingTimeouts:
+        readTimeout: 300s  # Increased for large uploads
+        writeTimeout: 300s  # Increased for large downloads
+        idleTimeout: 180s
+    # Forwarded headers
+    forwardedHeaders:
+      insecure: false
+      trustedIPs:
+        - 127.0.0.1/32
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
 
-    # Transport configuration for security
-    # transport:
-    #   lifeCycle:
-    #     requestAcceptGraceTimeout: 0
-    #     graceTimeOut: 10s
-    #   respondingTimeouts:
-    #     readTimeout: 60s
-    #     writeTimeout: 60s
-    #     idleTimeout: 180s
-
+  # Traefik Internal API - Port 8080
   traefik:
     address: :8080
+    transport:
+      respondingTimeouts:
+        readTimeout: 10s
+        writeTimeout: 10s
+        idleTimeout: 10s
 
-# API and Dashboard Configuration
+  # Metrics endpoint - Port 9100 (Prometheus standard)
+  metrics:
+    address: :9100
+
+# ====================================================================
+# API & DASHBOARD CONFIGURATION
+# ====================================================================
 api:
   dashboard: true
-  insecure: true  # Dashboard is protected by OAuth
-  debug: false
+  debug: false  # Set to true only for debugging
+  insecure: false  # Never expose API without authentication
 
-# Ping endpoint for health checks
+# ====================================================================
+# PING - HEALTH CHECK ENDPOINT
+# ====================================================================
 ping:
   entryPoint: traefik
   manualRouting: false
   terminatingStatusCode: 503
 
-# Logging Configuration
+# ====================================================================
+# LOGGING CONFIGURATION
+# ====================================================================
 log:
-  level: INFO  # Can be: DEBUG, INFO, WARN, ERROR, FATAL, PANIC
-  filePath: /logs/traefik-error.log
+  level: INFO  # DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+  format: json  # json or common
+  filePath: /logs/traefik.log
+  # Log rotation (if not handled externally)
+  # maxSize: 100  # megabytes
+  # maxAge: 7  # days
+  # maxBackups: 3
+  # compress: true
 
-# Access Logging Configuration
+# ====================================================================
+# ACCESS LOGGING
+# ====================================================================
 accessLog:
-  filePath: /logs/traefik-access.log
+  filePath: /logs/access.log
+  format: json
   fields:
+    defaultMode: keep
     names:
+      ClientAddr: keep
+      ClientHost: keep
+      ClientPort: drop
+      ClientUsername: keep
+      DownstreamStatus: keep
+      Duration: keep
+      OriginDuration: keep
+      Overhead: keep
+      OriginStatus: keep
+      RequestAddr: keep
+      RequestCount: keep
+      RequestHost: keep
+      RequestMethod: keep
+      RequestPath: keep
+      RequestPort: keep
+      RequestProtocol: keep
+      RequestScheme: keep
+      RetryAttempts: keep
+      StartLocal: keep
       StartUTC: drop
+      ServiceAddr: keep
+      ServiceName: keep
+      ServiceURL: keep
+      RouterName: keep
+      entryPointName: keep
+    headers:
+      defaultMode: drop
+      names:
+        User-Agent: keep
+        Authorization: drop
+        Cookie: drop
+        X-Forwarded-For: keep
+        X-Real-IP: keep
+        X-Forwarded-User: keep
   bufferingSize: 100
   filters:
     statusCodes:
-      - 204-299
-      - 400-499
-      - 500-599
+      - "200-299"
+      - "400-499"
+      - "500-599"
+    retryAttempts: true
+    minDuration: 10ms
 
-# Providers Configuration
+# ====================================================================
+# PROVIDERS CONFIGURATION
+# ====================================================================
 providers:
+  # Docker Provider - Service Discovery
   docker:
     endpoint: tcp://socket-proxy:2375
     exposedByDefault: false
     network: traefik_proxy
+    watch: true
+    # Default routing rule
+    defaultRule: "Host(`{{ normalize .Name }}.{{ env \"PUBLIC_FQDN\" }}`)"
+    # Container constraints
+    constraints: "Label(`traefik.enable`, `true`)"
+    # Throttle configuration changes
+    throttleDuration: 2s
 
+  # File Provider - Static Configuration
   file:
     directory: /rules
     watch: true
+    # Specific files can be listed
+    # filename: /rules/dynamic.yml
 
-# Metrics Configuration - Prometheus
+  # Optional: Redis Provider for distributed configuration
+  # redis:
+  #   endpoints:
+  #     - redis:6379
+  #   rootKey: traefik
+  #   username: traefik
+  #   password: ${REDIS_PASSWORD}
+
+  # Optional: HTTP Provider for remote configuration
+  # http:
+  #   endpoint: http://config-server:8080/traefik/config
+  #   pollInterval: 30s
+  #   pollTimeout: 5s
+
+# ====================================================================
+# METRICS - PROMETHEUS
+# ====================================================================
 metrics:
   prometheus:
     buckets:
@@ -106,40 +292,77 @@ metrics:
       - 0.3
       - 1.2
       - 5.0
+      - 10.0
     addEntryPointsLabels: true
     addServicesLabels: true
     addRoutersLabels: true
+    entryPoint: metrics
+    manualRouting: false
+    # Header labels to add
+    headerLabels:
+      useragent: User-Agent
 
-# Tracing Configuration (OPTIONAL - Enable via environment variable)
-# Jaeger tracing for distributed tracing
-# Uncomment the section below and set TRAEFIK_TRACING_ENABLED=true to enable
-# tracing:
-#   jaeger:
-#     samplingType: const
-#     samplingParam: 1.0
-#     localAgentHostPort: jaeger:6831
-#     propagation: jaeger
-#     traceContextHeaderName: uber-trace-id
-#     collector:
-#       endpoint: http://jaeger:14268/api/traces
-#       user: ""
-#       password: ""
-#     disableAttemptReconnecting: true
+  # Optional: Datadog metrics
+  # datadog:
+  #   address: localhost:8125
+  #   pushInterval: 10s
+  #   addEntryPointsLabels: true
+  #   addServicesLabels: true
+  #   prefix: traefik
 
-# OTLP (OpenTelemetry) tracing - Modern alternative
-# Uncomment to use OTLP instead of Jaeger
-# tracing:
-#   otlp:
-#     http:
-#       endpoint: http://otel-collector:4318
-#       headers:
-#         Authorization: Bearer <token>
-#       tls:
-#         ca: /path/to/ca.crt
-#         cert: /path/to/cert.crt
-#         key: /path/to/key.key
-#         insecureSkipVerify: false
-#     grpc:
-#       endpoint: otel-collector:4317
-#       insecure: true
+  # Optional: StatsD metrics
+  # statsD:
+  #   address: localhost:8125
+  #   pushInterval: 10s
+  #   addEntryPointsLabels: true
+  #   addServicesLabels: true
+  #   prefix: traefik
 
+# ====================================================================
+# TRACING - OPENTELEMETRY
+# ====================================================================
+tracing:
+  serviceName: traefik
+  spanNameLimit: 128
+  otlp:
+    http:
+      endpoint: http://jaeger:4318/v1/traces
+      headers:
+        x-service-name: traefik
+      tls:
+        insecureSkipVerify: false
+    grpc:
+      endpoint: jaeger:4317
+      insecure: true
+      headers:
+        x-service-name: traefik
+  # Sampling configuration
+  sampling:
+    type: adaptive
+    param: 0.5
+    maxTracesPerSecond: 200
+
+# ====================================================================
+# PILOT - TRAEFIK PILOT (OPTIONAL CLOUD FEATURES)
+# ====================================================================
+# pilot:
+#   token: ${PILOT_TOKEN}
+#   dashboard: true
+
+# ====================================================================
+# EXPERIMENTAL FEATURES
+# ====================================================================
+experimental:
+  # Local plugins
+  localPlugins:
+    traefik-plugin-crowdsec:
+      moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
+    # Additional plugins can be added here
+
+# ====================================================================
+# HUB - TRAEFIK HUB (OPTIONAL ENTERPRISE FEATURES)
+# ====================================================================
+# hub:
+#   token: ${HUB_TOKEN}
+#   apiURL: https://hub-api.traefik.io
+#   platformURL: https://hub.traefik.io

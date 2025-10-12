@@ -1,0 +1,124 @@
+groups:
+  - name: traefik
+    interval: 30s
+    rules:
+      # High error rate alert
+      - alert: TraefikHighErrorRate
+        expr: |
+          sum(rate(traefik_entrypoint_requests_total{code=~"5.."}[5m]))
+          / sum(rate(traefik_entrypoint_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: traefik
+        annotations:
+          summary: "High error rate on Traefik ({{ $value | humanizePercentage }})"
+          description: "Traefik error rate is above 5% (current: {{ $value | humanizePercentage }})."
+
+      # Critical error rate alert
+      - alert: TraefikCriticalErrorRate
+        expr: |
+          sum(rate(traefik_entrypoint_requests_total{code=~"5.."}[5m]))
+          / sum(rate(traefik_entrypoint_requests_total[5m])) > 0.10
+        for: 2m
+        labels:
+          severity: critical
+          service: traefik
+        annotations:
+          summary: "Critical error rate on Traefik ({{ $value | humanizePercentage }})"
+          description: "Traefik error rate is above 10% (current: {{ $value | humanizePercentage }})."
+
+      # High latency alert
+      - alert: TraefikHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: traefik
+        annotations:
+          summary: "High latency on Traefik (P95: {{ $value | humanizeDuration }})"
+          description: "95th percentile latency is above 1 second (current: {{ $value | humanizeDuration }})."
+
+      # Too many open connections
+      - alert: TraefikTooManyConnections
+        expr: sum(traefik_entrypoint_open_connections) > 1000
+        for: 2m
+        labels:
+          severity: warning
+          service: traefik
+        annotations:
+          summary: "Too many open connections ({{ $value }})"
+          description: "Traefik has more than 1000 open connections (current: {{ $value }})."
+
+      # Certificate expiry warning
+      - alert: TraefikCertificateExpiringSoon
+        expr: (traefik_tls_certs_not_after - time()) / 86400 < 7
+        for: 1h
+        labels:
+          severity: warning
+          service: traefik
+        annotations:
+          summary: "TLS certificate expiring soon"
+          description: "TLS certificate for {{ $labels.cn }} expires in {{ $value }} days."
+
+      # Certificate expiry critical
+      - alert: TraefikCertificateExpiryCritical
+        expr: (traefik_tls_certs_not_after - time()) / 86400 < 1
+        for: 10m
+        labels:
+          severity: critical
+          service: traefik
+        annotations:
+          summary: "TLS certificate expires in less than 24 hours"
+          description: "TLS certificate for {{ $labels.cn }} expires in {{ $value }} days."
+
+      # Service down
+      - alert: TraefikServiceDown
+        expr: up{job="traefik"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: traefik
+        annotations:
+          summary: "Traefik is down"
+          description: "Traefik service has been down for more than 2 minutes."
+
+      # Backend down
+      - alert: TraefikBackendDown
+        expr: traefik_service_server_up == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: traefik
+        annotations:
+          summary: "Backend service down"
+          description: "Backend {{ $labels.service }} on {{ $labels.url }} is down."
+
+      # Request rate spike
+      - alert: TraefikRequestRateSpike
+        expr: |
+          rate(traefik_entrypoint_requests_total[5m])
+          > avg_over_time(rate(traefik_entrypoint_requests_total[5m])[1h:5m]) * 3
+        for: 5m
+        labels:
+          severity: info
+          service: traefik
+        annotations:
+          summary: "Request rate spike detected"
+          description: "Request rate is 3x higher than the hourly average."
+
+      # Memory usage high
+      - alert: TraefikHighMemoryUsage
+        expr: |
+          container_memory_usage_bytes{name="traefik"}
+          / container_spec_memory_limit_bytes{name="traefik"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: traefik
+        annotations:
+          summary: "High memory usage ({{ $value | humanizePercentage }})"
+          description: "Traefik memory usage is above 80% of limit."

@@ -1,0 +1,37 @@
+http:
+  middlewares:
+    # Permissive CORS for public APIs
+    middlewares-cors-allow:
+      headers:
+        accessControlAllowOriginList:
+          - "*"
+        accessControlAllowMethods:
+          - GET
+          - OPTIONS
+          - PUT
+          - POST
+          - DELETE
+          - PATCH
+        accessControlAllowHeaders:
+          - "*"
+        accessControlExposeHeaders:
+          - "*"
+        accessControlMaxAge: 100
+        addVaryHeader: true
+
+    # Restrictive CORS for internal services
+    middlewares-cors-restrict:
+      headers:
+        accessControlAllowOriginList:
+          - "https://{{env \"PUBLIC_FQDN\"}}"
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+        accessControlMaxAge: 100
+        accessControlAllowCredentials: true
+        addVaryHeader: true

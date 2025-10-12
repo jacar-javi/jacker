@@ -1,57 +1,262 @@
 services:
-  # CrowdSec - Open-source & collaborative security IPS
-  # https://community.e.foundation/t/securing-your-self-hosted-using-crowdsec/40039
+  # ====================================================================
+  # CrowdSec - Enhanced Security IPS/IDS Configuration
+  # Official Documentation: https://docs.crowdsec.net/
+  # ====================================================================
   crowdsec:
     image: crowdsecurity/crowdsec:v1.7.0
     container_name: crowdsec
 
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
     security_opt:
       - no-new-privileges:true
-      
+      - apparmor:unconfined  # Or custom AppArmor profile
+      - seccomp:unconfined    # Required for certain security operations
+
+    # Run as non-root user when possible
+    user: "${PUID:-1000}:${PGID:-1000}"
+
+    # Restart policy for production
     restart: unless-stopped
 
+    # ====================================================================
+    # RESOURCE LIMITS
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+    # ====================================================================
+    # DEPENDENCIES
+    # ====================================================================
     depends_on:
       postgres:
         condition: service_healthy
       socket-proxy:
         condition: service_healthy
+      redis:
+        condition: service_healthy  # For decision caching
 
+    # ====================================================================
+    # HEALTH CHECK
+    # ====================================================================
     healthcheck:
-      test: ["CMD", "cscli", "version"]
+      test: ["CMD", "sh", "-c", "cscli version && cscli machines list"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
-    ports:
-      - "127.0.0.1:$CROWDSEC_API_PORT:8080"
-
+    # ====================================================================
+    # NETWORK CONFIGURATION
+    # ====================================================================
     networks:
-      - traefik_proxy
-      - socket_proxy
+      traefik_proxy:
+        aliases:
+          - crowdsec-api
+      socket_proxy:
+      database:
+      cache:
+      monitoring:
 
-    environment:
-      COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux crowdsecurity/nginx crowdsecurity/discord-crawler-whitelist crowdsecurity/sshd crowdsecurity/wordpress"
-      GID: "${PGID-1000}"
-      TZ: $TZ
-      DOCKER_HOST: tcp://socket-proxy:2375
-      CUSTOM_HOSTNAME: $HOSTNAME
-      BOUNCER_KEY_traefik-bouncer: $CROWDSEC_TRAEFIK_BOUNCER_API_KEY
-      BOUNCER_KEY_iptable-bouncer: $CROWDSEC_IPTABLES_BOUNCER_API_KEY
+    # Port exposure for API
+    ports:
+      # API port for bouncers and dashboard
+      - "127.0.0.1:${CROWDSEC_API_PORT:-8080}:8080"
+      # Prometheus metrics
+      - "127.0.0.1:${CROWDSEC_METRICS_PORT:-6060}:6060"
 
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
     volumes:
-      - /var/log:/var/log:ro
-      - $DOCKERDIR/logs:/logs/server:ro
-      - $DATADIR/crowdsec/data:/var/lib/crowdsec/data
-      - $DATADIR/crowdsec/config:/etc/crowdsec
+      # System logs (read-only for security)
+      - /var/log:/host/var/log:ro
+      - /var/log/journal:/host/var/log/journal:ro
 
+      # Docker logs
+      - ${DOCKERDIR}/logs:/logs/docker:ro
+
+      # Traefik logs
+      - ${DATADIR}/traefik/logs:/logs/traefik:ro
+
+      # Configuration persistence
+      - ${DATADIR}/crowdsec/config:/etc/crowdsec:rw
+
+      # Data persistence (when using SQLite)
+      - ${DATADIR}/crowdsec/data:/var/lib/crowdsec/data:rw
+
+      # Custom patterns and scenarios
+      - ${DATADIR}/crowdsec/patterns:/etc/crowdsec/patterns.d:ro
+      - ${DATADIR}/crowdsec/scenarios:/etc/crowdsec/scenarios:ro
+
+      # Acquisition configuration
+      - ${DATADIR}/crowdsec/acquis.d:/etc/crowdsec/acquis.d:ro
+
+      # Hub cache
+      - ${DATADIR}/crowdsec/hub:/etc/crowdsec/hub:rw
+
+      # Timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
+    environment:
+      # Basic Configuration
+      TZ: ${TZ}
+      GID: "${PGID:-1000}"
+      CUSTOM_HOSTNAME: ${HOSTNAME}
+
+      # Docker Socket Proxy
+      DOCKER_HOST: tcp://socket-proxy:2375
+
+      # Database Configuration (PostgreSQL)
+      DATABASE_TYPE: postgresql
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_CROWDSEC_DB:-crowdsec_db}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+      # Redis Cache Configuration
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 1
+
+      # API Configuration
+      DISABLE_AGENT: false
+      DISABLE_LOCAL_API: false
+      LOCAL_API_URL: http://localhost:8080
+      API_ALLOWED_IPS: "127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
+      # TLS Configuration
+      USE_TLS: ${CROWDSEC_USE_TLS:-false}
+      TLS_CERT_FILE: /etc/crowdsec/ssl/cert.pem
+      TLS_KEY_FILE: /etc/crowdsec/ssl/key.pem
+      TLS_CA_FILE: /etc/crowdsec/ssl/ca.pem
+      AGENTS_ALLOWED_OU: ${CROWDSEC_AGENTS_OU:-agent_ou}
+      BOUNCERS_ALLOWED_OU: ${CROWDSEC_BOUNCERS_OU:-bouncer_ou}
+
+      # Bouncer Registration (Auto-registration)
+      BOUNCER_KEY_traefik: ${CROWDSEC_TRAEFIK_BOUNCER_API_KEY}
+      BOUNCER_KEY_firewall: ${CROWDSEC_FIREWALL_BOUNCER_API_KEY}
+      BOUNCER_KEY_cloudflare: ${CROWDSEC_CLOUDFLARE_BOUNCER_API_KEY}
+
+      # Agent Configuration
+      AGENT_USERNAME: ${CROWDSEC_AGENT_USERNAME:-crowdsec_agent}
+      AGENT_PASSWORD: ${CROWDSEC_AGENT_PASSWORD}
+
+      # Collections to Install
+      COLLECTIONS: |
+        crowdsecurity/linux
+        crowdsecurity/traefik
+        crowdsecurity/http-cve
+        crowdsecurity/whitelist-good-actors
+        crowdsecurity/iptables
+        crowdsecurity/nginx
+        crowdsecurity/apache2
+        crowdsecurity/sshd
+        crowdsecurity/wordpress
+        crowdsecurity/docker-collection
+        crowdsecurity/pgsql
+        crowdsecurity/redis
+        crowdsecurity/grafana
+        crowdsecurity/mysql
+        crowdsecurity/endlessh
+        crowdsecurity/postfix
+        crowdsecurity/dovecot
+
+      # Scenarios Configuration
+      SCENARIOS: |
+        crowdsecurity/ssh-bf
+        crowdsecurity/ssh-slow-bf
+        crowdsecurity/http-bf-wordpress
+        crowdsecurity/http-sqli-probing
+        crowdsecurity/http-xss-probing
+        crowdsecurity/http-path-traversal-probing
+        ltsich/http-w00tw00t
+
+      # Parsers Configuration
+      PARSERS: |
+        crowdsecurity/docker-logs
+        crowdsecurity/traefik-logs
+        crowdsecurity/syslog-logs
+
+      # Postoverflows
+      POSTOVERFLOWS: |
+        crowdsecurity/rdns
+        crowdsecurity/cdn-whitelist
+        crowdsecurity/seo-bots-whitelist
+
+      # Performance Tuning
+      METRICS_PORT: 6060
+      PROMETHEUS_ENABLED: true
+
+      # Logging Configuration
+      LOG_LEVEL: ${CROWDSEC_LOG_LEVEL:-info}
+      LOG_MAX_SIZE: 100
+      LOG_MAX_FILES: 3
+      LOG_MAX_AGE: 7
+      DEBUG: ${CROWDSEC_DEBUG:-false}
+      TRACE: ${CROWDSEC_TRACE:-false}
+
+      # Decision Configuration
+      BAN_DURATION: ${CROWDSEC_BAN_DURATION:-4h}
+      PARSER_ROUTINES: 4
+      BUCKET_ROUTINES: 4
+      OUTPUT_ROUTINES: 4
+
+      # Notification Configuration
+      NOTIFICATION_ENABLED: ${CROWDSEC_NOTIFICATIONS:-false}
+      SLACK_WEBHOOK: ${CROWDSEC_SLACK_WEBHOOK:-}
+      DISCORD_WEBHOOK: ${CROWDSEC_DISCORD_WEBHOOK:-}
+      EMAIL_TO: ${CROWDSEC_EMAIL_TO:-}
+
+      # GeoIP Database
+      GEOIP_ENABLED: ${CROWDSEC_GEOIP:-true}
+      MAXMIND_LICENSE_KEY: ${MAXMIND_LICENSE_KEY:-}
+
+    # ====================================================================
+    # LABELS
+    # ====================================================================
     labels:
+      # Traefik Integration (Dashboard)
+      - "traefik.enable=true"
+      - "traefik.http.routers.crowdsec.entrypoints=websecure"
+      - "traefik.http.routers.crowdsec.rule=Host(`crowdsec.${PUBLIC_FQDN}`)"
+      - "traefik.http.routers.crowdsec.tls=true"
+      - "traefik.http.routers.crowdsec.tls.certResolver=http"
+      - "traefik.http.routers.crowdsec.service=crowdsec"
+      - "traefik.http.routers.crowdsec.middlewares=chain-oauth@file"
+      - "traefik.http.services.crowdsec.loadbalancer.server.port=8080"
+
       # Homepage Integration
-      - "homepage.group=Backend"
-      - "homepage.name=Crowdsec"
+      - "homepage.group=Security"
+      - "homepage.name=CrowdSec"
       - "homepage.icon=crowdsec.svg"
-      - "homepage.description=Open-Source Threat Intelligence Collaborative"
+      - "homepage.href=https://crowdsec.${PUBLIC_FQDN}"
+      - "homepage.description=Collaborative IPS/IDS"
+      - "homepage.weight=200"
       - "homepage.widget.type=crowdsec"
       - "homepage.widget.url=http://crowdsec:8080"
-      - "homepage.widget.username=$HOSTNAME"
-      - "homepage.widget.password=$CROWDSEC_API_LOCAL_PASSWORD"
+      - "homepage.widget.username=${HOSTNAME}"
+      - "homepage.widget.password=${CROWDSEC_API_LOCAL_PASSWORD}"
+
+      # Monitoring
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=6060"
+      - "prometheus.io/path=/metrics"
+
+      # Service Discovery
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "diun.enable=true"
+      - "diun.watch_repo=true"

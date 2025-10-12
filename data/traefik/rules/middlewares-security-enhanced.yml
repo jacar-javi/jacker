@@ -1,0 +1,374 @@
+http:
+  middlewares:
+    # ====================================================================
+    # ENHANCED SECURITY HEADERS
+    # ====================================================================
+    secure-headers-strict:
+      headers:
+        # Browser Security
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        frameDeny: true
+        sslRedirect: true
+        isDevelopment: false
+
+        # HSTS Configuration - 2 years with preload
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        stsPreload: true
+
+        # Content Security Policy - Strict
+        contentSecurityPolicy: |
+          default-src 'none';
+          script-src 'self' 'wasm-unsafe-eval';
+          style-src 'self' 'unsafe-inline';
+          font-src 'self' data:;
+          img-src 'self' data: blob: https:;
+          connect-src 'self' wss: https:;
+          media-src 'self';
+          object-src 'none';
+          frame-src 'self';
+          frame-ancestors 'self';
+          base-uri 'self';
+          form-action 'self';
+          manifest-src 'self';
+          worker-src 'self' blob:;
+          upgrade-insecure-requests;
+          block-all-mixed-content;
+
+        # Permissions Policy - Restrictive
+        permissionsPolicy: |
+          accelerometer=(),
+          ambient-light-sensor=(),
+          autoplay=(),
+          battery=(),
+          camera=(),
+          display-capture=(),
+          document-domain=(),
+          encrypted-media=(),
+          fullscreen=(self),
+          gamepad=(),
+          geolocation=(),
+          gyroscope=(),
+          hid=(),
+          idle-detection=(),
+          interest-cohort=(),
+          keyboard-map=(),
+          local-fonts=(),
+          magnetometer=(),
+          microphone=(),
+          midi=(),
+          payment=(),
+          picture-in-picture=(self),
+          publickey-credentials-get=(),
+          screen-wake-lock=(),
+          serial=(),
+          speaker-selection=(),
+          sync-xhr=(),
+          usb=(),
+          web-share=(),
+          xr-spatial-tracking=()
+
+        # Security Response Headers
+        customResponseHeaders:
+          X-Robots-Tag: "noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
+          X-Frame-Options: "DENY"
+          X-Content-Type-Options: "nosniff"
+          X-XSS-Protection: "1; mode=block"
+          X-Permitted-Cross-Domain-Policies: "none"
+          X-Download-Options: "noopen"
+          X-DNS-Prefetch-Control: "off"
+          Cross-Origin-Embedder-Policy: "require-corp"
+          Cross-Origin-Opener-Policy: "same-origin"
+          Cross-Origin-Resource-Policy: "same-site"
+          Referrer-Policy: "strict-origin-when-cross-origin"
+          Cache-Control: "no-store, no-cache, must-revalidate, proxy-revalidate"
+          Pragma: "no-cache"
+          Expires: "0"
+          Server: ""  # Hide server header
+
+        # Referrer Policy
+        referrerPolicy: "strict-origin-when-cross-origin"
+
+        # Custom Frame Options
+        customFrameOptionsValue: "DENY"
+
+        # SSL Configuration
+        sslHost: ""
+        sslForceHost: false
+
+        # Feature Policy (legacy, kept for compatibility)
+        featurePolicy: |
+          accelerometer 'none';
+          ambient-light-sensor 'none';
+          autoplay 'none';
+          battery 'none';
+          camera 'none';
+          display-capture 'none';
+          document-domain 'none';
+          encrypted-media 'none';
+          fullscreen 'self';
+          geolocation 'none';
+          gyroscope 'none';
+          layout-animations 'none';
+          legacy-image-formats 'none';
+          magnetometer 'none';
+          microphone 'none';
+          midi 'none';
+          oversized-images 'none';
+          payment 'none';
+          picture-in-picture 'self';
+          publickey-credentials-get 'none';
+          speaker-selection 'none';
+          sync-xhr 'none';
+          unoptimized-images 'none';
+          unsized-media 'none';
+          usb 'none';
+          vr 'none';
+          wake-lock 'none';
+          screen-wake-lock 'none';
+          web-share 'none';
+          xr-spatial-tracking 'none';
+
+    # ====================================================================
+    # SECURITY HEADERS - BALANCED (For apps that need more flexibility)
+    # ====================================================================
+    secure-headers-balanced:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        frameDeny: false  # Allow iframes
+        sslRedirect: true
+        stsSeconds: 31536000  # 1 year
+        stsIncludeSubdomains: true
+        stsPreload: true
+
+        # More permissive CSP
+        contentSecurityPolicy: |
+          default-src 'self';
+          script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com;
+          style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
+          font-src 'self' data: https://fonts.gstatic.com;
+          img-src 'self' data: blob: https:;
+          connect-src 'self' wss: https:;
+          media-src 'self' blob: data:;
+          object-src 'none';
+          frame-src 'self' https:;
+          frame-ancestors 'self';
+          base-uri 'self';
+          form-action 'self' https:;
+          upgrade-insecure-requests;
+
+        # Balanced Permissions Policy
+        permissionsPolicy: |
+          accelerometer=(self),
+          camera=(),
+          geolocation=(self),
+          gyroscope=(),
+          magnetometer=(),
+          microphone=(),
+          payment=(),
+          usb=()
+
+        referrerPolicy: "strict-origin-when-cross-origin"
+
+        customResponseHeaders:
+          X-Frame-Options: "SAMEORIGIN"
+          X-Content-Type-Options: "nosniff"
+          X-XSS-Protection: "1; mode=block"
+
+    # ====================================================================
+    # CORS CONFIGURATION
+    # ====================================================================
+    cors-allow-all:
+      headers:
+        accessControlAllowCredentials: true
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+          - PATCH
+          - HEAD
+        accessControlAllowOriginList:
+          - "*"
+        accessControlExposeHeaders:
+          - "*"
+        accessControlMaxAge: 86400
+        addVaryHeader: true
+
+    cors-restrict:
+      headers:
+        accessControlAllowCredentials: true
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+          - "X-Requested-With"
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        accessControlAllowOriginList:
+          - "https://*.${PUBLIC_FQDN}"
+          - "https://${PUBLIC_FQDN}"
+        accessControlMaxAge: 86400
+        addVaryHeader: true
+
+    # ====================================================================
+    # REQUEST HEADERS MANIPULATION
+    # ====================================================================
+    request-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+          X-Forwarded-Port: "443"
+          X-Forwarded-Ssl: "on"
+          X-Forwarded-Host: "${PUBLIC_FQDN}"
+
+    # ====================================================================
+    # IP WHITELIST MIDDLEWARES
+    # ====================================================================
+    ip-whitelist-local:
+      ipWhiteList:
+        sourceRange:
+          - 127.0.0.1/32
+          - 10.0.0.0/8
+          - 172.16.0.0/12
+          - 192.168.0.0/16
+          - fc00::/7  # IPv6 local
+
+    ip-whitelist-cloudflare:
+      ipWhiteList:
+        sourceRange:
+          # Cloudflare IPv4
+          - 173.245.48.0/20
+          - 103.21.244.0/22
+          - 103.22.200.0/22
+          - 103.31.4.0/22
+          - 141.101.64.0/18
+          - 108.162.192.0/18
+          - 190.93.240.0/20
+          - 188.114.96.0/20
+          - 197.234.240.0/22
+          - 198.41.128.0/17
+          - 162.158.0.0/15
+          - 104.16.0.0/13
+          - 104.24.0.0/14
+          - 172.64.0.0/13
+          - 131.0.72.0/22
+          # Cloudflare IPv6
+          - 2400:cb00::/32
+          - 2606:4700::/32
+          - 2803:f800::/32
+          - 2405:b500::/32
+          - 2405:8100::/32
+          - 2a06:98c0::/29
+          - 2c0f:f248::/32
+
+    # ====================================================================
+    # CIRCUIT BREAKER
+    # ====================================================================
+    circuit-breaker:
+      circuitBreaker:
+        expression: NetworkErrorRatio() > 0.5 || ResponseCodeRatio(500, 600, 0, 600) > 0.5
+        checkPeriod: 10s
+        fallbackDuration: 10s
+        recoveryDuration: 30s
+
+    # ====================================================================
+    # RETRY MIDDLEWARE
+    # ====================================================================
+    retry:
+      retry:
+        attempts: 4
+        initialInterval: 100ms
+        maxInterval: 10s
+        multiplier: 2
+        # Retry on 5xx errors and network issues
+        retryOn: 502,503,504,599
+
+    # ====================================================================
+    # BUFFERING
+    # ====================================================================
+    buffering:
+      buffering:
+        maxRequestBodyBytes: 2000000
+        memRequestBodyBytes: 100000
+        maxResponseBodyBytes: 2000000
+        memResponseBodyBytes: 100000
+        retryExpression: IsNetworkError() || (StatusCode() >= 500 && StatusCode() <= 599)
+
+    # ====================================================================
+    # ERROR PAGES
+    # ====================================================================
+    error-pages:
+      errors:
+        status:
+          - "400-599"
+        service: error-pages@docker
+        query: "/{status}.html"
+
+    # ====================================================================
+    # STRIP PREFIX
+    # ====================================================================
+    strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/api"
+          - "/v1"
+          - "/v2"
+        forceSlash: false
+
+    # ====================================================================
+    # ADD PREFIX
+    # ====================================================================
+    add-prefix:
+      addPrefix:
+        prefix: "/api"
+
+    # ====================================================================
+    # REPLACE PATH REGEX
+    # ====================================================================
+    replace-path:
+      replacePathRegex:
+        regex: "^/api/(.*)"
+        replacement: "/$1"
+
+    # ====================================================================
+    # CUSTOM ERROR RESPONSES
+    # ====================================================================
+    custom-error-500:
+      errors:
+        status:
+          - "500-599"
+        service: error-pages@docker
+        query: "/500.html"
+
+    custom-error-404:
+      errors:
+        status:
+          - "404"
+        service: error-pages@docker
+        query: "/404.html"
+
+    # ====================================================================
+    # GZIP COMPRESSION
+    # ====================================================================
+    compress-gzip:
+      compress:
+        minResponseBodyBytes: 1024
+        excludedContentTypes:
+          - image/jpeg
+          - image/jpg
+          - image/png
+          - image/gif
+          - image/webp
+          - video/mp4
+          - video/webm
+          - audio/mpeg
+          - audio/mp3

@@ -1,4 +1,0 @@
-server:
-  host: testhost
-  domain: test.com
-  port: 8080

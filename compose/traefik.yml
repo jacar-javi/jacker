@@ -1,70 +1,245 @@
 services:
-  # Traefik - Reverse Proxy
+  # Traefik v3 - Enhanced Reverse Proxy Configuration
+  # Official Documentation: https://doc.traefik.io/traefik/
   traefik:
     container_name: traefik
 
-    image: traefik:v3.5.3
+    # Use specific version for production stability
+    image: traefik:v3.5.5
 
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
     security_opt:
       - no-new-privileges:true
+      # Additional security options for production
+      - apparmor:unconfined  # Or specify custom AppArmor profile
 
+    # User/Group mapping for proper file permissions
+    user: "${PUID:-1000}:${PGID:-1000}"
+
+    # Restart policy for production reliability
     restart: unless-stopped
 
+    # ====================================================================
+    # RESOURCE LIMITS & PERFORMANCE
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'  # Increased for better performance under load
+          memory: 1024M  # Increased for caching and connection handling
+        reservations:
+          cpus: '0.5'  # Ensure minimum resources
+          memory: 256M
+
+    # Process tuning
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    sysctls:
+      # Network performance tuning
+      - net.core.somaxconn=32768
+      - net.ipv4.tcp_syncookies=1
+      - net.ipv4.ip_forward=1
+      - net.ipv4.tcp_tw_reuse=1
+
+    # ====================================================================
+    # DEPENDENCIES & HEALTH
+    # ====================================================================
     depends_on:
       socket-proxy:
         condition: service_healthy
+      # Optional: Add Redis for distributed rate limiting
+      # redis:
+      #   condition: service_healthy
 
-    networks:
-      traefik_proxy:
-        ipv4_address: $TRAEFIK_PROXY_IP
-      socket_proxy:
-
+    # Enhanced health check with more detailed configuration
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
-      interval: 5s
+      interval: 10s
+      timeout: 5s
       retries: 3
+      start_period: 10s
 
+    # ====================================================================
+    # NETWORK CONFIGURATION
+    # ====================================================================
+    networks:
+      traefik_proxy:
+        ipv4_address: ${TRAEFIK_PROXY_IP}
+      socket_proxy:
+      # Optional: monitoring network for Prometheus
+      monitoring:
+        aliases:
+          - traefik-metrics
+
+    # Extra hosts for internal resolution
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    # DNS configuration for better resolution
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+      - 8.8.8.8
+
+    # ====================================================================
+    # PORT CONFIGURATION
+    # ====================================================================
     ports:
+      # HTTP - Standard web traffic
       - target: 80
         published: 80
         protocol: tcp
         mode: host
+
+      # HTTPS - Secure web traffic
       - target: 443
         published: 443
         protocol: tcp
         mode: host
+
+      # HTTP/3 QUIC - Modern protocol support
       - target: 443
         published: 443
         protocol: udp
         mode: host
 
+      # Optional: Alternative HTTPS port for special services
+      # - target: 8443
+      #   published: 8443
+      #   protocol: tcp
+      #   mode: host
+
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
     volumes:
-      - $DATADIR/traefik/traefik.yml:/etc/traefik/traefik.yml # Traefik config file
-      - $DATADIR/traefik/rules:/rules # Dynamic File Provider directory
-      - $DATADIR/traefik/acme.json:/acme.json # Certs File
-      - $DATADIR/traefik/logs:/logs # Traefik logs
+      # Main configuration (read-only for security)
+      - ${DATADIR}/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
 
+      # Dynamic configuration directory (read-only)
+      - ${DATADIR}/traefik/rules:/rules:ro
+
+      # ACME certificates (requires write access)
+      - ${DATADIR}/traefik/acme:/acme:rw
+
+      # Logs directory with proper permissions
+      - ${DATADIR}/traefik/logs:/logs:rw
+
+      # Optional: Custom certificates
+      - ${DATADIR}/traefik/certs:/certs:ro
+
+      # Optional: Plugins storage
+      - ${DATADIR}/traefik/plugins:/plugins-storage:rw
+
+      # Timezone configuration
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
     environment:
-      - TZ=$TZ
-      - TRAEFIK_CERTIFICATESRESOLVERS_http_ACME_EMAIL=$LETSENCRYPT_EMAIL
-      - TRAEFIK_ENTRYPOINTS_websecure_FORWARDEDHEADERS_TRUSTEDIPS=$LOCAL_IPS
-      - PUBLIC_FQDN # Passing environment variables to traefik container to be able to use the variable in rules
+      # Timezone
+      TZ: ${TZ}
 
+      # Let's Encrypt Configuration
+      TRAEFIK_CERTIFICATESRESOLVERS_http_ACME_EMAIL: ${LETSENCRYPT_EMAIL}
+
+      # Trusted IPs for forwarded headers
+      TRAEFIK_ENTRYPOINTS_websecure_FORWARDEDHEADERS_TRUSTEDIPS: ${LOCAL_IPS},${CLOUDFLARE_IPS:-173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,162.158.0.0/15,104.16.0.0/13,104.24.0.0/14,172.64.0.0/13,131.0.72.0/22}
+
+      # Public FQDN for dynamic routing
+      PUBLIC_FQDN: ${PUBLIC_FQDN}
+
+      # Socket Proxy endpoint
+      DOCKER_HOST: tcp://socket-proxy:2375
+
+      # Logging levels
+      TRAEFIK_LOG_LEVEL: ${TRAEFIK_LOG_LEVEL:-INFO}
+      TRAEFIK_ACCESSLOG_FIELDS_DEFAULTMODE: ${TRAEFIK_ACCESS_LOG_MODE:-keep}
+
+      # Performance tuning
+      GOGC: 100  # Go garbage collection tuning
+      GOMEMLIMIT: 900MiB  # Go memory limit (less than container limit)
+
+      # Optional: Enable debug mode
+      # TRAEFIK_API_DEBUG: ${TRAEFIK_DEBUG:-false}
+
+      # Optional: Redis for distributed rate limiting
+      # TRAEFIK_RATELIMIT_REDIS_ENDPOINT: redis:6379
+
+      # Optional: OpenTelemetry tracing
+      # TRAEFIK_TRACING_ENABLED: ${TRACING_ENABLED:-false}
+      # OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+
+    # ====================================================================
+    # LABELS - TRAEFIK CONFIGURATION
+    # ====================================================================
     labels:
       - "traefik.enable=true"
-      # HTTP Routers
+
+      # ============================================================
+      # DASHBOARD ROUTER
+      # ============================================================
       - "traefik.http.routers.traefik-rtr.entrypoints=websecure"
-      - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.$PUBLIC_FQDN`)"
-      # Services - API
+      - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.${PUBLIC_FQDN}`)"
+      - "traefik.http.routers.traefik-rtr.priority=100"  # High priority for dashboard
+
+      # TLS Configuration
+      - "traefik.http.routers.traefik-rtr.tls=true"
+      - "traefik.http.routers.traefik-rtr.tls.certResolver=http"
+      - "traefik.http.routers.traefik-rtr.tls.domains[0].main=${PUBLIC_FQDN}"
+      - "traefik.http.routers.traefik-rtr.tls.domains[0].sans=*.${PUBLIC_FQDN}"
+
+      # Service Configuration
       - "traefik.http.routers.traefik-rtr.service=api@internal"
-      # Middlewares - Using simplified chain for api@internal to avoid HTTP/2 errors
+
+      # Middleware Chain - OAuth protected with no CrowdSec (to prevent lockout)
       - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth-no-crowdsec@file"
 
-      # Homepage Integration
-      - "homepage.group=Reverse Proxy"
+      # ============================================================
+      # METRICS ENDPOINT (Internal only for Prometheus)
+      # ============================================================
+      - "traefik.http.routers.traefik-metrics.entrypoints=traefik"
+      - "traefik.http.routers.traefik-metrics.rule=PathPrefix(`/metrics`)"
+      - "traefik.http.routers.traefik-metrics.service=prometheus@internal"
+      - "traefik.http.routers.traefik-metrics.priority=200"
+
+      # ============================================================
+      # PING ENDPOINT (Health checks)
+      # ============================================================
+      - "traefik.http.routers.traefik-ping.entrypoints=traefik"
+      - "traefik.http.routers.traefik-ping.rule=PathPrefix(`/ping`)"
+      - "traefik.http.routers.traefik-ping.service=ping@internal"
+      - "traefik.http.routers.traefik-ping.priority=300"
+
+      # ============================================================
+      # HOMEPAGE INTEGRATION
+      # ============================================================
+      - "homepage.group=Infrastructure"
       - "homepage.name=Traefik"
       - "homepage.icon=traefik.svg"
-      - "homepage.href=https://traefik.$PUBLIC_FQDN"
-      - "homepage.description=Reverse Proxy And Load Balancer"
+      - "homepage.href=https://traefik.${PUBLIC_FQDN}"
+      - "homepage.description=Reverse Proxy & Load Balancer"
+      - "homepage.weight=100"  # Display priority
       - "homepage.widget.type=traefik"
       - "homepage.widget.url=http://traefik:8080"
+      - "homepage.widget.username="
+      - "homepage.widget.password="
+
+      # ============================================================
+      # SERVICE DISCOVERY METADATA
+      # ============================================================
+      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update Traefik
+      - "diun.enable=true"  # Enable update notifications
+      - "diun.watch_repo=true"
+      - "diun.max_tags=3"
+
+      # Performance and monitoring metadata
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=8080"
+      - "prometheus.io/path=/metrics"

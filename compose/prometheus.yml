@@ -1,18 +1,142 @@
 services:
-  # Prometheus - Database for sensor data
+  # ====================================================================
+  # Prometheus - Enhanced Metrics Collection and Storage
+  # Official Image: https://hub.docker.com/r/prom/prometheus
+  # ====================================================================
   prometheus:
     image: prom/prometheus:v3.6.0
     container_name: prometheus
 
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
     security_opt:
       - no-new-privileges:true
+      - apparmor:unconfined  # Or custom profile
+      - seccomp:unconfined
 
+    # Run as specific user
+    user: "${PUID:-65534}:${PGID:-65534}"  # nobody:nobody
+
+    # Read-only root filesystem for security
+    read_only: true
+
+    # Restart policy
     restart: unless-stopped
 
-    networks:
-      - traefik_proxy
-      - default
+    # ====================================================================
+    # RESOURCE LIMITS
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
+    # ====================================================================
+    # DEPENDENCIES
+    # ====================================================================
+    depends_on:
+      - node-exporter
+      - cadvisor
+
+    # ====================================================================
+    # NETWORK CONFIGURATION
+    # ====================================================================
+    networks:
+      monitoring:
+        aliases:
+          - prometheus-server
+      traefik_proxy:
+      database:  # To scrape database exporters
+      cache:  # To scrape Redis exporter
+      socket_proxy:  # To scrape Docker metrics
+
+    # Port exposure (only bind to localhost for security)
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
+    volumes:
+      # Configuration files (read-only)
+      - ${DATADIR}/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${DATADIR}/prometheus/config/rules:/etc/prometheus/rules:ro
+      - ${DATADIR}/prometheus/config/targets.d:/etc/prometheus/targets.d:ro
+      - ${DATADIR}/prometheus/config/file_sd:/etc/prometheus/file_sd:ro
+
+      # Data storage (read-write)
+      - ${DATADIR}/prometheus/data:/prometheus:rw
+
+      # Console libraries (read-only)
+      - ${DATADIR}/prometheus/console_libraries:/usr/share/prometheus/console_libraries:ro
+      - ${DATADIR}/prometheus/consoles:/usr/share/prometheus/consoles:ro
+
+      # TLS certificates
+      - ${DATADIR}/prometheus/certs:/certs:ro
+
+      # Timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # Temporary filesystem for scratch space
+    tmpfs:
+      - /tmp
+
+    # ====================================================================
+    # COMMAND CONFIGURATION
+    # ====================================================================
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}'
+      - '--storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-10GB}'
+      - '--storage.tsdb.wal-compression'
+      - '--storage.tsdb.max-block-duration=2h'
+      - '--storage.tsdb.min-block-duration=2h'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'  # Allow config reload via HTTP
+      - '--web.enable-admin-api'  # Enable admin API
+      - '--web.external-url=https://prometheus.${PUBLIC_FQDN}'
+      - '--web.route-prefix=/'
+      - '--web.listen-address=0.0.0.0:9090'
+      - '--web.config.file=/etc/prometheus/web.yml'
+      - '--log.level=${PROMETHEUS_LOG_LEVEL:-info}'
+      - '--log.format=${PROMETHEUS_LOG_FORMAT:-logfmt}'
+      - '--query.timeout=${PROMETHEUS_QUERY_TIMEOUT:-2m}'
+      - '--query.max-concurrency=${PROMETHEUS_QUERY_MAX_CONCURRENCY:-20}'
+      - '--query.max-samples=${PROMETHEUS_QUERY_MAX_SAMPLES:-50000000}'
+
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
+    environment:
+      TZ: ${TZ}
+
+      # Feature flags
+      PROMETHEUS_FEATURES: ${PROMETHEUS_FEATURES:-}
+
+      # Remote write configuration
+      PROMETHEUS_REMOTE_WRITE_URL: ${PROMETHEUS_REMOTE_WRITE_URL:-}
+      PROMETHEUS_REMOTE_WRITE_BASIC_AUTH_USERNAME: ${PROMETHEUS_REMOTE_WRITE_USERNAME:-}
+      PROMETHEUS_REMOTE_WRITE_BASIC_AUTH_PASSWORD: ${PROMETHEUS_REMOTE_WRITE_PASSWORD:-}
+
+      # Remote read configuration
+      PROMETHEUS_REMOTE_READ_URL: ${PROMETHEUS_REMOTE_READ_URL:-}
+      PROMETHEUS_REMOTE_READ_BASIC_AUTH_USERNAME: ${PROMETHEUS_REMOTE_READ_USERNAME:-}
+      PROMETHEUS_REMOTE_READ_BASIC_AUTH_PASSWORD: ${PROMETHEUS_REMOTE_READ_PASSWORD:-}
+
+      # Alertmanager configuration
+      ALERTMANAGER_URL: http://alertmanager:9093
+
+    # ====================================================================
+    # HEALTH CHECK
+    # ====================================================================
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
       interval: 30s
@@ -20,28 +144,123 @@ services:
       retries: 3
       start_period: 30s
 
-    depends_on:
-      - crowdsec
-      - node-exporter
-
-    volumes:
-      - $DATADIR/prometheus/config:/etc/prometheus
-      - $DATADIR/prometheus/data:/prometheus
-
-    user: $PUID:$PGID
-
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-lifecycle'
-      - '--web.enable-admin-api'
-
+    # ====================================================================
+    # LABELS
+    # ====================================================================
     labels:
+      # Traefik routing
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.${PUBLIC_FQDN}`)"
+      - "traefik.http.routers.prometheus.tls=true"
+      - "traefik.http.routers.prometheus.tls.certResolver=http"
+      - "traefik.http.routers.prometheus.service=prometheus"
+      - "traefik.http.routers.prometheus.middlewares=chain-oauth@file"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+
       # Homepage Integration
-      - "homepage.group=Backend"
+      - "homepage.group=Monitoring"
       - "homepage.name=Prometheus"
       - "homepage.icon=prometheus.svg"
-      - "homepage.description=Open-Source Monitoring System"
-      - "homepage.href=https://grafana.$PUBLIC_FQDN/d/000000001/prometheus-system"
+      - "homepage.href=https://prometheus.${PUBLIC_FQDN}"
+      - "homepage.description=Metrics Collection & Storage"
+      - "homepage.weight=100"
+      - "homepage.widget.type=prometheus"
+      - "homepage.widget.url=http://prometheus:9090"
+
+      # Service Discovery
+      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update monitoring
+      - "diun.enable=true"
+      - "diun.watch_repo=true"
+
+  # ====================================================================
+  # cAdvisor - Container Metrics Exporter
+  # ====================================================================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+
+    security_opt:
+      - no-new-privileges:true
+
+    restart: unless-stopped
+
+    privileged: true  # Required for container metrics
+
+    devices:
+      - /dev/kmsg
+
+    networks:
+      - monitoring
+      - socket_proxy
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+      - /etc/machine-id:/etc/machine-id:ro
+      - /var/lib/dbus/machine-id:/var/lib/dbus/machine-id:ro
+
+    command:
+      - '--housekeeping_interval=10s'
+      - '--docker_only=true'
+      - '--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl'
+      - '--store_container_labels=false'
+      - '--whitelisted_container_labels=com.docker.compose.project,com.docker.compose.service'
+
+    labels:
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=8080"
+      - "prometheus.io/path=/metrics"
+
+  # ====================================================================
+  # Pushgateway - For Batch Job Metrics (Optional)
+  # ====================================================================
+  pushgateway:
+    image: prom/pushgateway:v1.9.0
+    container_name: pushgateway
+
+    security_opt:
+      - no-new-privileges:true
+
+    restart: unless-stopped
+
+    networks:
+      - monitoring
+      - traefik_proxy
+
+    ports:
+      - "127.0.0.1:9091:9091"
+
+    command:
+      - '--persistence.file=/data/metrics.txt'
+      - '--persistence.interval=5m'
+      - '--log.level=${PUSHGATEWAY_LOG_LEVEL:-info}'
+      - '--log.format=${PUSHGATEWAY_LOG_FORMAT:-logfmt}'
+      - '--web.listen-address=:9091'
+      - '--web.telemetry-path=/metrics'
+      - '--web.external-url=https://pushgateway.${PUBLIC_FQDN}'
+      - '--web.route-prefix=/'
+      - '--push.disable-consistency-check=false'
+
+    volumes:
+      - ${DATADIR}/pushgateway:/data
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pushgateway.entrypoints=websecure"
+      - "traefik.http.routers.pushgateway.rule=Host(`pushgateway.${PUBLIC_FQDN}`)"
+      - "traefik.http.routers.pushgateway.tls=true"
+      - "traefik.http.routers.pushgateway.tls.certResolver=http"
+      - "traefik.http.routers.pushgateway.service=pushgateway"
+      - "traefik.http.routers.pushgateway.middlewares=chain-oauth@file"
+      - "traefik.http.services.pushgateway.loadbalancer.server.port=9091"
+
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9091"
+      - "prometheus.io/path=/metrics"

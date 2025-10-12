@@ -1,2 +1,0 @@
-bouncer_key: ${CROWDSEC_TRAEFIK_BOUNCER_API_KEY}
-port: ${CROWDSEC_API_PORT}

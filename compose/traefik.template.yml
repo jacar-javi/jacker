@@ -1,2 +1,0 @@
-domain: ${DOMAINNAME}
-email: ${LETSENCRYPT_EMAIL}

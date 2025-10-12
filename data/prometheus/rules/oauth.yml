@@ -1,0 +1,126 @@
+groups:
+  - name: oauth
+    interval: 30s
+    rules:
+      # OAuth2-Proxy service down
+      - alert: OAuth2ProxyDown
+        expr: up{job="oauth2-proxy"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: oauth
+        annotations:
+          summary: "OAuth2-Proxy service is down"
+          description: "OAuth2-Proxy authentication service has been down for more than 2 minutes. Users cannot authenticate."
+
+      # High authentication failure rate
+      - alert: OAuth2ProxyHighFailureRate
+        expr: |
+          rate(oauth2_proxy_authentication_failures_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: oauth
+        annotations:
+          summary: "High OAuth authentication failure rate"
+          description: "OAuth authentication failures are above 10% for 5 minutes (current: {{ $value | humanizePercentage }})."
+
+      # Session store (Redis) connectivity issues
+      - alert: OAuth2ProxySessionStoreError
+        expr: |
+          rate(oauth2_proxy_redis_connection_errors_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: oauth
+        annotations:
+          summary: "OAuth session store connectivity issues"
+          description: "OAuth2-Proxy is experiencing Redis connection errors. Sessions may not be properly stored."
+
+      # High response time
+      - alert: OAuth2ProxyHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(oauth2_proxy_request_duration_seconds_bucket[5m])) by (le)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: oauth
+        annotations:
+          summary: "High OAuth authentication latency"
+          description: "95th percentile OAuth authentication latency is above 1 second (current: {{ $value | humanizeDuration }})."
+
+      # Too many concurrent sessions
+      - alert: OAuth2ProxyHighSessionCount
+        expr: |
+          oauth2_proxy_session_count > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: oauth
+        annotations:
+          summary: "High number of OAuth sessions"
+          description: "OAuth2-Proxy has more than 1000 active sessions (current: {{ $value }})."
+
+      # Cookie refresh errors
+      - alert: OAuth2ProxyCookieRefreshErrors
+        expr: |
+          rate(oauth2_proxy_cookie_refresh_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: oauth
+        annotations:
+          summary: "OAuth cookie refresh errors"
+          description: "OAuth2-Proxy is experiencing cookie refresh errors. Users may be logged out unexpectedly."
+
+      # Provider API errors (Google OAuth errors)
+      - alert: OAuth2ProxyProviderErrors
+        expr: |
+          rate(oauth2_proxy_provider_api_errors_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: oauth
+        annotations:
+          summary: "OAuth provider API errors"
+          description: "OAuth2-Proxy is experiencing errors connecting to the OAuth provider (Google/GitHub/etc)."
+
+      # Authentication attempts spike (possible attack)
+      - alert: OAuth2ProxyAuthenticationSpike
+        expr: |
+          rate(oauth2_proxy_authentication_attempts_total[5m])
+          > avg_over_time(rate(oauth2_proxy_authentication_attempts_total[5m])[1h:5m]) * 3
+        for: 5m
+        labels:
+          severity: info
+          service: oauth
+        annotations:
+          summary: "OAuth authentication attempts spike detected"
+          description: "OAuth authentication attempts are 3x higher than the hourly average. Possible brute force attack."
+
+      # Memory usage high
+      - alert: OAuth2ProxyHighMemoryUsage
+        expr: |
+          container_memory_usage_bytes{name="oauth"}
+          / container_spec_memory_limit_bytes{name="oauth"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: oauth
+        annotations:
+          summary: "OAuth2-Proxy high memory usage"
+          description: "OAuth2-Proxy memory usage is above 80% of limit (current: {{ $value | humanizePercentage }})."
+
+      # Expired sessions cleanup issues
+      - alert: OAuth2ProxySessionCleanupError
+        expr: |
+          increase(oauth2_proxy_session_cleanup_errors_total[5m]) > 0
+        for: 10m
+        labels:
+          severity: info
+          service: oauth
+        annotations:
+          summary: "OAuth session cleanup errors"
+          description: "OAuth2-Proxy is experiencing errors cleaning up expired sessions."

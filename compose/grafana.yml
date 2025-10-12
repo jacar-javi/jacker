@@ -1,58 +1,232 @@
 services:
-  # Grafana - Graphical data visualization
+  # ====================================================================
+  # Grafana - Enhanced Data Visualization and Dashboards
+  # Official Image: https://hub.docker.com/r/grafana/grafana-enterprise
+  # ====================================================================
   grafana:
-    image: grafana/grafana:12.2
+    image: grafana/grafana-enterprise:12.2.0  # Enterprise includes all OSS features
     container_name: grafana
 
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
     security_opt:
       - no-new-privileges:true
+      - apparmor:unconfined  # Or custom profile
+      - seccomp:unconfined
 
+    # Run as specific user
+    user: "${PUID:-472}:${PGID:-472}"  # Grafana default UID/GID
+
+    # Restart policy
     restart: unless-stopped
 
+    # ====================================================================
+    # RESOURCE LIMITS
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+    # ====================================================================
+    # DEPENDENCIES
+    # ====================================================================
     depends_on:
       traefik:
         condition: service_healthy
+      prometheus:
+        condition: service_started
+      loki:
+        condition: service_started
 
+    # ====================================================================
+    # NETWORK CONFIGURATION
+    # ====================================================================
+    networks:
+      monitoring:
+        aliases:
+          - grafana-server
+      traefik_proxy:
+      database:  # To connect to data sources
+      cache:  # For Redis session storage
+
+    # Port exposure (only bind to localhost for security)
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
+    volumes:
+      # Data storage
+      - ${DATADIR}/grafana/data:/var/lib/grafana:rw
+
+      # Provisioning (read-only)
+      - ${DATADIR}/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ${DATADIR}/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ${DATADIR}/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
+      - ${DATADIR}/grafana/provisioning/plugins:/etc/grafana/provisioning/plugins:ro
+      - ${DATADIR}/grafana/provisioning/notifiers:/etc/grafana/provisioning/notifiers:ro
+      - ${DATADIR}/grafana/provisioning/access-control:/etc/grafana/provisioning/access-control:ro
+
+      # Custom configuration
+      - ${DATADIR}/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+
+      # TLS certificates
+      - ${DATADIR}/grafana/certs:/etc/grafana/certs:ro
+
+      # Plugins
+      - ${DATADIR}/grafana/plugins:/var/lib/grafana/plugins:rw
+
+      # Dashboards
+      - ${DATADIR}/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+      # Timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
+    environment:
+      # Basic configuration
+      TZ: ${TZ}
+
+      # Paths
+      GF_PATHS_DATA: /var/lib/grafana
+      GF_PATHS_LOGS: /var/log/grafana
+      GF_PATHS_PLUGINS: /var/lib/grafana/plugins
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+
+      # Server configuration
+      GF_SERVER_PROTOCOL: ${GF_SERVER_PROTOCOL:-http}
+      GF_SERVER_DOMAIN: ${GF_SERVER_DOMAIN:-grafana.${PUBLIC_FQDN}}
+      GF_SERVER_ROOT_URL: ${GF_SERVER_ROOT_URL:-https://grafana.${PUBLIC_FQDN}}
+      GF_SERVER_SERVE_FROM_SUB_PATH: ${GF_SERVER_SERVE_FROM_SUB_PATH:-false}
+
+      # Database configuration (default SQLite, can use PostgreSQL)
+      GF_DATABASE_TYPE: ${GF_DATABASE_TYPE:-sqlite3}
+      GF_DATABASE_HOST: ${GF_DATABASE_HOST:-}
+      GF_DATABASE_NAME: ${GF_DATABASE_NAME:-grafana}
+      GF_DATABASE_USER: ${GF_DATABASE_USER:-}
+      GF_DATABASE_PASSWORD: ${GF_DATABASE_PASSWORD:-}
+      GF_DATABASE_SSL_MODE: ${GF_DATABASE_SSL_MODE:-disable}
+      GF_DATABASE_MAX_IDLE_CONN: ${GF_DATABASE_MAX_IDLE_CONN:-2}
+      GF_DATABASE_MAX_OPEN_CONN: ${GF_DATABASE_MAX_OPEN_CONN:-100}
+      GF_DATABASE_CONN_MAX_LIFETIME: ${GF_DATABASE_CONN_MAX_LIFETIME:-14400}
+
+      # Security configuration
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
+      GF_SECURITY_ADMIN_EMAIL: ${GRAFANA_ADMIN_EMAIL:-admin@localhost}
+      GF_SECURITY_SECRET_KEY: ${GRAFANA_SECRET_KEY:-}
+      GF_SECURITY_DISABLE_GRAVATAR: ${GRAFANA_DISABLE_GRAVATAR:-false}
+      GF_SECURITY_ALLOW_EMBEDDING: ${GF_SECURITY_ALLOW_EMBEDDING:-false}
+      GF_SECURITY_COOKIE_SECURE: ${GF_SECURITY_COOKIE_SECURE:-true}
+      GF_SECURITY_COOKIE_SAMESITE: ${GF_SECURITY_COOKIE_SAMESITE:-lax}
+      GF_SECURITY_STRICT_TRANSPORT_SECURITY: ${GF_SECURITY_STRICT_TRANSPORT_SECURITY:-true}
+      GF_SECURITY_STRICT_TRANSPORT_SECURITY_MAX_AGE_SECONDS: 86400
+      GF_SECURITY_STRICT_TRANSPORT_SECURITY_PRELOAD: true
+      GF_SECURITY_STRICT_TRANSPORT_SECURITY_SUBDOMAINS: true
+      GF_SECURITY_CONTENT_SECURITY_POLICY: ${GF_SECURITY_CONTENT_SECURITY_POLICY:-true}
+
+      # Authentication configuration
+      GF_AUTH_DISABLE_LOGIN_FORM: ${GF_AUTH_DISABLE_LOGIN_FORM:-false}
+      GF_AUTH_DISABLE_SIGNOUT_MENU: ${GF_AUTH_DISABLE_SIGNOUT_MENU:-false}
+      GF_AUTH_ANONYMOUS_ENABLED: ${GF_AUTH_ANONYMOUS_ENABLED:-false}
+      GF_AUTH_ANONYMOUS_ORG_NAME: ${GF_AUTH_ANONYMOUS_ORG_NAME:-Main Org.}
+      GF_AUTH_ANONYMOUS_ORG_ROLE: ${GF_AUTH_ANONYMOUS_ORG_ROLE:-Viewer}
+      GF_AUTH_OAUTH_AUTO_LOGIN: ${GF_AUTH_OAUTH_AUTO_LOGIN:-true}
+
+      # OAuth/Proxy Auth Configuration
+      GF_AUTH_PROXY_ENABLED: ${GF_AUTH_PROXY_ENABLED:-true}
+      GF_AUTH_PROXY_HEADER_NAME: X-Forwarded-User
+      GF_AUTH_PROXY_HEADER_PROPERTY: username
+      GF_AUTH_PROXY_AUTO_SIGN_UP: true
+      GF_AUTH_PROXY_HEADERS: "Email:X-Forwarded-Email"
+
+      # Users configuration
+      GF_USERS_ALLOW_SIGN_UP: ${GRAFANA_ALLOW_SIGN_UP:-false}
+      GF_USERS_ALLOW_ORG_CREATE: ${GF_USERS_ALLOW_ORG_CREATE:-false}
+      GF_USERS_AUTO_ASSIGN_ORG: ${GF_USERS_AUTO_ASSIGN_ORG:-true}
+      GF_USERS_AUTO_ASSIGN_ORG_ID: ${GF_USERS_AUTO_ASSIGN_ORG_ID:-1}
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: ${GF_USERS_AUTO_ASSIGN_ORG_ROLE:-Editor}
+      GF_USERS_DEFAULT_THEME: ${GF_USERS_DEFAULT_THEME:-dark}
+
+      # Plugin installation
+      GF_INSTALL_PLUGINS: ${GRAFANA_INSTALL_PLUGINS:-grafana-clock-panel,grafana-simple-json-datasource,grafana-worldmap-panel,grafana-piechart-panel,redis-datasource,redis-app,redis-explorer-app}
+
+      # Logging configuration
+      GF_LOG_MODE: ${GF_LOG_MODE:-console file}
+      GF_LOG_LEVEL: ${GF_LOG_LEVEL:-info}
+      GF_LOG_CONSOLE_FORMAT: ${GF_LOG_CONSOLE_FORMAT:-json}
+
+      # Alerting configuration
+      GF_ALERTING_ENABLED: ${GF_ALERTING_ENABLED:-true}
+      GF_UNIFIED_ALERTING_ENABLED: ${GF_UNIFIED_ALERTING_ENABLED:-true}
+
+      # Metrics and analytics
+      GF_ANALYTICS_REPORTING_ENABLED: ${GF_ANALYTICS_REPORTING_ENABLED:-false}
+      GF_ANALYTICS_CHECK_FOR_UPDATES: ${GF_ANALYTICS_CHECK_FOR_UPDATES:-false}
+
+      # Performance settings
+      GF_SNAPSHOTS_EXTERNAL_ENABLED: ${GF_SNAPSHOTS_EXTERNAL_ENABLED:-false}
+      GF_DASHBOARDS_MIN_REFRESH_INTERVAL: ${GF_DASHBOARDS_MIN_REFRESH_INTERVAL:-5s}
+
+      # Feature toggles
+      GF_FEATURE_TOGGLES_ENABLE: ${GF_FEATURE_TOGGLES:-}
+
+      # Remote cache (Redis)
+      GF_REMOTE_CACHE_TYPE: ${GF_REMOTE_CACHE_TYPE:-redis}
+      GF_REMOTE_CACHE_CONNSTR: "addr=redis:6379,pool_size=100,db=0,ssl=false"
+
+    # ====================================================================
+    # HEALTH CHECK
+    # ====================================================================
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 60s
 
-    networks:
-      - traefik_proxy
-
-    user: $PUID:$PGID
-
-    volumes:
-      - $DATADIR/grafana/data:/var/lib/grafana
-      - $DATADIR/grafana/provisioning:/etc/grafana/provisioning/
-
-    environment:
-      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource,grafana-worldmap-panel,grafana-piechart-panel"
-      GF_AUTH_ANONYMOUS_ENABLED: true
-      GF_AUTH_ANONYMOUS_ORG_NAME: Main Org.
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
-      GF_AUTH_DISABLE_LOGIN_FORM: true
-      GF_AUTH_OAUTH_AUTO_LOGIN: true
-
+    # ====================================================================
+    # LABELS
+    # ====================================================================
     labels:
+      # Traefik routing
       - "traefik.enable=true"
-      # HTTP Routers
-      - "traefik.http.routers.grafana-rtr.entrypoints=websecure"
-      - "traefik.http.routers.grafana-rtr.rule=Host(`grafana.$PUBLIC_FQDN`)"
-      - "traefik.http.routers.grafana-rtr.tls.certResolver=http"
-      # Middlewares
-      - "traefik.http.routers.grafana-rtr.middlewares=chain-oauth-no-crowdsec@file"
-      # HTTP Services
-      - "traefik.http.routers.grafana-rtr.service=grafana-svc"
-      - "traefik.http.services.grafana-svc.loadbalancer.server.port=3000"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${PUBLIC_FQDN}`)"
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.routers.grafana.tls.certResolver=http"
+      - "traefik.http.routers.grafana.service=grafana"
+      - "traefik.http.routers.grafana.middlewares=chain-oauth@file"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
       # Homepage Integration
-      - "homepage.group=Frontend Apps"
+      - "homepage.group=Monitoring"
       - "homepage.name=Grafana"
       - "homepage.icon=grafana.svg"
-      - "homepage.href=https://grafana.$PUBLIC_FQDN"
-      - "homepage.description=Graphical data visualization"
+      - "homepage.href=https://grafana.${PUBLIC_FQDN}"
+      - "homepage.description=Data Visualization & Analytics"
+      - "homepage.weight=200"
+      - "homepage.widget.type=grafana"
+      - "homepage.widget.url=http://grafana:3000"
+      - "homepage.widget.username=${GRAFANA_ADMIN_USER:-admin}"
+      - "homepage.widget.password=${GRAFANA_ADMIN_PASSWORD:-}"
 
+      # Service Discovery
+      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update monitoring
+      - "diun.enable=true"
+      - "diun.watch_repo=true"
+
+      # Monitoring
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=3000"
+      - "prometheus.io/path=/metrics"

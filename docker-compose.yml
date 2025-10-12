@@ -16,6 +16,18 @@ networks:
     ipam:
       config:
         - subnet: ${TRAEFIK_PROXY_SUBNET}
+  database:
+    name: database
+    driver: bridge
+  monitoring:
+    name: monitoring
+    driver: bridge
+  cache:
+    name: cache
+    driver: bridge
+  backup:
+    name: backup
+    driver: bridge
 
 secrets:
   traefik_forward_oauth:
@@ -42,6 +54,7 @@ include:
   - compose/promtail.yml
   - compose/alertmanager.yml
   - compose/grafana.yml
+  - compose/jaeger.yml
 
   # APPS
   - compose/portainer.yml

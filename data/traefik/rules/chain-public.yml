@@ -1,0 +1,19 @@
+http:
+  middlewares:
+    # Public chain for static content with caching
+    chain-public-cached:
+      chain:
+        middlewares:
+          - middlewares-rate-limit
+          - middlewares-secure-headers
+          - middlewares-cache-static
+          - middlewares-compress
+
+    # Public chain without authentication
+    chain-public:
+      chain:
+        middlewares:
+          - middlewares-rate-limit
+          - middlewares-secure-headers
+          - middlewares-cache-none
+          - middlewares-compress

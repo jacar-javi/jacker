@@ -1,12 +1,16 @@
+# Loki Enhanced Configuration
+# https://grafana.com/docs/loki/latest/configuration/
+
 auth_enabled: false
 
 server:
   http_listen_port: 3100
-  grpc_listen_port: 9096
-  log_level: info
+  grpc_listen_port: 9095
+  log_level: ${LOKI_LOG_LEVEL:-info}
+  grpc_server_max_recv_msg_size: 8388608
+  grpc_server_max_send_msg_size: 8388608
 
 common:
-  instance_addr: 127.0.0.1
   path_prefix: /loki
   storage:
     filesystem:
@@ -16,13 +20,6 @@ common:
   ring:
     kvstore:
       store: inmemory
-
-query_range:
-  results_cache:
-    cache:
-      embedded_cache:
-        enabled: true
-        max_size_mb: 100
 
 schema_config:
   configs:
@@ -36,19 +33,47 @@ schema_config:
 
 ruler:
   alertmanager_url: http://alertmanager:9093
+  enable_api: true
+  enable_alertmanager_v2: true
+  ring:
+    kvstore:
+      store: inmemory
+  rule_path: /loki/rules
+  storage:
+    type: local
+    local:
+      directory: /loki/rules
+  wal:
+    dir: /loki/ruler-wal
 
-# Limits configuration
-limits_config:
-  retention_period: 744h  # 31 days
-  max_query_length: 721h  # 30 days
-  reject_old_samples: true
-  reject_old_samples_max_age: 168h  # 1 week
-  ingestion_rate_mb: 10
-  ingestion_burst_size_mb: 20
-  max_streams_per_user: 0
-  max_global_streams_per_user: 5000
+ingester:
+  wal:
+    enabled: true
+    dir: /wal
+    checkpoint_duration: 5m
+    flush_on_shutdown: true
+    replay_memory_ceiling: 1GB
+  max_chunk_age: 2h
+  chunk_target_size: 1536000
+  chunk_idle_period: 30m
+  chunk_retain_period: 0s
+  max_transfer_retries: 0
+  lifecycler:
+    address: 127.0.0.1
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+    final_sleep: 0s
 
-# Compactor for retention
+storage_config:
+  tsdb_shipper:
+    active_index_directory: /loki/tsdb-index
+    cache_location: /loki/tsdb-cache
+    cache_ttl: 24h
+  filesystem:
+    directory: /loki/chunks
+
 compactor:
   working_directory: /loki/compactor
   compaction_interval: 10m
@@ -56,6 +81,50 @@ compactor:
   retention_delete_delay: 2h
   retention_delete_worker_count: 150
   delete_request_store: filesystem
+
+limits_config:
+  enforce_metric_name: false
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+  max_cache_freshness_per_query: 10m
+  split_queries_by_interval: 30m
+  ingestion_rate_mb: ${LOKI_INGESTION_RATE_MB:-4}
+  ingestion_burst_size_mb: ${LOKI_INGESTION_BURST_SIZE_MB:-6}
+  per_stream_rate_limit: ${LOKI_PER_STREAM_RATE_LIMIT:-4MB}
+  per_stream_rate_limit_burst: ${LOKI_PER_STREAM_RATE_LIMIT_BURST:-15MB}
+  max_entries_limit_per_query: ${LOKI_MAX_ENTRIES_LIMIT:-5000}
+  max_streams_per_user: ${LOKI_MAX_STREAMS_PER_USER:-10000}
+  max_global_streams_per_user: ${LOKI_MAX_GLOBAL_STREAMS_PER_USER:-10000}
+  unordered_writes: true
+  retention_period: ${LOKI_RETENTION_PERIOD:-744h}
+  query_timeout: ${LOKI_QUERY_TIMEOUT:-5m}
+  max_query_parallelism: ${LOKI_MAX_QUERY_PARALLELISM:-32}
+  max_query_series: ${LOKI_MAX_QUERY_SERIES:-5000}
+
+chunk_store_config:
+  cache_lookups_older_than: 0
+
+table_manager:
+  retention_deletes_enabled: true
+  retention_period: ${LOKI_RETENTION_PERIOD:-744h}
+
+query_range:
+  align_queries_with_step: true
+  max_retries: 5
+  cache_results: true
+  results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 100
+
+frontend:
+  log_queries_longer_than: 5s
+  compress_responses: true
+  max_outstanding_per_tenant: 2048
+
+frontend_worker:
+  frontend_address: loki:9095
 
 analytics:
   reporting_enabled: false

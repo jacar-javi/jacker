@@ -1,9 +1,12 @@
 services:
-  # Docker Socket Proxy - Security Enchanced Proxy for Docker Socket
+  # Docker Socket Proxy - Security Enhanced Proxy for Docker Socket
+  # Tecnativa/docker-socket-proxy: https://github.com/Tecnativa/docker-socket-proxy
+  # This proxy provides a security layer between containers and the Docker socket
   socket-proxy:
     container_name: socket-proxy
     image: tecnativa/docker-socket-proxy:latest
 
+    # Security options
     security_opt:
       - no-new-privileges:true
 
@@ -13,50 +16,130 @@ services:
       socket_proxy:
         ipv4_address: $SOCKET_PROXY_IP
 
+    # Only expose port on localhost for security
+    # External containers should connect via the socket_proxy network
     ports:
       - 127.0.0.1:2375:2375
 
-    privileged: ${HOST_IS_VM:-true} # true for VM. False for unprivileged LXC container.
+    # Privileged mode configuration
+    # Set to true for VM environments, false for unprivileged LXC containers
+    privileged: ${HOST_IS_VM:-true}
 
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
+      # Mount the Docker socket - this is the only container that should have direct access
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
     environment:
-      - LOG_LEVEL=info # debug,info,notice,warning,err,crit,alert,emerg
-      ## Variables match the URL prefix (i.e. AUTH blocks access to /auth/* parts of the API, etc.).
-      # 0 to revoke access.
-      # 1 to grant access.
-      ## Granted by Default
-      - EVENTS=1
-      - PING=1
-      - VERSION=1
-      ## Revoked by Default
-      # Security critical
-      - AUTH=0
-      - SECRETS=0
-      - POST=1 # Watchtower
-      # Not always needed
-      - BUILD=0
-      - COMMIT=0
-      - CONFIGS=0
-      - CONTAINERS=1 # Traefik, portainer, etc.
-      - DISTRIBUTION=0
-      - EXEC=0
-      - IMAGES=1 # Portainer
-      - INFO=1 # Portainer
-      - NETWORKS=1 # Portainer
-      - NODES=0
-      - PLUGINS=0
-      - SERVICES=1 # Portainer
-      - SESSION=0
-      - SWARM=0
-      - SYSTEM=0
-      - TASKS=1 # Portainer
-      - VOLUMES=1 # Portainer
-      
+      # Logging configuration
+      # Options: debug, info, notice, warning, err, crit, alert, emerg
+      LOG_LEVEL: ${SOCKET_PROXY_LOG_LEVEL:-info}
+
+      # ====================================================================
+      # PERMISSION CONFIGURATION
+      # ====================================================================
+      # Each variable corresponds to a Docker API endpoint
+      # Set to 1 to grant access, 0 to deny access
+      # By default, all endpoints are DENIED unless explicitly granted
+
+      # ====================================================================
+      # ALWAYS ALLOWED - Basic functionality
+      # ====================================================================
+      # These are safe and required for basic operations
+      EVENTS: 1     # Event stream (required by Traefik, Promtail for container discovery)
+      PING: 1       # Health check endpoint (safe, read-only)
+      VERSION: 1    # Docker version information (safe, read-only)
+
+      # ====================================================================
+      # SECURITY CRITICAL - ALWAYS DENY
+      # ====================================================================
+      # These provide root-level access and should NEVER be enabled
+      AUTH: 0       # Authentication configuration (can modify daemon auth)
+      SECRETS: 0    # Secret management (exposes sensitive data)
+      EXEC: 0       # Execute commands in containers (shell access)
+      BUILD: 0      # Build images (can execute arbitrary code)
+      COMMIT: 0     # Create images from containers (can embed secrets)
+      CONFIGS: 0    # Swarm config management (sensitive data)
+      NODES: 0      # Swarm node management (cluster control)
+      PLUGINS: 0    # Plugin management (can load arbitrary code)
+      SYSTEM: 0     # System-wide operations (prune, disk usage, etc.)
+      SESSION: 0    # Session management (interactive features)
+      SWARM: 0      # Swarm management (cluster operations)
+
+      # ====================================================================
+      # CONTAINER OPERATIONS
+      # ====================================================================
+      # Required by: Traefik (discovery), Portainer (management),
+      #              Homepage (widgets), Promtail (log discovery), Authentik (integration)
+      CONTAINERS: 1 # List, inspect containers - safe read operation
+
+      # Optional container operations - currently disabled for security
+      # ALLOW_START: 0   # Start containers (write operation)
+      # ALLOW_STOP: 0    # Stop containers (write operation)
+      # ALLOW_RESTARTS: 0 # Restart containers (write operation)
+
+      # ====================================================================
+      # IMAGE OPERATIONS
+      # ====================================================================
+      # Required by: Portainer (image management), Authentik (may need for deployments)
+      IMAGES: 1        # List, inspect images - safe read operation
+      DISTRIBUTION: 0  # Image distribution/registry info - not needed
+
+      # ====================================================================
+      # DOCKER INFO & INSPECTION
+      # ====================================================================
+      # Required by: Portainer (system info), Homepage (docker info widget)
+      INFO: 1       # Docker daemon info - safe read operation
+
+      # ====================================================================
+      # NETWORKING
+      # ====================================================================
+      # Required by: Portainer (network management), Authentik (may need for apps)
+      NETWORKS: 1   # List, inspect networks - safe read operation
+
+      # ====================================================================
+      # VOLUME MANAGEMENT
+      # ====================================================================
+      # Required by: Portainer (volume management), Authentik (may need for apps)
+      VOLUMES: 1    # List, inspect volumes - safe read operation
+
+      # ====================================================================
+      # DOCKER COMPOSE / SWARM SERVICES
+      # ====================================================================
+      # Required by: Portainer (stack management), Traefik (service discovery)
+      SERVICES: 1   # List, inspect services (Swarm mode) - safe read operation
+      TASKS: 1      # List, inspect tasks (Swarm mode) - safe read operation
+
+      # ====================================================================
+      # WRITE OPERATIONS
+      # ====================================================================
+      # POST enables write operations (create, update, delete)
+      # Required by: Watchtower (container updates), Portainer (management)
+      #              Authentik (may create containers)
+      # WARNING: This allows container creation/modification
+      POST: 1       # Enable POST operations - use with caution
+
     healthcheck:
-      test: wget --spider http://localhost:2375/version || exit 1
-      interval: "29s"
-      timeout: "5s"
+      test: wget --no-verbose --spider --tries=1 http://localhost:2375/version || exit 1
+      interval: "30s"
+      timeout: "10s"
       retries: 3
-      start_period: "21s"
+      start_period: "30s"
+
+    labels:
+      # Traefik should not expose this service
+      - "traefik.enable=false"
+
+      # Homepage integration
+      - "homepage.group=Security"
+      - "homepage.name=Socket Proxy"
+      - "homepage.icon=docker.svg"
+      - "homepage.description=Docker API Security Proxy"
+
+# Networks definition (if not defined in main docker-compose.yml)
+# The socket_proxy network should be defined in the main docker-compose.yml
+# networks:
+#   socket_proxy:
+#     driver: bridge
+#     ipam:
+#       config:
+#         - subnet: ${SOCKET_PROXY_SUBNET:-172.20.0.0/24}

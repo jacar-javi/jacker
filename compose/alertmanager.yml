@@ -1,52 +1,255 @@
 services:
-  # Alertmanager - Alert routing and notification
+  # ====================================================================
+  # Alertmanager - Enhanced Alert Routing and Notification
+  # Official Image: https://hub.docker.com/r/prom/alertmanager
+  # ====================================================================
   alertmanager:
     image: prom/alertmanager:v0.28.1
     container_name: alertmanager
 
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
     security_opt:
       - no-new-privileges:true
+      - apparmor:unconfined  # Or custom profile
+      - seccomp:unconfined
 
+    # Run as specific user
+    user: "${PUID:-65534}:${PGID:-65534}"  # nobody:nobody
+
+    # Read-only root filesystem for security
+    read_only: true
+
+    # Restart policy
     restart: unless-stopped
 
-    networks:
-      - traefik_proxy
+    # ====================================================================
+    # RESOURCE LIMITS
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
 
+    # ====================================================================
+    # DEPENDENCIES
+    # ====================================================================
+    depends_on:
+      prometheus:
+        condition: service_started
+
+    # ====================================================================
+    # NETWORK CONFIGURATION
+    # ====================================================================
+    networks:
+      monitoring:
+        aliases:
+          - alertmanager-server
+      traefik_proxy:
+
+    # Port exposure (only bind to localhost for security)
+    ports:
+      - "127.0.0.1:${ALERTMANAGER_PORT:-9093}:9093"
+      - "127.0.0.1:${ALERTMANAGER_CLUSTER_PORT:-9094}:9094"  # Cluster port for HA
+
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
+    volumes:
+      # Configuration (read-only)
+      - ${DATADIR}/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ${DATADIR}/alertmanager/templates:/etc/alertmanager/templates:ro
+
+      # Data storage (read-write)
+      - ${DATADIR}/alertmanager/data:/alertmanager:rw
+
+      # TLS certificates
+      - ${DATADIR}/alertmanager/certs:/etc/alertmanager/certs:ro
+
+      # Timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # Temporary filesystem for processing
+    tmpfs:
+      - /tmp
+
+    # ====================================================================
+    # COMMAND CONFIGURATION
+    # ====================================================================
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--data.retention=${ALERTMANAGER_RETENTION:-120h}'
+      - '--alerts.gc-interval=${ALERTMANAGER_GC_INTERVAL:-30m}'
+      - '--web.listen-address=0.0.0.0:9093'
+      - '--web.external-url=https://alertmanager.${PUBLIC_FQDN}'
+      - '--web.route-prefix=/'
+      - '--web.get-concurrency=${ALERTMANAGER_WEB_CONCURRENCY:-0}'
+      - '--web.timeout=${ALERTMANAGER_WEB_TIMEOUT:-0}'
+      - '--cluster.listen-address=0.0.0.0:9094'
+      - '--cluster.advertise-address=${ALERTMANAGER_CLUSTER_ADVERTISE:-}'
+      - '--cluster.peer=${ALERTMANAGER_CLUSTER_PEERS:-}'
+      - '--cluster.peer-timeout=${ALERTMANAGER_CLUSTER_TIMEOUT:-15s}'
+      - '--cluster.gossip-interval=${ALERTMANAGER_GOSSIP_INTERVAL:-200ms}'
+      - '--cluster.pushpull-interval=${ALERTMANAGER_PUSHPULL_INTERVAL:-1m}'
+      - '--cluster.tcp-timeout=${ALERTMANAGER_TCP_TIMEOUT:-10s}'
+      - '--cluster.probe-timeout=${ALERTMANAGER_PROBE_TIMEOUT:-500ms}'
+      - '--cluster.probe-interval=${ALERTMANAGER_PROBE_INTERVAL:-1s}'
+      - '--cluster.settle-timeout=${ALERTMANAGER_SETTLE_TIMEOUT:-1m}'
+      - '--cluster.reconnect-interval=${ALERTMANAGER_RECONNECT_INTERVAL:-10s}'
+      - '--cluster.reconnect-timeout=${ALERTMANAGER_RECONNECT_TIMEOUT:-6h}'
+      - '--log.level=${ALERTMANAGER_LOG_LEVEL:-info}'
+      - '--log.format=${ALERTMANAGER_LOG_FORMAT:-logfmt}'
+
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
+    environment:
+      # Basic configuration
+      TZ: ${TZ}
+
+      # SMTP configuration for email alerts
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH_SECRET: ${SMTP_AUTH_SECRET:-}
+      SMTP_AUTH_IDENTITY: ${SMTP_AUTH_IDENTITY:-}
+      SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:-true}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+
+      # Telegram configuration
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+
+      # Slack configuration
+      SLACK_API_URL: ${SLACK_API_URL:-}
+      SLACK_CHANNEL: ${SLACK_CHANNEL:-}
+      SLACK_USERNAME: ${SLACK_USERNAME:-Alertmanager}
+
+      # PagerDuty configuration
+      PAGERDUTY_SERVICE_KEY: ${PAGERDUTY_SERVICE_KEY:-}
+      PAGERDUTY_URL: ${PAGERDUTY_URL:-https://events.pagerduty.com/v2/enqueue}
+
+      # OpsGenie configuration
+      OPSGENIE_API_KEY: ${OPSGENIE_API_KEY:-}
+      OPSGENIE_API_URL: ${OPSGENIE_API_URL:-https://api.opsgenie.com/}
+
+      # Discord configuration
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+
+      # Microsoft Teams configuration
+      MSTEAMS_WEBHOOK_URL: ${MSTEAMS_WEBHOOK_URL:-}
+
+      # General webhook configuration
+      WEBHOOK_URL: ${WEBHOOK_URL:-}
+
+      # Clustering configuration (for HA setup)
+      ALERTMANAGER_CLUSTER_ENABLED: ${ALERTMANAGER_CLUSTER_ENABLED:-false}
+      ALERTMANAGER_CLUSTER_NAME: ${ALERTMANAGER_CLUSTER_NAME:-alertmanager}
+
+      # Performance tuning
+      GOGC: ${ALERTMANAGER_GOGC:-100}
+      GOMAXPROCS: ${ALERTMANAGER_GOMAXPROCS:-2}
+
+    # ====================================================================
+    # HEALTH CHECK
+    # ====================================================================
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 9093 || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9093/-/healthy || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
 
-    ports:
-      - "127.0.0.1:9093:9093"
+    # ====================================================================
+    # LABELS
+    # ====================================================================
+    labels:
+      # Traefik routing
+      - "traefik.enable=true"
+      - "traefik.http.routers.alertmanager.entrypoints=websecure"
+      - "traefik.http.routers.alertmanager.rule=Host(`alertmanager.${PUBLIC_FQDN}`)"
+      - "traefik.http.routers.alertmanager.tls=true"
+      - "traefik.http.routers.alertmanager.tls.certResolver=http"
+      - "traefik.http.routers.alertmanager.service=alertmanager"
+      - "traefik.http.routers.alertmanager.middlewares=chain-oauth@file"
+      - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"
+
+      # Homepage Integration
+      - "homepage.group=Monitoring"
+      - "homepage.name=Alertmanager"
+      - "homepage.icon=alertmanager.svg"
+      - "homepage.href=https://alertmanager.${PUBLIC_FQDN}"
+      - "homepage.description=Alert Management & Routing"
+      - "homepage.weight=300"
+      - "homepage.widget.type=alertmanager"
+      - "homepage.widget.url=http://alertmanager:9093"
+
+      # Service Discovery
+      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update monitoring
+      - "diun.enable=true"
+      - "diun.watch_repo=true"
+
+      # Monitoring
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9093"
+      - "prometheus.io/path=/metrics"
+
+  # ====================================================================
+  # Alertmanager Secondary (for HA setup - optional)
+  # ====================================================================
+  alertmanager-secondary:
+    image: prom/alertmanager:v0.28.1
+    container_name: alertmanager-secondary
+    profiles:
+      - ha  # Only deployed when HA profile is active
+
+    security_opt:
+      - no-new-privileges:true
+
+    user: "${PUID:-65534}:${PGID:-65534}"
+    read_only: true
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+    networks:
+      - monitoring
 
     volumes:
-      - $DATADIR/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - $DATADIR/alertmanager/data:/alertmanager
+      - ${DATADIR}/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ${DATADIR}/alertmanager/templates:/etc/alertmanager/templates:ro
+      - ${DATADIR}/alertmanager-secondary/data:/alertmanager:rw
+
+    tmpfs:
+      - /tmp
 
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
-      - '--web.external-url=http://localhost:9093'
+      - '--web.listen-address=0.0.0.0:9093'
+      - '--cluster.listen-address=0.0.0.0:9094'
+      - '--cluster.peer=alertmanager:9094'
 
     environment:
-      TZ: $TZ
-      SMTP_HOST: $SMTP_HOST
-      SMTP_PORT: $SMTP_PORT
-      SMTP_FROM: $SMTP_FROM
-      SMTP_USERNAME: $SMTP_USERNAME
-      SMTP_PASSWORD: $SMTP_PASSWORD
-      ALERT_EMAIL_TO: $ALERT_EMAIL_TO
-      TELEGRAM_BOT_TOKEN: $TELEGRAM_BOT_TOKEN
-      TELEGRAM_CHAT_ID: $TELEGRAM_CHAT_ID
+      TZ: ${TZ}
 
     labels:
-      # Homepage Integration
-      - "homepage.group=Backend"
-      - "homepage.name=Alertmanager"
-      - "homepage.icon=alertmanager.svg"
-      - "homepage.description=Alert Management and Routing"
-      - "homepage.widget.type=alertmanager"
-      - "homepage.widget.url=http://alertmanager:9093"
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9093"
+      - "prometheus.io/path=/metrics"

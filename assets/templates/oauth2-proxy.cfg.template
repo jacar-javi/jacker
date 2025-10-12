@@ -1,0 +1,134 @@
+# OAuth2 Proxy Configuration
+# https://oauth2-proxy.github.io/oauth2-proxy/configuration/overview
+
+## Provider Configuration
+provider = "${OAUTH_PROVIDER:-google}"
+provider_display_name = "${OAUTH_PROVIDER_NAME:-Google}"
+
+# Client Configuration - Google OAuth
+client_id = "${OAUTH_CLIENT_ID}"
+client_secret = "${OAUTH_CLIENT_SECRET}"
+
+# Additional Google-specific settings
+google_admin_email = "${OAUTH_GOOGLE_ADMIN_EMAIL:-}"
+google_service_account_json = "${OAUTH_GOOGLE_SERVICE_ACCOUNT:-}"
+
+# GitHub OAuth (alternative provider)
+# github_org = "${OAUTH_GITHUB_ORG:-}"
+# github_team = "${OAUTH_GITHUB_TEAM:-}"
+
+# OIDC Provider (generic)
+# oidc_issuer_url = "${OAUTH_OIDC_ISSUER_URL:-}"
+# oidc_jwks_url = "${OAUTH_OIDC_JWKS_URL:-}"
+
+## OAuth2 Proxy Core Settings
+http_address = "0.0.0.0:4180"
+https_address = ""  # Disabled - Traefik handles TLS
+reverse_proxy = true
+real_client_ip_header = "X-Real-IP"
+
+## Session Configuration
+cookie_name = "_oauth2_proxy"
+cookie_secret = "${OAUTH_COOKIE_SECRET}"
+cookie_secure = true
+cookie_httponly = true
+cookie_samesite = "lax"
+cookie_expire = "${OAUTH_COOKIE_LIFETIME:-604800}s"
+cookie_refresh = "${OAUTH_COOKIE_REFRESH:-3600}s"
+
+## Redis Session Store (for distributed sessions)
+session_store_type = "${OAUTH_SESSION_STORE:-redis}"
+redis_connection_url = "redis://redis:6379/1"
+redis_connection_idle_timeout = "30s"
+redis_connection_max_idle = "5"
+redis_ca_path = ""
+redis_insecure_skip_tls_verify = true
+redis_use_cluster = false
+redis_cluster_connection_urls = []
+redis_sentinel_master_name = ""
+redis_sentinel_connection_urls = []
+
+## Authentication Settings
+email_domains = ["${OAUTH_EMAIL_DOMAINS:-*}"]
+authenticated_emails_file = ""
+skip_auth_regex = []
+skip_auth_preflight = false
+whitelist_domains = [".${PUBLIC_FQDN}"]
+
+## Authorization
+scope = "openid email profile"
+allowed_groups = []
+allowed_roles = []
+
+## Upstream Configuration
+upstreams = ["static://200"]  # Return 200 OK for authenticated requests
+pass_authorization_header = true
+pass_access_token = false
+pass_user_headers = true
+set_authorization_header = true
+set_xauthrequest = true
+skip_jwt_bearer_tokens = false
+
+## Request Signing (for upstream verification)
+signature_key = "${OAUTH_SIGNATURE_KEY:-}"
+
+## Proxy Headers
+pass_basic_auth = false
+pass_host_header = true
+proxy_websockets = true
+
+## Logging
+logging_local_time = false
+logging_compress = false
+logging_filename = ""
+logging_max_size = 100
+logging_max_age = 7
+logging_max_backups = 0
+standard_logging = true
+standard_logging_format = "[{{.Timestamp}}] [{{.File}}] {{.Message}}"
+request_logging = true
+request_logging_format = "{{.Client}} - {{.Username}} [{{.Timestamp}}] {{.Host}} {{.RequestMethod}} {{.Upstream}} {{.RequestURI}} {{.Protocol}} {{.UserAgent}} {{.StatusCode}} {{.ResponseSize}} {{.RequestDuration}}"
+auth_logging = true
+auth_logging_format = "{{.Client}} - {{.Username}} [{{.Timestamp}}] [{{.Status}}] {{.Message}}"
+
+## Security Headers
+ssl_insecure_skip_verify = false
+ssl_upstream_insecure_skip_verify = false
+force_https = false  # Traefik handles this
+custom_templates_dir = "/templates"
+
+## Endpoints
+ping_path = "/ping"
+ping_user_agent = ""
+ready_path = "/ready"
+metrics_address = ":9090"
+
+## Advanced Settings
+banner = ""
+footer = ""
+proxy_prefix = "/oauth2"
+api_routes = []
+
+## Rate Limiting (application level)
+flush_interval = "1s"
+
+## CSRF Protection
+csrf_cookie_name = "_oauth2_proxy_csrf"
+csrf_cookie_expire = "15m"
+csrf_cookie_secure = true
+csrf_cookie_httponly = true
+csrf_cookie_samesite = "strict"
+
+## Additional Security
+insecure_oidc_allow_unverified_email = false
+insecure_oidc_skip_issuer_verification = false
+skip_oidc_discovery = false
+oidc_email_claim = "email"
+oidc_groups_claim = "groups"
+oidc_username_claim = "email"
+
+## Request ID for tracing
+request_id_header = "X-Request-ID"
+
+## User info endpoint (for additional user data)
+user_id_claim = "email"

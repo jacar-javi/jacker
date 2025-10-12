@@ -340,27 +340,125 @@ ensure_crowdsec_database() {
 setup_oauth() {
     section "OAuth Setup"
 
-    # Create secrets directory
-    ensure_dir "$(get_jacker_root)/secrets"
+    local data_dir="$(get_data_dir)/oauth2-proxy"
+    local secrets_dir="$(get_jacker_root)/secrets"
 
-    # Configure OAuth secret
+    # Create directories
+    ensure_dir "$data_dir"
+    ensure_dir "$data_dir/templates"
+    ensure_dir "$secrets_dir"
+
+    # Configure OAuth2-Proxy
     configure_oauth_secret
+
+    # Setup custom templates
+    setup_oauth_templates
 
     success "OAuth setup complete"
 }
 
 # Configure OAuth secret
 configure_oauth_secret() {
-    subsection "Configuring OAuth secret"
+    subsection "Configuring OAuth2-Proxy"
 
-    local secret_file="$(get_jacker_root)/secrets/traefik_forward_oauth"
-    local template_file="$(get_assets_dir)/templates/traefik_forward_oauth.template"
+    local data_dir="$(get_data_dir)/oauth2-proxy"
+    local config_file="${data_dir}/oauth2-proxy.cfg"
+    local template_file="$(get_assets_dir)/templates/oauth2-proxy.cfg.template"
+
+    # Generate cookie secret if not exists
+    if [ -z "${OAUTH_COOKIE_SECRET:-}" ]; then
+        export OAUTH_COOKIE_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+        info "Generated new OAuth cookie secret"
+    fi
+
+    # Generate signature key if not exists
+    if [ -z "${OAUTH_SIGNATURE_KEY:-}" ]; then
+        export OAUTH_SIGNATURE_KEY=$(openssl rand -base64 32 | tr -d '\n')
+        info "Generated new OAuth signature key"
+    fi
+
+    # Set default provider
+    export OAUTH_PROVIDER="${OAUTH_PROVIDER:-google}"
+
+    # Set email domains from whitelist
+    if [ -n "${OAUTH_WHITELIST:-}" ]; then
+        export OAUTH_EMAIL_DOMAINS=$(echo "$OAUTH_WHITELIST" | sed 's/[^@]*@//g' | tr ',' '\n' | sort -u | head -1)
+    else
+        export OAUTH_EMAIL_DOMAINS="*"
+    fi
 
     if [ -f "$template_file" ]; then
-        create_from_template "$template_file" "$secret_file"
+        create_from_template "$template_file" "$config_file"
+        chmod 600 "$config_file"
+        success "OAuth2-Proxy configured"
     else
-        warning "OAuth template not found"
+        warning "OAuth2-Proxy template not found"
     fi
+}
+
+# Setup OAuth templates
+setup_oauth_templates() {
+    subsection "Setting up OAuth templates"
+
+    local templates_dir="$(get_data_dir)/oauth2-proxy/templates"
+
+    # Create sign-in page
+    cat > "$templates_dir/sign_in.html" <<'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - Jacker Platform</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 { color: #333; font-size: 1.75rem; text-align: center; }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 0.875rem;
+            background: #4285f4;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            text-align: center;
+            border: none;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        .btn:hover { background: #357ae8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Jacker Platform</h1>
+        <p style="text-align: center; color: #666;">Secure Authentication Required</p>
+        <form method="POST" action="/oauth2/sign_in">
+            <input type="hidden" name="rd" value="{{ .Redirect }}">
+            <button type="submit" name="provider" value="{{ .ProviderName | lower }}" class="btn">
+                Sign in with {{ .ProviderName }}
+            </button>
+        </form>
+    </div>
+</body>
+</html>
+EOF
 }
 
 # ============================================================================
@@ -784,44 +882,6 @@ scale_service() {
     fi
 }
 
-# ============================================================================
-# OAuth2 Proxy Functions
-# ============================================================================
-
-# Setup OAuth2 Proxy
-setup_oauth2_proxy() {
-    section "OAuth2 Proxy Setup"
-    
-    local data_dir="$(get_data_dir)/oauth2-proxy"
-    local secrets_dir="$(get_jacker_root)/secrets"
-    
-    ensure_dir "$data_dir"
-    ensure_dir "$secrets_dir"
-    
-    # Create configuration file
-    local config_file="${data_dir}/oauth2-proxy.cfg"
-    cat > "$config_file" <<EOF
-provider = "${OAUTH2_PROXY_PROVIDER:-google}"
-client_id = "${OAUTH2_PROXY_CLIENT_ID}"
-client_secret = "${OAUTH2_PROXY_CLIENT_SECRET}"
-cookie_secret = "${OAUTH2_PROXY_COOKIE_SECRET}"
-email_domains = ["${OAUTH2_PROXY_EMAIL_DOMAINS:-*}"]
-upstreams = ["http://127.0.0.1:8080/"]
-http_address = "0.0.0.0:4180"
-EOF
-    
-    # Create secrets file
-    local secrets_file="${secrets_dir}/oauth2_proxy_secrets.env"
-    cat > "$secrets_file" <<EOF
-CLIENT_ID=${OAUTH2_PROXY_CLIENT_ID}
-CLIENT_SECRET=${OAUTH2_PROXY_CLIENT_SECRET}
-COOKIE_SECRET=${OAUTH2_PROXY_COOKIE_SECRET}
-EOF
-    
-    chmod 600 "$secrets_file"
-    
-    success "OAuth2 Proxy configured"
-}
 
 check_services_health() {
     section "Service Health Check"
@@ -865,8 +925,7 @@ export -f setup_crowdsec configure_crowdsec_db register_crowdsec_bouncers instal
 export -f setup_traefik configure_traefik
 export -f setup_postgresql wait_for_postgresql ensure_crowdsec_database
 export -f setup_redis
-export -f setup_oauth configure_oauth_secret
-export -f setup_oauth2_proxy
+export -f setup_oauth configure_oauth_secret setup_oauth_templates
 export -f setup_monitoring setup_prometheus setup_grafana setup_loki setup_alertmanager
 export -f check_services_health
 export -f check_traefik_health check_crowdsec_health check_postgresql_health

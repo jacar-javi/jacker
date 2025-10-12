@@ -1,0 +1,10 @@
+[
+  {
+    "targets": ["crowdsec:6060"],
+    "labels": {
+      "job": "crowdsec",
+      "service": "crowdsec",
+      "component": "security-ips"
+    }
+  }
+]

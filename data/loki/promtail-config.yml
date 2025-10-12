@@ -1,63 +1,77 @@
+# Promtail Enhanced Configuration
+# https://grafana.com/docs/loki/latest/send-data/promtail/configuration/
+
 server:
   http_listen_port: 9080
   grpc_listen_port: 0
-  log_level: info
+  log_level: ${PROMTAIL_LOG_LEVEL:-info}
 
 positions:
-  filename: /tmp/positions.yaml
+  filename: /positions/positions.yaml
+  sync_period: 10s
 
 clients:
-  - url: http://loki:3100/loki/api/v1/push
+  - url: ${LOKI_URL:-http://loki:3100/loki/api/v1/push}
+    tenant_id: ${PROMTAIL_TENANT_ID:-}
+    batchwait: 1s
+    batchsize: 1048576
+    timeout: 10s
+    backoff_config:
+      min_period: 500ms
+      max_period: 5m
+      max_retries: 10
 
 scrape_configs:
-  # Docker containers log scraping
+  # Docker containers via socket-proxy
   - job_name: docker
     docker_sd_configs:
-      - host: unix:///var/run/docker.sock
-        refresh_interval: 5s
+      - host: tcp://socket-proxy:2375
+        refresh_interval: 30s
+        filters:
+          - name: label
+            values: ["com.docker.compose.project"]
     relabel_configs:
-      # Container name as a label
       - source_labels: ['__meta_docker_container_name']
+        target_label: 'container_name'
         regex: '/(.*)'
-        target_label: 'container'
-
-      # Container ID as a label
-      - source_labels: ['__meta_docker_container_id']
-        target_label: 'container_id'
-
-      # Image name as a label
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'stream'
-
-      # Docker compose project
       - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
         target_label: 'compose_project'
-
-      # Docker compose service
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
         target_label: 'compose_service'
-
-      # Optional: Add homepage labels if they exist (for organization)
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'stream'
       - source_labels: ['__meta_docker_container_label_homepage_group']
         target_label: 'app_group'
-
       - source_labels: ['__meta_docker_container_label_homepage_name']
         target_label: 'app_name'
-
-      # Drop all other Docker labels to prevent high cardinality
-      # (prevents HTTP 400 errors from excessive labels)
+      - target_label: 'host'
+        replacement: '${HOSTNAME}'
 
   # System logs
-  - job_name: system
+  - job_name: syslog
     static_configs:
       - targets:
           - localhost
         labels:
-          job: varlogs
+          job: syslog
           host: ${HOSTNAME}
-          __path__: /var/log/*.log
+          __path__: /var/log/syslog
 
-  # Traefik access logs
+  # Journal logs
+  - job_name: journal
+    journal:
+      path: /run/log/journal
+      max_age: 12h
+      labels:
+        job: systemd-journal
+        host: ${HOSTNAME}
+    relabel_configs:
+      - source_labels: ['__journal__systemd_unit']
+        target_label: 'unit'
+      - source_labels: ['__journal__hostname']
+        target_label: 'hostname'
+
+  # Traefik logs
   - job_name: traefik
     static_configs:
       - targets:
@@ -65,11 +79,14 @@ scrape_configs:
         labels:
           job: traefik
           host: ${HOSTNAME}
-          __path__: /logs/traefik/access.log
-    pipeline_stages:
-      - json:
-          expressions:
-            level: level
-            msg: msg
-      - labels:
-          level:
+          __path__: /traefik/logs/*.log
+
+  # CrowdSec logs
+  - job_name: crowdsec
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: crowdsec
+          host: ${HOSTNAME}
+          __path__: /crowdsec/logs/*.log

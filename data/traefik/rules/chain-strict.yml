@@ -1,0 +1,12 @@
+http:
+  middlewares:
+    # Strict security chain for sensitive services
+    chain-strict:
+      chain:
+        middlewares:
+          - middlewares-traefik-bouncer
+          - middlewares-rate-limit-strict
+          - middlewares-secure-headers
+          - middlewares-oauth
+          - middlewares-cache-none
+          - middlewares-compress

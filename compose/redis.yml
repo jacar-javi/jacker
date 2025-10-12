@@ -1,55 +1,274 @@
 services:
+  # ====================================================================
+  # Redis - Enhanced Cache and Session Store Configuration
+  # Official Image: https://hub.docker.com/_/redis
+  # ====================================================================
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine  # Alpine for smaller footprint
     container_name: redis
 
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined  # Or custom profile
+      - seccomp:unconfined
+
+    # Run as specific user
+    user: "${PUID:-999}:${PGID:-999}"
+
+    # Restart policy
     restart: unless-stopped
+
+    # ====================================================================
+    # RESOURCE LIMITS
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+    # System limits
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    sysctls:
+      - net.core.somaxconn=65535
+      - net.ipv4.tcp_max_syn_backlog=65535
+
+    # ====================================================================
+    # NETWORK CONFIGURATION
+    # ====================================================================
+    networks:
+      cache:
+        aliases:
+          - redis-cache
+          - redis-server
+      database:  # For services that use Redis as a database
+      monitoring:  # For metrics collection
+      traefik_proxy:  # For potential web interface
+
+    # Port exposure (only bind to localhost for security)
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
+    volumes:
+      # Data persistence
+      - ${DATADIR}/redis/data:/data:rw
+
+      # Configuration file
+      - ${DATADIR}/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+
+      # ACL file for user management
+      - ${DATADIR}/redis/users.acl:/usr/local/etc/redis/users.acl:ro
+
+      # TLS certificates
+      - ${DATADIR}/redis/certs:/tls:ro
+
+      # Logs
+      - ${DATADIR}/redis/logs:/logs:rw
+
+      # Timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # ====================================================================
+    # COMMAND CONFIGURATION
+    # ====================================================================
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf
+      --maxmemory ${REDIS_MAXMEMORY:-512mb}
+      --maxmemory-policy ${REDIS_MAXMEMORY_POLICY:-allkeys-lru}
+      --save "${REDIS_SAVE:-60 1000 300 100 600 1}"
+      --appendonly ${REDIS_AOF:-yes}
+      --appendfsync ${REDIS_AOF_SYNC:-everysec}
+      --tcp-backlog ${REDIS_TCP_BACKLOG:-511}
+      --tcp-keepalive ${REDIS_TCP_KEEPALIVE:-300}
+      --timeout ${REDIS_TIMEOUT:-0}
+      --databases ${REDIS_DATABASES:-16}
+      --loglevel ${REDIS_LOGLEVEL:-notice}
+      --logfile /logs/redis.log
+      --requirepass ${REDIS_PASSWORD:-}
+      --bind 0.0.0.0
+      --protected-mode ${REDIS_PROTECTED_MODE:-yes}
+      --port 6379
+      --rdbcompression ${REDIS_RDB_COMPRESSION:-yes}
+      --rdbchecksum ${REDIS_RDB_CHECKSUM:-yes}
+      --stop-writes-on-bgsave-error ${REDIS_STOP_WRITES_ON_BGSAVE_ERROR:-yes}
+      --lazyfree-lazy-eviction ${REDIS_LAZY_EVICTION:-yes}
+      --lazyfree-lazy-expire ${REDIS_LAZY_EXPIRE:-yes}
+      --lazyfree-lazy-server-del ${REDIS_LAZY_SERVER_DEL:-yes}
+      --replica-lazy-flush ${REDIS_REPLICA_LAZY_FLUSH:-yes}
+      --io-threads ${REDIS_IO_THREADS:-4}
+      --io-threads-do-reads ${REDIS_IO_THREADS_DO_READS:-yes}
+
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
+    environment:
+      # Basic configuration
+      TZ: ${TZ}
+
+      # Redis configuration
+      REDIS_REPLICATION_MODE: ${REDIS_REPLICATION_MODE:-master}
+      REDIS_MASTER_HOST: ${REDIS_MASTER_HOST:-}
+      REDIS_MASTER_PORT: ${REDIS_MASTER_PORT:-6379}
+      REDIS_MASTER_PASSWORD: ${REDIS_MASTER_PASSWORD:-}
+
+      # Cluster configuration
+      REDIS_CLUSTER_ENABLED: ${REDIS_CLUSTER_ENABLED:-no}
+      REDIS_CLUSTER_CONFIG_FILE: ${REDIS_CLUSTER_CONFIG_FILE:-nodes.conf}
+      REDIS_CLUSTER_NODE_TIMEOUT: ${REDIS_CLUSTER_NODE_TIMEOUT:-5000}
+
+      # TLS configuration
+      REDIS_TLS_ENABLED: ${REDIS_TLS_ENABLED:-no}
+      REDIS_TLS_PORT: ${REDIS_TLS_PORT:-6380}
+      REDIS_TLS_CERT_FILE: /tls/redis.crt
+      REDIS_TLS_KEY_FILE: /tls/redis.key
+      REDIS_TLS_CA_FILE: /tls/ca.crt
+      REDIS_TLS_DH_PARAMS_FILE: /tls/dhparam.pem
+
+    # ====================================================================
+    # HEALTH CHECK
+    # ====================================================================
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a $$REDIS_PASSWORD ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    # ====================================================================
+    # LABELS
+    # ====================================================================
+    labels:
+      # Traefik - Not exposed via web by default
+      - "traefik.enable=false"
+
+      # Homepage Integration
+      - "homepage.group=Infrastructure"
+      - "homepage.name=Redis"
+      - "homepage.icon=redis.svg"
+      - "homepage.description=In-Memory Data Store & Cache"
+      - "homepage.weight=500"
+
+      # Monitoring
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9121"  # redis_exporter port
+
+      # Service Discovery
+      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update cache
+      - "diun.enable=true"
+      - "diun.watch_repo=true"
+
+  # ====================================================================
+  # Redis Exporter - Metrics for Prometheus
+  # ====================================================================
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.58.0-alpine
+    container_name: redis-exporter
 
     security_opt:
       - no-new-privileges:true
 
+    restart: unless-stopped
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
     networks:
-      - traefik_proxy
-      - default
+      - cache
+      - monitoring
 
-    command: >
-      redis-server
-      --maxmemory ${REDIS_MAXMEMORY:-256mb}
-      --maxmemory-policy allkeys-lru
-      --save 60 1000
-      --appendonly yes
-      --appendfsync everysec
-      --tcp-backlog 511
-      --timeout 300
-      --tcp-keepalive 60
-      --loglevel notice
-
-    volumes:
-      - $DATADIR/redis:/data
+    ports:
+      - "127.0.0.1:9121:9121"
 
     environment:
-      - TZ=$TZ
-
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-
-    # Resource limits (optional)
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.1'
-          memory: 128M
+      REDIS_ADDR: "redis://redis:6379"
+      REDIS_USER: ${REDIS_USER:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_EXPORTER_LOG_FORMAT: json
+      REDIS_EXPORTER_NAMESPACE: redis
+      REDIS_EXPORTER_WEB_LISTEN_ADDRESS: ":9121"
+      REDIS_EXPORTER_WEB_TELEMETRY_PATH: "/metrics"
+      REDIS_EXPORTER_INCL_SYSTEM_METRICS: "true"
+      REDIS_EXPORTER_PING_ON_CONNECT: "true"
+      REDIS_EXPORTER_CHECK_KEYS: ${REDIS_CHECK_KEYS:-}
+      REDIS_EXPORTER_CHECK_SINGLE_KEYS: ${REDIS_CHECK_SINGLE_KEYS:-}
+      REDIS_EXPORTER_CHECK_STREAMS: ${REDIS_CHECK_STREAMS:-}
+      REDIS_EXPORTER_CHECK_SINGLE_STREAMS: ${REDIS_CHECK_SINGLE_STREAMS:-}
+      REDIS_EXPORTER_COUNT_KEYS: ${REDIS_COUNT_KEYS:-}
+      REDIS_EXPORTER_SCRIPT: ${REDIS_EXPORTER_SCRIPT:-}
+      REDIS_EXPORTER_DEBUG: ${REDIS_EXPORTER_DEBUG:-false}
+      REDIS_EXPORTER_SET_CLIENT_NAME: "true"
+      REDIS_EXPORTER_IS_TILE38: "false"
+      REDIS_EXPORTER_IS_CLUSTER: ${REDIS_CLUSTER_ENABLED:-false}
+      REDIS_EXPORTER_EXPORT_CLIENT_LIST: "true"
+      REDIS_EXPORTER_EXPORT_CLIENT_PORT: "false"
+      REDIS_EXPORTER_SKIP_TLS_VERIFICATION: "false"
+      REDIS_EXPORTER_CONNECTION_TIMEOUT: "15s"
+      REDIS_EXPORTER_INCL_CONFIG_METRICS: "true"
 
     labels:
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9121"
+      - "prometheus.io/path=/metrics"
+
+  # ====================================================================
+  # Redis Commander - Web Management UI (Optional)
+  # ====================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+
+    security_opt:
+      - no-new-privileges:true
+
+    restart: unless-stopped
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    networks:
+      - cache
+      - traefik_proxy
+
+    environment:
+      REDIS_HOSTS: "local:redis:6379:0:${REDIS_PASSWORD}"
+      HTTP_USER: ${REDIS_COMMANDER_USER:-admin}
+      HTTP_PASSWORD: ${REDIS_COMMANDER_PASSWORD:-}
+      PORT: 8081
+      ADDRESS: 0.0.0.0
+      URL_PREFIX: ${REDIS_COMMANDER_URL_PREFIX:-}
+      TRUST_PROXY: "true"
+      NO_LOG_DATA: ${REDIS_COMMANDER_NO_LOG_DATA:-true}
+      FOLDING_CHAR: ":"
+      FLUSHDB_BUTTON: ${REDIS_COMMANDER_FLUSHDB:-false}
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.redis-commander.entrypoints=websecure"
+      - "traefik.http.routers.redis-commander.rule=Host(`redis.${PUBLIC_FQDN}`)"
+      - "traefik.http.routers.redis-commander.tls=true"
+      - "traefik.http.routers.redis-commander.tls.certResolver=http"
+      - "traefik.http.routers.redis-commander.service=redis-commander"
+      - "traefik.http.routers.redis-commander.middlewares=chain-oauth@file"
+      - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"
+
       # Homepage Integration
-      - "homepage.group=Backend"
-      - "homepage.name=Redis"
+      - "homepage.group=Tools"
+      - "homepage.name=Redis Commander"
       - "homepage.icon=redis.svg"
-      - "homepage.description=In-Memory Data Store & Cache"
+      - "homepage.href=https://redis.${PUBLIC_FQDN}"
+      - "homepage.description=Redis Management UI"

@@ -1,0 +1,434 @@
+{
+  "dashboard": {
+    "uid": "oauth2-proxy",
+    "title": "OAuth2-Proxy Authentication Monitoring",
+    "tags": ["oauth", "authentication", "security"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+        "id": 1,
+        "type": "stat",
+        "title": "Authentication Status",
+        "targets": [
+          {
+            "expr": "up{job=\"oauth2-proxy\"}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              { "type": "value", "value": 0, "text": "DOWN", "color": "red" },
+              { "type": "value", "value": 1, "text": "UP", "color": "green" }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "red", "value": null },
+                { "color": "green", "value": 1 }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+        "id": 2,
+        "type": "stat",
+        "title": "Active Sessions",
+        "targets": [
+          {
+            "expr": "oauth2_proxy_session_count",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 500 },
+                { "color": "red", "value": 1000 }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+        "id": 3,
+        "type": "stat",
+        "title": "Auth Success Rate",
+        "targets": [
+          {
+            "expr": "(1 - (rate(oauth2_proxy_authentication_failures_total[5m]) / rate(oauth2_proxy_authentication_attempts_total[5m]))) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "decimals": 1,
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "red", "value": null },
+                { "color": "yellow", "value": 90 },
+                { "color": "green", "value": 95 }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+        "id": 4,
+        "type": "stat",
+        "title": "P95 Auth Latency",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(oauth2_proxy_request_duration_seconds_bucket[5m])) by (le))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 500 },
+                { "color": "red", "value": 1000 }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+        "id": 5,
+        "type": "timeseries",
+        "title": "Authentication Attempts",
+        "targets": [
+          {
+            "expr": "rate(oauth2_proxy_authentication_attempts_total[5m]) * 60",
+            "legendFormat": "Total Attempts",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(oauth2_proxy_authentication_successes_total[5m]) * 60",
+            "legendFormat": "Successful",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(oauth2_proxy_authentication_failures_total[5m]) * 60",
+            "legendFormat": "Failed",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "rpm",
+            "custom": {
+              "lineWidth": 2,
+              "fillOpacity": 10,
+              "showPoints": "never",
+              "spanNulls": true
+            }
+          }
+        },
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "bottom",
+            "calcs": ["mean", "max", "last"]
+          }
+        }
+      },
+      {
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+        "id": 6,
+        "type": "timeseries",
+        "title": "Response Time Percentiles",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(oauth2_proxy_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+            "legendFormat": "P50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.90, sum(rate(oauth2_proxy_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+            "legendFormat": "P90",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(oauth2_proxy_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+            "legendFormat": "P95",
+            "refId": "C"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(oauth2_proxy_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+            "legendFormat": "P99",
+            "refId": "D"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "custom": {
+              "lineWidth": 2,
+              "fillOpacity": 10,
+              "showPoints": "never",
+              "spanNulls": true
+            }
+          }
+        }
+      },
+      {
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+        "id": 7,
+        "type": "timeseries",
+        "title": "Session Management",
+        "targets": [
+          {
+            "expr": "oauth2_proxy_session_count",
+            "legendFormat": "Active Sessions",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(oauth2_proxy_cookie_refresh_total[5m]) * 60",
+            "legendFormat": "Cookie Refreshes/min",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(oauth2_proxy_cookie_refresh_errors_total[5m]) * 60",
+            "legendFormat": "Refresh Errors/min",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "lineWidth": 2,
+              "fillOpacity": 10,
+              "showPoints": "never",
+              "spanNulls": true
+            }
+          }
+        },
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "bottom",
+            "calcs": ["mean", "max", "last"]
+          }
+        }
+      },
+      {
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+        "id": 8,
+        "type": "timeseries",
+        "title": "Redis Session Store",
+        "targets": [
+          {
+            "expr": "rate(oauth2_proxy_redis_operations_total[5m]) * 60",
+            "legendFormat": "Operations/min",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(oauth2_proxy_redis_connection_errors_total[5m]) * 60",
+            "legendFormat": "Connection Errors/min",
+            "refId": "B"
+          },
+          {
+            "expr": "oauth2_proxy_redis_connection_pool_size",
+            "legendFormat": "Connection Pool Size",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "lineWidth": 2,
+              "fillOpacity": 10,
+              "showPoints": "never",
+              "spanNulls": true
+            }
+          }
+        }
+      },
+      {
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 20 },
+        "id": 9,
+        "type": "piechart",
+        "title": "Authentication Methods",
+        "targets": [
+          {
+            "expr": "sum(rate(oauth2_proxy_authentication_attempts_total[24h])) by (provider)",
+            "legendFormat": "{{provider}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "gridPos": { "h": 8, "w": 8, "x": 8, "y": 20 },
+        "id": 10,
+        "type": "piechart",
+        "title": "Failure Reasons",
+        "targets": [
+          {
+            "expr": "sum(rate(oauth2_proxy_authentication_failures_total[24h])) by (reason)",
+            "legendFormat": "{{reason}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 20 },
+        "id": 11,
+        "type": "table",
+        "title": "Top Authenticated Users",
+        "targets": [
+          {
+            "expr": "topk(10, sum by (user) (rate(oauth2_proxy_authentication_successes_total[24h])))",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto"
+            }
+          }
+        }
+      },
+      {
+        "gridPos": { "h": 6, "w": 24, "x": 0, "y": 28 },
+        "id": 12,
+        "type": "logs",
+        "title": "Recent Authentication Errors",
+        "targets": [
+          {
+            "expr": "{container=\"oauth\"} |~ \"ERROR|WARN\" | json",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": false,
+          "wrapLogMessage": true,
+          "sortOrder": "Descending"
+        }
+      },
+      {
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 34 },
+        "id": 13,
+        "type": "gauge",
+        "title": "Memory Usage",
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{name=\"oauth\"} / container_spec_memory_limit_bytes{name=\"oauth\"} * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 60 },
+                { "color": "red", "value": 80 }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 34 },
+        "id": 14,
+        "type": "gauge",
+        "title": "CPU Usage",
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{name=\"oauth\"}[5m]) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 50 },
+                { "color": "red", "value": 75 }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "gridPos": { "h": 4, "w": 12, "x": 12, "y": 34 },
+        "id": 15,
+        "type": "stat",
+        "title": "Provider Health",
+        "targets": [
+          {
+            "expr": "1 - (rate(oauth2_proxy_provider_api_errors_total[5m]) / rate(oauth2_proxy_provider_api_requests_total[5m]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "decimals": 2,
+            "mappings": [
+              { "type": "range", "from": 0, "to": 0.9, "text": "DEGRADED", "color": "red" },
+              { "type": "range", "from": 0.9, "to": 0.99, "text": "WARNING", "color": "yellow" },
+              { "type": "range", "from": 0.99, "to": 1, "text": "HEALTHY", "color": "green" }
+            ]
+          }
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "datasource",
+          "type": "datasource",
+          "query": "prometheus",
+          "current": {
+            "text": "Prometheus",
+            "value": "Prometheus"
+          }
+        }
+      ]
+    }
+  },
+  "overwrite": true
+}

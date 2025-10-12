@@ -216,17 +216,6 @@ else
 	@echo "$(RED)Usage: make shell SERVICE=traefik$(NC)"
 endif
 
-test: ## Run all tests
-	@./tests/run_tests.sh all
-
-test-unit: ## Run unit tests only
-	@./tests/run_tests.sh unit
-
-test-integration: ## Run integration tests only
-	@./tests/run_tests.sh integration
-
-test-setup: ## Install test dependencies
-	@./tests/setup_bats.sh
 
 version: ## Show component versions
 	@echo "$(BLUE)Component Versions:$(NC)"

@@ -1,0 +1,18 @@
+[
+  {
+    "targets": ["postgres-exporter:9187"],
+    "labels": {
+      "job": "postgres",
+      "instance": "postgres",
+      "component": "database"
+    }
+  },
+  {
+    "targets": ["redis-exporter:9121"],
+    "labels": {
+      "job": "redis",
+      "instance": "redis",
+      "component": "cache"
+    }
+  }
+]

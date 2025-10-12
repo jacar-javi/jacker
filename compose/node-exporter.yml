@@ -1,32 +1,197 @@
 services:
-  # Node Exporter - Metrics to Prometheus
+  # ====================================================================
+  # Node Exporter - Enhanced System Metrics Exporter
+  # Official Image: https://hub.docker.com/r/prom/node-exporter
+  # ====================================================================
   node-exporter:
-    container_name: node-exporter
     image: prom/node-exporter:v1.9.1
+    container_name: node-exporter
+
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
     security_opt:
       - no-new-privileges:true
+      - apparmor:unconfined  # Or custom profile
+      - seccomp:unconfined
+
+    # Run as nobody user
+    user: "65534:65534"
+
+    # Read-only root filesystem
+    read_only: true
+
+    # Required for accessing host metrics
+    pid: host
+    network_mode: host
+
+    # Restart policy
     restart: unless-stopped
 
+    # ====================================================================
+    # RESOURCE LIMITS
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
+    volumes:
+      # Host filesystem access (read-only)
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+
+      # Additional mounts for specific collectors
+      - /etc/hostname:/etc/host_hostname:ro
+      - /etc/machine-id:/etc/host_machine-id:ro
+      - /etc/os-release:/etc/host_os-release:ro
+
+      # Timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # ====================================================================
+    # COMMAND CONFIGURATION
+    # ====================================================================
+    command:
+      # Path configuration
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--path.udev.data=/host/run/udev/data'
+
+      # Web configuration
+      - '--web.listen-address=:${NODE_EXPORTER_PORT:-9100}'
+      - '--web.telemetry-path=/metrics'
+      - '--web.disable-exporter-metrics=${NODE_EXPORTER_DISABLE_EXPORTER_METRICS:-false}'
+      - '--web.max-requests=${NODE_EXPORTER_MAX_REQUESTS:-40}'
+
+      # Collectors to enable (comprehensive list)
+      - '--collector.arp'
+      - '--collector.bcache'
+      - '--collector.bonding'
+      - '--collector.conntrack'
+      - '--collector.cpu'
+      - '--collector.cpufreq'
+      - '--collector.diskstats'
+      - '--collector.edac'
+      - '--collector.entropy'
+      - '--collector.ethtool'
+      - '--collector.fibrechannel'
+      - '--collector.filefd'
+      - '--collector.filesystem'
+      - '--collector.hwmon'
+      - '--collector.infiniband'
+      - '--collector.interrupts'
+      - '--collector.ipvs'
+      - '--collector.loadavg'
+      - '--collector.mdadm'
+      - '--collector.meminfo'
+      - '--collector.netclass'
+      - '--collector.netdev'
+      - '--collector.netstat'
+      - '--collector.nfs'
+      - '--collector.nfsd'
+      - '--collector.nvme'
+      - '--collector.os'
+      - '--collector.powersupplyclass'
+      - '--collector.pressure'
+      - '--collector.processes'
+      - '--collector.rapl'
+      - '--collector.schedstat'
+      - '--collector.selinux'
+      - '--collector.sockstat'
+      - '--collector.softnet'
+      - '--collector.stat'
+      - '--collector.systemd'
+      - '--collector.tcpstat'
+      - '--collector.textfile'
+      - '--collector.thermal_zone'
+      - '--collector.time'
+      - '--collector.timex'
+      - '--collector.udp_queues'
+      - '--collector.uname'
+      - '--collector.vmstat'
+      - '--collector.wifi'
+      - '--collector.xfs'
+      - '--collector.zfs'
+
+      # Filesystem collector configuration
+      - '--collector.filesystem.mount-points-exclude=${NODE_EXPORTER_FS_EXCLUDE:-^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)}'
+      - '--collector.filesystem.fs-types-exclude=${NODE_EXPORTER_FS_TYPES_EXCLUDE:-^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$}'
+
+      # Netclass collector configuration
+      - '--collector.netclass.ignored-devices=${NODE_EXPORTER_NETCLASS_IGNORE:-^(veth|cali|[a-f0-9]{15}).*}'
+      - '--collector.netdev.device-exclude=${NODE_EXPORTER_NETDEV_EXCLUDE:-^(veth|cali|[a-f0-9]{15}).*}'
+
+      # Diskstats collector configuration
+      - '--collector.diskstats.device-exclude=${NODE_EXPORTER_DISKSTATS_EXCLUDE:-^(ram|loop|fd|(h|s|v|xv)d[a-z]|nvme\\d+n\\d+p)\\d+$}'
+
+      # Systemd collector configuration
+      - '--collector.systemd.unit-include=${NODE_EXPORTER_SYSTEMD_INCLUDE:-^(docker|containerd|kubelet|sshd|networkd|resolved|systemd-.*)\\.service$}'
+      - '--collector.systemd.enable-task-metrics'
+      - '--collector.systemd.enable-restarts-metrics'
+      - '--collector.systemd.enable-start-time-metrics'
+
+      # Textfile collector directory
+      - '--collector.textfile.directory=/var/lib/node_exporter/textfile_collector'
+
+      # Logging
+      - '--log.level=${NODE_EXPORTER_LOG_LEVEL:-info}'
+      - '--log.format=${NODE_EXPORTER_LOG_FORMAT:-logfmt}'
+
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
+    environment:
+      # Basic configuration
+      TZ: ${TZ}
+
+      # Performance tuning
+      GOGC: ${NODE_EXPORTER_GOGC:-100}
+      GOMAXPROCS: ${NODE_EXPORTER_GOMAXPROCS:-2}
+
+      # Node metadata
+      NODE_NAME: ${HOSTNAME}
+      NODE_ID: ${NODE_ID:-}
+      NODE_LABELS: ${NODE_LABELS:-}
+
+    # ====================================================================
+    # HEALTH CHECK
+    # ====================================================================
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9100/"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9100/metrics || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 20s
 
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - "--path.procfs=/host/proc"
-      - "--path.sysfs=/host/sys"
-      - "--collector.filesystem.ignored-mount-points"
-      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs|rootfs/var/lib/docker/plugins)($$|/)"
-
+    # ====================================================================
+    # LABELS
+    # ====================================================================
     labels:
       # Homepage Integration
-      - "homepage.group=Backend"
+      - "homepage.group=Monitoring"
       - "homepage.name=Node Exporter"
-      - "homepage.description=Exporter for hardware and OS metrics"
-      - "homepage.href=https://grafana.$PUBLIC_FQDN/d/rYdddlPWk/node-exporter-full"
+      - "homepage.icon=node-exporter.svg"
+      - "homepage.description=System Metrics Exporter"
+      - "homepage.href=https://grafana.${PUBLIC_FQDN}/d/rYdddlPWk/node-exporter-full"
+      - "homepage.weight=420"
+
+      # Service Discovery
+      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update monitoring
+      - "diun.enable=true"
+      - "diun.watch_repo=true"
+
+      # Monitoring
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9100"
+      - "prometheus.io/path=/metrics"

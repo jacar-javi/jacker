@@ -1,42 +1,277 @@
 services:
+  # ====================================================================
+  # PostgreSQL - Enhanced Database Configuration
+  # Official Image: https://hub.docker.com/_/postgres
+  # ====================================================================
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17-alpine  # Alpine for smaller footprint
     container_name: postgres
 
-    restart: unless-stopped
-
-    networks:
-      - traefik_proxy
-
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
     security_opt:
       - no-new-privileges:true
+      - apparmor:unconfined  # Or custom profile
+      - seccomp:unconfined
 
+    # Run as specific user
+    user: "${PUID:-999}:${PGID:-999}"  # Default PostgreSQL user
+
+    # Restart policy
+    restart: unless-stopped
+
+    # ====================================================================
+    # RESOURCE LIMITS
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M  # Adjust based on workload
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Memory and process limits
+    shm_size: 256MB  # Shared memory for PostgreSQL
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 32768
+        hard: 32768
+
+    # ====================================================================
+    # NETWORK CONFIGURATION
+    # ====================================================================
+    networks:
+      database:
+        aliases:
+          - postgres-db
+          - postgresql
+      monitoring:
+      backup:
+
+    # Port exposure (only bind to localhost for security)
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
     volumes:
-      - $DATADIR/postgres/data:/var/lib/postgresql/data
-      - $DATADIR/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      # Data directory
+      - ${DATADIR}/postgres/data:/var/lib/postgresql/data:rw
 
+      # Custom configuration
+      - ${DATADIR}/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ${DATADIR}/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+
+      # Init scripts
+      - ${DATADIR}/postgres/init:/docker-entrypoint-initdb.d:ro
+
+      # Backup directory
+      - ${DATADIR}/postgres/backups:/backups:rw
+
+      # WAL archive directory (for PITR)
+      - ${DATADIR}/postgres/archive:/archive:rw
+
+      # Unix socket directory (for local connections)
+      - ${DATADIR}/postgres/run:/var/run/postgresql:rw
+
+      # SSL certificates
+      - ${DATADIR}/postgres/ssl:/var/lib/postgresql/ssl:ro
+
+      # Timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # ====================================================================
+    # COMMAND OVERRIDE
+    # ====================================================================
     command: >
-      postgres -c config_file=/etc/postgresql/postgresql.conf
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+      -c ssl=on
+      -c ssl_cert_file=/var/lib/postgresql/ssl/server.crt
+      -c ssl_key_file=/var/lib/postgresql/ssl/server.key
 
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
     environment:
-      POSTGRES_DB: $POSTGRES_DB
-      POSTGRES_USER: $POSTGRES_USER
-      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      # Basic Configuration
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
-      PUID: $PUID
-      PGID: $PGID
-      TZ: $TZ
+      TZ: ${TZ}
 
+      # Additional databases and users (init scripts)
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_MULTIPLE_DATABASES:-crowdsec_db,authentik_db,grafana_db}
+
+      # Performance Tuning (can be overridden in postgresql.conf)
+      POSTGRES_SHARED_BUFFERS: ${POSTGRES_SHARED_BUFFERS:-256MB}
+      POSTGRES_WORK_MEM: ${POSTGRES_WORK_MEM:-4MB}
+      POSTGRES_MAINTENANCE_WORK_MEM: ${POSTGRES_MAINTENANCE_WORK_MEM:-64MB}
+      POSTGRES_EFFECTIVE_CACHE_SIZE: ${POSTGRES_EFFECTIVE_CACHE_SIZE:-1GB}
+      POSTGRES_MAX_CONNECTIONS: ${POSTGRES_MAX_CONNECTIONS:-200}
+      POSTGRES_MAX_WAL_SIZE: ${POSTGRES_MAX_WAL_SIZE:-1GB}
+      POSTGRES_MIN_WAL_SIZE: ${POSTGRES_MIN_WAL_SIZE:-80MB}
+
+      # Backup Configuration
+      POSTGRES_BACKUP_ENABLED: ${POSTGRES_BACKUP_ENABLED:-true}
+      POSTGRES_BACKUP_SCHEDULE: ${POSTGRES_BACKUP_SCHEDULE:-0 2 * * *}
+      POSTGRES_BACKUP_RETENTION: ${POSTGRES_BACKUP_RETENTION:-7}
+
+      # Replication Configuration (if needed)
+      POSTGRES_REPLICATION_MODE: ${POSTGRES_REPLICATION_MODE:-master}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER:-replicator}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+      POSTGRES_MASTER_HOST: ${POSTGRES_MASTER_HOST:-}
+      POSTGRES_MASTER_PORT: ${POSTGRES_MASTER_PORT:-5432}
+
+      # SSL Configuration
+      POSTGRES_SSL_MODE: ${POSTGRES_SSL_MODE:-require}
+
+      # Logging
+      POSTGRES_LOG_LEVEL: ${POSTGRES_LOG_LEVEL:-warning}
+      POSTGRES_LOG_CONNECTIONS: ${POSTGRES_LOG_CONNECTIONS:-on}
+      POSTGRES_LOG_DISCONNECTIONS: ${POSTGRES_LOG_DISCONNECTIONS:-on}
+      POSTGRES_LOG_DURATION: ${POSTGRES_LOG_DURATION:-off}
+      POSTGRES_LOG_STATEMENT: ${POSTGRES_LOG_STATEMENT:-none}
+
+      # Statistics
+      POSTGRES_TRACK_ACTIVITIES: on
+      POSTGRES_TRACK_COUNTS: on
+      POSTGRES_TRACK_IO_TIMING: on
+
+      # Autovacuum
+      POSTGRES_AUTOVACUUM: on
+      POSTGRES_AUTOVACUUM_MAX_WORKERS: 4
+      POSTGRES_AUTOVACUUM_NAPTIME: 60
+
+    # ====================================================================
+    # HEALTH CHECK
+    # ====================================================================
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
 
+    # ====================================================================
+    # LABELS
+    # ====================================================================
     labels:
+      # Traefik - Not exposed via web, internal only
+      - "traefik.enable=false"
+
       # Homepage Integration
-      - "homepage.group=Backend"
+      - "homepage.group=Infrastructure"
       - "homepage.name=PostgreSQL"
       - "homepage.icon=postgres.svg"
-      - "homepage.description=Open-Source Relational Database"
+      - "homepage.description=Relational Database"
+      - "homepage.weight=400"
+
+      # Monitoring
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9187"  # postgres_exporter port
+
+      # Service Discovery
+      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update databases
+      - "diun.enable=true"
+      - "diun.watch_repo=true"
+
+      # Backup metadata
+      - "backup.enable=true"
+      - "backup.schedule=daily"
+      - "backup.retention=7"
+
+  # ====================================================================
+  # PostgreSQL Exporter - Metrics for Prometheus
+  # ====================================================================
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.16.0
+    container_name: postgres-exporter
+
+    security_opt:
+      - no-new-privileges:true
+
+    restart: unless-stopped
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - database
+      - monitoring
+
+    ports:
+      - "127.0.0.1:9187:9187"
+
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      PG_EXPORTER_WEB_LISTEN_ADDRESS: ":9187"
+      PG_EXPORTER_WEB_TELEMETRY_PATH: "/metrics"
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      PG_EXPORTER_DISABLE_SETTINGS_METRICS: "false"
+      PG_EXPORTER_AUTO_DISCOVER_DATABASES: "true"
+      PG_EXPORTER_EXCLUDE_DATABASES: "template0,template1"
+      PG_EXPORTER_CONSTANT_LABELS: "environment=${ENVIRONMENT:-production}"
+
+    labels:
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9187"
+      - "prometheus.io/path=/metrics"
+
+  # ====================================================================
+  # pgBackRest - Advanced Backup and Recovery
+  # ====================================================================
+  pgbackrest:
+    image: pgbackrest/pgbackrest:latest
+    container_name: pgbackrest
+
+    security_opt:
+      - no-new-privileges:true
+
+    restart: unless-stopped
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - database
+      - backup
+
+    volumes:
+      - ${DATADIR}/postgres/data:/var/lib/postgresql/data:ro
+      - ${DATADIR}/postgres/backups:/var/lib/pgbackrest:rw
+      - ${DATADIR}/postgres/archive:/var/lib/postgresql/archive:rw
+      - ${DATADIR}/pgbackrest/config:/etc/pgbackrest:ro
+      - ${DATADIR}/pgbackrest/log:/var/log/pgbackrest:rw
+
+    environment:
+      PGBACKREST_STANZA: ${PGBACKREST_STANZA:-main}
+      PGBACKREST_PG_HOST: postgres
+      PGBACKREST_PG_PORT: 5432
+      PGBACKREST_PG_USER: ${POSTGRES_USER}
+      PGBACKREST_PG_PASSWORD: ${POSTGRES_PASSWORD}
+      PGBACKREST_REPO_PATH: /var/lib/pgbackrest
+      PGBACKREST_LOG_PATH: /var/log/pgbackrest
+      PGBACKREST_LOG_LEVEL: ${PGBACKREST_LOG_LEVEL:-info}
+      PGBACKREST_PROCESS_MAX: 4
+      PGBACKREST_COMPRESS_TYPE: lz4
+      PGBACKREST_REPO_RETENTION_FULL: 2
+      PGBACKREST_REPO_RETENTION_DIFF: 4
+      TZ: ${TZ}
+
+    labels:
+      - "backup.tool=pgbackrest"
+      - "backup.stanza=main"

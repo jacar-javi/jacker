@@ -1,40 +1,173 @@
 services:
-  # Loki - Log aggregation system
+  # ====================================================================
+  # Loki - Enhanced Log Aggregation System
+  # Official Image: https://hub.docker.com/r/grafana/loki
+  # ====================================================================
   loki:
     image: grafana/loki:3.5.5
     container_name: loki
 
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
     security_opt:
       - no-new-privileges:true
+      - apparmor:unconfined  # Or custom profile
+      - seccomp:unconfined
 
+    # Run as loki user (UID 10001)
+    user: "10001:10001"
+
+    # Restart policy
     restart: unless-stopped
 
-    networks:
-      - traefik_proxy
+    # ====================================================================
+    # RESOURCE LIMITS
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
+    # System limits
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+    # ====================================================================
+    # NETWORK CONFIGURATION
+    # ====================================================================
+    networks:
+      monitoring:
+        aliases:
+          - loki-server
+      traefik_proxy:
+      cache:  # For potential Redis cache
+
+    # Port exposure (only bind to localhost for security)
+    ports:
+      - "127.0.0.1:${LOKI_PORT:-3100}:3100"
+      - "127.0.0.1:${LOKI_GRPC_PORT:-9095}:9095"  # gRPC port
+
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
+    volumes:
+      # Configuration (read-only)
+      - ${DATADIR}/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+
+      # Data storage (read-write)
+      - ${DATADIR}/loki/data:/loki:rw
+      - ${DATADIR}/loki/wal:/wal:rw
+      - ${DATADIR}/loki/rules:/rules:rw
+
+      # Temporary storage for chunks
+      - ${DATADIR}/loki/chunks:/chunks:rw
+      - ${DATADIR}/loki/index:/index:rw
+      - ${DATADIR}/loki/cache:/cache:rw
+
+      # Timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # Temporary filesystem for processing
+    tmpfs:
+      - /tmp
+
+    # ====================================================================
+    # COMMAND CONFIGURATION
+    # ====================================================================
+    command:
+      - '-config.file=/etc/loki/local-config.yaml'
+      - '-target=${LOKI_TARGET:-all}'
+      - '-log.level=${LOKI_LOG_LEVEL:-info}'
+      - '-log.format=${LOKI_LOG_FORMAT:-json}'
+      - '-server.http-listen-port=3100'
+      - '-server.grpc-listen-port=9095'
+      - '-print-config-stderr=${LOKI_PRINT_CONFIG:-false}'
+
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
+    environment:
+      # Basic configuration
+      TZ: ${TZ}
+
+      # Performance tuning
+      GOGC: ${LOKI_GOGC:-100}
+      GOMAXPROCS: ${LOKI_GOMAXPROCS:-4}
+
+      # Tracing configuration
+      JAEGER_AGENT_HOST: ${JAEGER_AGENT_HOST:-jaeger}
+      JAEGER_AGENT_PORT: ${JAEGER_AGENT_PORT:-6831}
+      JAEGER_SAMPLER_TYPE: ${JAEGER_SAMPLER_TYPE:-const}
+      JAEGER_SAMPLER_PARAM: ${JAEGER_SAMPLER_PARAM:-1}
+
+      # Storage configuration
+      LOKI_CHUNK_STORE_TYPE: ${LOKI_CHUNK_STORE_TYPE:-filesystem}
+      LOKI_RETENTION_PERIOD: ${LOKI_RETENTION_PERIOD:-744h}
+      LOKI_RETENTION_ENABLED: ${LOKI_RETENTION_ENABLED:-true}
+      LOKI_DELETE_REQUEST_STORE: ${LOKI_DELETE_REQUEST_STORE:-filesystem}
+
+      # Limits configuration
+      LOKI_INGESTION_RATE_MB: ${LOKI_INGESTION_RATE_MB:-4}
+      LOKI_INGESTION_BURST_SIZE_MB: ${LOKI_INGESTION_BURST_SIZE_MB:-6}
+      LOKI_MAX_QUERY_SERIES: ${LOKI_MAX_QUERY_SERIES:-5000}
+      LOKI_MAX_QUERY_PARALLELISM: ${LOKI_MAX_QUERY_PARALLELISM:-32}
+      LOKI_MAX_ENTRIES_LIMIT: ${LOKI_MAX_ENTRIES_LIMIT:-5000}
+      LOKI_MAX_STREAMS_PER_USER: ${LOKI_MAX_STREAMS_PER_USER:-10000}
+      LOKI_MAX_GLOBAL_STREAMS_PER_USER: ${LOKI_MAX_GLOBAL_STREAMS_PER_USER:-10000}
+
+      # Compactor configuration
+      LOKI_COMPACTOR_WORKING_DIR: /loki/compactor
+      LOKI_COMPACTOR_SHARED_STORE: filesystem
+      LOKI_COMPACTOR_RETENTION_ENABLED: true
+      LOKI_COMPACTOR_RETENTION_DELETE_DELAY: 2h
+      LOKI_COMPACTOR_RETENTION_DELETE_WORKER_COUNT: 150
+
+      # WAL configuration
+      LOKI_WAL_ENABLED: ${LOKI_WAL_ENABLED:-true}
+      LOKI_WAL_DIR: /wal
+      LOKI_WAL_FLUSH_ON_SHUTDOWN: true
+      LOKI_WAL_CHECKPOINT_DURATION: 5m
+      LOKI_WAL_REPLAY_MEMORY_CEILING: ${LOKI_WAL_REPLAY_MEMORY_CEILING:-1GB}
+
+    # ====================================================================
+    # HEALTH CHECK
+    # ====================================================================
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 30s
+      retries: 5
+      start_period: 60s
 
-    ports:
-      - "127.0.0.1:3100:3100"
-
-    volumes:
-      - $DATADIR/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
-      - $DATADIR/loki/data:/loki
-
-    command: -config.file=/etc/loki/loki-config.yml
-
-    environment:
-      TZ: $TZ
-
+    # ====================================================================
+    # LABELS
+    # ====================================================================
     labels:
+      # Traefik routing (optional - usually not exposed directly)
+      - "traefik.enable=false"
+
       # Homepage Integration
-      - "homepage.group=Backend"
+      - "homepage.group=Monitoring"
       - "homepage.name=Loki"
       - "homepage.icon=loki.svg"
       - "homepage.description=Log Aggregation System"
-      - "homepage.href=https://grafana.$PUBLIC_FQDN/explore"
+      - "homepage.href=https://grafana.${PUBLIC_FQDN}/explore"
+      - "homepage.weight=400"
+
+      # Service Discovery
+      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update monitoring
+      - "diun.enable=true"
+      - "diun.watch_repo=true"
+
+      # Monitoring
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=3100"
+      - "prometheus.io/path=/metrics"

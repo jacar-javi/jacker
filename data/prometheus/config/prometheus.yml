@@ -1,20 +1,74 @@
-# global config
+# Prometheus Enhanced Configuration
 global:
-  scrape_interval:     15s # By default, scrape targets every 15 seconds.
-  evaluation_interval: 15s # By default, scrape targets every 15 seconds.
-  # scrape_timeout is set to the global default (10s).
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    monitor: 'jacker-monitor'
+    environment: 'production'
 
 # Alertmanager configuration
 alerting:
   alertmanagers:
     - static_configs:
-        - targets:
-            - alertmanager:9093
+        - targets: ['alertmanager:9093']
+      scheme: http
+      timeout: 10s
 
-# Load and evaluate rules in this file every 'evaluation_interval' seconds.
+# Rule files
 rule_files:
-  - 'alert.rules'
-  - 'alerts/*.yml'
+  - "/etc/prometheus/rules/*.yml"
 
-scrape_config_files:
-  - /etc/prometheus/scrape.d/*.yml
+# Scrape configurations
+scrape_configs:
+  # Infrastructure metrics
+  - job_name: 'infrastructure'
+    file_sd_configs:
+      - files:
+        - '/etc/prometheus/targets.d/infrastructure/*.json'
+        refresh_interval: 30s
+
+  # Application metrics
+  - job_name: 'applications'
+    file_sd_configs:
+      - files:
+        - '/etc/prometheus/targets.d/applications/*.json'
+        refresh_interval: 30s
+
+  # Exporter metrics
+  - job_name: 'exporters'
+    file_sd_configs:
+      - files:
+        - '/etc/prometheus/targets.d/exporters/*.json'
+        refresh_interval: 30s
+
+  # Security metrics
+  - job_name: 'security'
+    file_sd_configs:
+      - files:
+        - '/etc/prometheus/targets.d/security/*.json'
+        refresh_interval: 30s
+
+  # Self monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+          component: 'monitoring'
+
+# Remote write configuration (optional)
+# remote_write:
+#   - url: "http://remote-storage:9090/api/v1/write"
+#     queue_config:
+#       capacity: 10000
+#       max_samples_per_send: 5000
+#       batch_send_deadline: 5s
+#       max_retries: 10
+#       min_backoff: 30ms
+#       max_backoff: 100ms
+
+# Remote read configuration (optional)
+# remote_read:
+#   - url: "http://remote-storage:9090/api/v1/read"
+#     read_recent: true

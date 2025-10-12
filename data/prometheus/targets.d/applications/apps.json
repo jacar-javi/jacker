@@ -1,0 +1,18 @@
+[
+  {
+    "targets": ["oauth:9090"],
+    "labels": {
+      "job": "oauth2-proxy",
+      "service": "oauth2-proxy",
+      "component": "authentication"
+    }
+  },
+  {
+    "targets": ["grafana:3000"],
+    "labels": {
+      "job": "grafana",
+      "service": "grafana",
+      "component": "monitoring"
+    }
+  }
+]

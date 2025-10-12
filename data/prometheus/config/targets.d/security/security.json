@@ -1,0 +1,18 @@
+[
+  {
+    "targets": ["crowdsec:6060"],
+    "labels": {
+      "job": "crowdsec",
+      "instance": "crowdsec",
+      "component": "security"
+    }
+  },
+  {
+    "targets": ["traefik:8082"],
+    "labels": {
+      "job": "traefik",
+      "instance": "traefik",
+      "component": "security"
+    }
+  }
+]

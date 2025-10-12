@@ -79,11 +79,11 @@ check_config() {
         ((issues++))
     fi
 
-    # Check secrets
-    if [[ -f "$JACKER_ROOT/secrets/traefik_forward_oauth" ]]; then
-        success "OAuth secrets file exists"
+    # Check OAuth2-Proxy configuration
+    if [[ -f "$JACKER_ROOT/data/oauth2-proxy/oauth2-proxy.cfg" ]]; then
+        success "OAuth2-Proxy configuration exists"
     else
-        warning "OAuth secrets file not found"
+        warning "OAuth2-Proxy configuration not found"
     fi
 
     # Check acme.json

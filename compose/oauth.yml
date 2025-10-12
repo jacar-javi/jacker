@@ -1,9 +1,11 @@
 services:
-  # Google OAuth - Single Sign On using OAuth 2.0
-  # https://www.smarthomebeginner.com/google-oauth-with-traefik-docker/
+  # OAuth2 Proxy - Modern OAuth 2.0 authentication proxy with enhanced security
+  # https://oauth2-proxy.github.io/oauth2-proxy/
   oauth:
     container_name: oauth
-    image: thomseddon/traefik-forward-auth:latest
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
+    command:
+      - --config=/etc/oauth2-proxy/oauth2-proxy.cfg
 
     security_opt:
       - no-new-privileges:true
@@ -13,41 +15,85 @@ services:
     networks:
       - traefik_proxy
 
+    ports:
+      # Expose metrics port internally for Prometheus scraping
+      - "127.0.0.1:9090:9090"
+
     depends_on:
       traefik:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    volumes:
+      # Configuration file
+      - ${DATADIR}/oauth2-proxy/oauth2-proxy.cfg:/etc/oauth2-proxy/oauth2-proxy.cfg:ro
+      # Custom templates (optional)
+      - ${DATADIR}/oauth2-proxy/templates:/templates:ro
 
     environment:
-      - CONFIG=/config
-      - COOKIE_DOMAIN=$PUBLIC_FQDN
-      - INSECURE_COOKIE=false
-      - AUTH_HOST=oauth.$PUBLIC_FQDN
-      - URL_PATH=/_oauth
-      - LOG_LEVEL=warn
-      - LOG_FORMAT=text
-      - LIFETIME=$OAUTH_COOKIE_LIFETIME
-      - DEFAULT_ACTION=auth
-      - DEFAULT_PROVIDER=google
-
-    secrets:
-      - source: traefik_forward_oauth
-        target: /config
+      # These can override config file settings
+      - OAUTH2_PROXY_COOKIE_DOMAIN=${PUBLIC_FQDN}
+      - OAUTH2_PROXY_COOKIE_SECURE=true
+      - OAUTH2_PROXY_COOKIE_HTTPONLY=true
+      - OAUTH2_PROXY_COOKIE_SAMESITE=lax
+      - OAUTH2_PROXY_COOKIE_EXPIRE=${OAUTH_COOKIE_LIFETIME:-604800}s
+      - OAUTH2_PROXY_COOKIE_REFRESH=${OAUTH_COOKIE_REFRESH:-3600}s
+      # Logging configuration
+      - OAUTH2_PROXY_STANDARD_LOGGING=true
+      - OAUTH2_PROXY_REQUEST_LOGGING=true
+      - OAUTH2_PROXY_AUTH_LOGGING=true
 
     labels:
       - "traefik.enable=true"
-      # HTTP Routers
-      - "traefik.http.routers.oauth-rtr.entrypoints=websecure"
-      - "traefik.http.routers.oauth-rtr.rule=Host(`oauth.$PUBLIC_FQDN`)"
-      - "traefik.http.routers.oauth-rtr.tls=true"
-      - "traefik.http.routers.oauth-rtr.tls.certResolver=http"
-      # Middlewares - OAuth service must not use CrowdSec bouncer to avoid blocking callbacks
-      - "traefik.http.routers.oauth-rtr.middlewares=chain-no-oauth-no-crowdsec@file"
-      # HTTP Services
-      - "traefik.http.routers.oauth-rtr.service=oauth-svc"
-      - "traefik.http.services.oauth-svc.loadbalancer.server.port=4181"
 
+      # Logging labels for Promtail
+      - "logging.component=oauth"
+      - "logging.service=authentication"
+
+      # HTTP Router
+      - "traefik.http.routers.oauth.entrypoints=websecure"
+      - "traefik.http.routers.oauth.rule=Host(`auth.${PUBLIC_FQDN}`)"
+      - "traefik.http.routers.oauth.tls=true"
+      - "traefik.http.routers.oauth.tls.certResolver=http"
+
+      # Service
+      - "traefik.http.routers.oauth.service=oauth-svc"
+      - "traefik.http.services.oauth-svc.loadbalancer.server.port=4180"
+
+      # Middlewares - No OAuth required for the OAuth service itself
+      # Use rate limiting and security headers only
+      - "traefik.http.routers.oauth.middlewares=middlewares-rate-limit@file,middlewares-secure-headers@file"
+
+      # ForwardAuth middleware for other services
+      - "traefik.http.middlewares.oauth-auth.forwardAuth.address=http://oauth:4180/oauth2/auth"
+      - "traefik.http.middlewares.oauth-auth.forwardAuth.trustForwardHeader=true"
+      - "traefik.http.middlewares.oauth-auth.forwardAuth.authResponseHeaders=X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Access-Token,X-Auth-Request-Groups"
+
+      # Health check
+      - "traefik.http.services.oauth-svc.loadbalancer.healthcheck.path=/ping"
+      - "traefik.http.services.oauth-svc.loadbalancer.healthcheck.interval=30s"
 
       # Homepage Integration
-      - "homepage.group=Middleware"
-      - "homepage.name=OAuth Bouncer"
-      - "homepage.description=Google OAuth Traefik Bouncer"
+      - "homepage.group=Security"
+      - "homepage.name=OAuth2 Proxy"
+      - "homepage.description=Modern OAuth 2.0 Authentication"
+      - "homepage.icon=oauth.svg"
+      - "homepage.href=https://auth.${PUBLIC_FQDN}"
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4180/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M

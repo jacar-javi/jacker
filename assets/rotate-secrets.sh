@@ -48,18 +48,26 @@ source .env
 
 # Generate new secrets
 generate_oauth_secret() {
-    echo "Generating new OAuth secret..."
-    NEW_OAUTH_SECRET=$(openssl rand -hex 16)
+    echo "Generating new OAuth secrets..."
+    NEW_OAUTH_COOKIE_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+    NEW_OAUTH_SIGNATURE_KEY=$(openssl rand -base64 32 | tr -d '\n')
 
     # Update .env
-    sed -i "s/OAUTH_SECRET=.*/OAUTH_SECRET=$NEW_OAUTH_SECRET/" .env
+    sed -i "s/OAUTH_COOKIE_SECRET=.*/OAUTH_COOKIE_SECRET=$NEW_OAUTH_COOKIE_SECRET/" .env
+    sed -i "s/OAUTH_SIGNATURE_KEY=.*/OAUTH_SIGNATURE_KEY=$NEW_OAUTH_SIGNATURE_KEY/" .env
 
-    # Update secrets file
-    if [ -f secrets/traefik_forward_oauth ]; then
-        sed -i "s/secret=.*/secret=$NEW_OAUTH_SECRET/" secrets/traefik_forward_oauth
+    # Keep backward compatibility
+    if grep -q "OAUTH_SECRET=" .env; then
+        sed -i "s/OAUTH_SECRET=.*/OAUTH_SECRET=$NEW_OAUTH_COOKIE_SECRET/" .env
     fi
 
-    echo -e "${GREEN}✓ OAuth secret rotated${NC}"
+    # Update OAuth2-Proxy config
+    if [ -f data/oauth2-proxy/oauth2-proxy.cfg ]; then
+        sed -i "s/^cookie_secret = .*/cookie_secret = \"$NEW_OAUTH_COOKIE_SECRET\"/" data/oauth2-proxy/oauth2-proxy.cfg
+        sed -i "s/^signature_key = .*/signature_key = \"$NEW_OAUTH_SIGNATURE_KEY\"/" data/oauth2-proxy/oauth2-proxy.cfg
+    fi
+
+    echo -e "${GREEN}✓ OAuth secrets rotated${NC}"
 }
 
 generate_crowdsec_keys() {
@@ -128,9 +136,12 @@ source .env
 
 # Update OAuth secrets file if OAuth was rotated
 if [ "$ROTATE_MODE" = "--all" ] || [ "$ROTATE_MODE" = "--oauth" ]; then
-    echo "Updating OAuth configuration..."
-    envsubst < assets/templates/traefik_forward_oauth.template > secrets/traefik_forward_oauth
-    echo -e "${GREEN}✓ OAuth configuration updated${NC}"
+    echo "Updating OAuth2-Proxy configuration..."
+    if [ -f assets/templates/oauth2-proxy.cfg.template ]; then
+        envsubst < assets/templates/oauth2-proxy.cfg.template > data/oauth2-proxy/oauth2-proxy.cfg
+        chmod 600 data/oauth2-proxy/oauth2-proxy.cfg
+    fi
+    echo -e "${GREEN}✓ OAuth2-Proxy configuration updated${NC}"
 fi
 
 # Update CrowdSec configuration if CrowdSec keys were rotated

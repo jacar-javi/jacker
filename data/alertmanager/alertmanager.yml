@@ -1,125 +1,68 @@
-global:
-  resolve_timeout: 5m
-  smtp_smarthost: ':'
-  smtp_from: ''
-  smtp_auth_username: ''
-  smtp_auth_password: ''
-  smtp_require_tls: true
+# Alertmanager Enhanced Configuration
+# https://prometheus.io/docs/alerting/latest/configuration/
 
-# Templates for custom alert formatting
+global:
+  smtp_from: '${SMTP_FROM}'
+  smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
+  smtp_auth_username: '${SMTP_USERNAME}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
+  resolve_timeout: 5m
+
+# Templates for alerts
 templates:
   - '/etc/alertmanager/templates/*.tmpl'
 
-# The root route with all parameters, which are inherited by the child routes
+# The root route
 route:
-  receiver: 'default-receiver'
   group_by: ['alertname', 'cluster', 'service']
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 12h
-
+  receiver: 'default'
   routes:
-    # Critical alerts go to both email and telegram immediately
-    - receiver: 'critical-alerts'
-      matchers:
-        - severity = critical
-      group_wait: 0s
-      repeat_interval: 5m
+    - match:
+        severity: critical
+      receiver: critical
+      continue: true
+    - match:
+        severity: warning
+      receiver: warning
+      continue: true
+    - match_re:
+        service: .*
+      receiver: default
 
-    # Warning alerts go to email only
-    - receiver: 'warning-alerts'
-      matchers:
-        - severity = warning
-      group_wait: 30s
-      repeat_interval: 1h
-
-    # Info alerts are logged only
-    - receiver: 'info-alerts'
-      matchers:
-        - severity = info
-      group_wait: 1m
-      repeat_interval: 4h
-
-# Inhibition rules allow to mute a set of alerts given that another alert is firing
+# Inhibition rules
 inhibit_rules:
-  # Inhibit warning if critical is firing for the same alertname
-  - source_matchers:
-      - severity = critical
-    target_matchers:
-      - severity = warning
-    equal: ['alertname', 'instance']
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']
 
+# Receivers
 receivers:
-  # Default receiver - email only
-  - name: 'default-receiver'
+  - name: 'default'
     email_configs:
-      - to: ''
+      - to: '${ALERT_EMAIL_TO}'
+        send_resolved: true
         headers:
-          Subject: '[Jacker] Alert: {{ .GroupLabels.alertname }}'
-        html: |
-          {{ range .Alerts }}
-          <b>Alert:</b> {{ .Labels.alertname }}<br>
-          <b>Severity:</b> {{ .Labels.severity }}<br>
-          <b>Summary:</b> {{ .Annotations.summary }}<br>
-          <b>Description:</b> {{ .Annotations.description }}<br>
-          {{ end }}
+          Subject: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+        html: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
 
-  # Critical alerts - both email and telegram
-  - name: 'critical-alerts'
+  - name: 'critical'
     email_configs:
-      - to: ''
-        headers:
-          Subject: '[CRITICAL] Jacker Alert: {{ .GroupLabels.alertname }}'
-        html: |
-          <h2 style="color: red;">CRITICAL ALERT</h2>
-          {{ range .Alerts }}
-          <b>Alert:</b> {{ .Labels.alertname }}<br>
-          <b>Instance:</b> {{ .Labels.instance }}<br>
-          <b>Severity:</b> {{ .Labels.severity }}<br>
-          <b>Summary:</b> {{ .Annotations.summary }}<br>
-          <b>Description:</b> {{ .Annotations.description }}<br>
-          <b>Started at:</b> {{ .StartsAt }}<br>
-          {{ end }}
+      - to: '${ALERT_EMAIL_TO}'
+        send_resolved: true
     telegram_configs:
-      - api_url: 'https://api.telegram.org'
-        bot_token: ''
-        chat_id: 
-        parse_mode: 'HTML'
-        message: |
-          🚨 <b>CRITICAL ALERT</b> 🚨
-          {{ range .Alerts }}
-          <b>Alert:</b> {{ .Labels.alertname }}
-          <b>Instance:</b> {{ .Labels.instance }}
-          <b>Severity:</b> {{ .Labels.severity }}
-          <b>Summary:</b> {{ .Annotations.summary }}
-          <b>Description:</b> {{ .Annotations.description }}
-          {{ end }}
+      - bot_token: '${TELEGRAM_BOT_TOKEN}'
+        chat_id: '${TELEGRAM_CHAT_ID}'
+        send_resolved: true
 
-  # Warning alerts - email only
-  - name: 'warning-alerts'
+  - name: 'warning'
     email_configs:
-      - to: ''
-        headers:
-          Subject: '[WARNING] Jacker Alert: {{ .GroupLabels.alertname }}'
-        html: |
-          <h2 style="color: orange;">WARNING</h2>
-          {{ range .Alerts }}
-          <b>Alert:</b> {{ .Labels.alertname }}<br>
-          <b>Instance:</b> {{ .Labels.instance }}<br>
-          <b>Severity:</b> {{ .Labels.severity }}<br>
-          <b>Summary:</b> {{ .Annotations.summary }}<br>
-          <b>Description:</b> {{ .Annotations.description }}<br>
-          {{ end }}
+      - to: '${ALERT_EMAIL_TO}'
+        send_resolved: true
 
-  # Info alerts - email only
-  - name: 'info-alerts'
-    email_configs:
-      - to: ''
-        headers:
-          Subject: '[INFO] Jacker: {{ .GroupLabels.alertname }}'
-        html: |
-          {{ range .Alerts }}
-          <b>Alert:</b> {{ .Labels.alertname }}<br>
-          <b>Summary:</b> {{ .Annotations.summary }}<br>
-          <b>Description:</b> {{ .Annotations.description }}<br>
-          {{ end }}
+  - name: 'null'

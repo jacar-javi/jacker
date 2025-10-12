@@ -1,39 +1,175 @@
 services:
-  # Promtail - Log shipper for Loki
+  # ====================================================================
+  # Promtail - Enhanced Log Shipper for Loki
+  # Official Image: https://hub.docker.com/r/grafana/promtail
+  # ====================================================================
   promtail:
     image: grafana/promtail:3.5.5
     container_name: promtail
 
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
     security_opt:
       - no-new-privileges:true
+      - apparmor:unconfined  # Or custom profile
+      - seccomp:unconfined
 
+    # Run as specific user
+    user: "${PUID:-0}:${PGID:-0}"  # Root needed for log access
+
+    # Restart policy
     restart: unless-stopped
 
+    # ====================================================================
+    # RESOURCE LIMITS
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+    # ====================================================================
+    # DEPENDENCIES
+    # ====================================================================
     depends_on:
-      - loki
+      loki:
+        condition: service_healthy
+      socket-proxy:
+        condition: service_started
 
+    # ====================================================================
+    # NETWORK CONFIGURATION
+    # ====================================================================
     networks:
-      - traefik_proxy
+      monitoring:
+        aliases:
+          - promtail-agent
+      socket_proxy:  # For Docker discovery
+      traefik_proxy:  # For service connectivity
 
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
     volumes:
-      - $DATADIR/loki/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Configuration (read-only)
+      - ${DATADIR}/loki/promtail-config.yml:/etc/promtail/config.yml:ro
+
+      # Position file storage
+      - ${DATADIR}/promtail/positions:/positions:rw
+
+      # Log sources (read-only)
       - /var/log:/var/log:ro
-      - $DOCKERDIR/logs:/logs:ro
-      - promtail-positions:/tmp
+      - ${DOCKERDIR}/logs:/logs:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
 
-    command: -config.file=/etc/promtail/promtail-config.yml
+      # System journal (systemd logs)
+      - /run/log/journal:/run/log/journal:ro
+      - /var/run/log/journal:/var/run/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
 
+      # Additional log directories
+      - ${DATADIR}/traefik/logs:/traefik/logs:ro
+      - ${DATADIR}/crowdsec/logs:/crowdsec/logs:ro
+
+      # Timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # Temporary filesystem for processing
+    tmpfs:
+      - /tmp
+
+    # ====================================================================
+    # COMMAND CONFIGURATION
+    # ====================================================================
+    command:
+      - '-config.file=/etc/promtail/config.yml'
+      - '-config.expand-env=true'
+      - '-log.level=${PROMTAIL_LOG_LEVEL:-info}'
+      - '-log.format=${PROMTAIL_LOG_FORMAT:-json}'
+      - '-server.http-listen-port=${PROMTAIL_HTTP_PORT:-9080}'
+      - '-server.grpc-listen-port=${PROMTAIL_GRPC_PORT:-0}'
+      - '-positions.file=/positions/positions.yaml'
+      - '-positions.sync-period=${PROMTAIL_POSITIONS_SYNC:-10s}'
+      - '-positions.ignore-invalid-yaml=${PROMTAIL_IGNORE_INVALID_YAML:-false}'
+      - '-client.batch-wait=${PROMTAIL_BATCH_WAIT:-1s}'
+      - '-client.batch-size-bytes=${PROMTAIL_BATCH_SIZE:-1048576}'
+      - '-client.timeout=${PROMTAIL_CLIENT_TIMEOUT:-10s}'
+      - '-client.min-backoff=${PROMTAIL_MIN_BACKOFF:-500ms}'
+      - '-client.max-backoff=${PROMTAIL_MAX_BACKOFF:-5m}'
+      - '-client.max-retries=${PROMTAIL_MAX_RETRIES:-10}'
+      - '-print-config-stderr=${PROMTAIL_PRINT_CONFIG:-false}'
+
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
     environment:
-      TZ: $TZ
-      HOSTNAME: $HOSTNAME
+      # Basic configuration
+      TZ: ${TZ}
+      HOSTNAME: ${HOSTNAME}
 
+      # Docker discovery via socket-proxy
+      DOCKER_HOST: tcp://socket-proxy:2375
+
+      # Loki configuration
+      LOKI_URL: ${PROMTAIL_LOKI_URL:-http://loki:3100/loki/api/v1/push}
+
+      # Performance tuning
+      GOGC: ${PROMTAIL_GOGC:-100}
+      GOMAXPROCS: ${PROMTAIL_GOMAXPROCS:-2}
+
+      # Labels
+      PROMTAIL_EXTERNAL_LABELS: ${PROMTAIL_EXTERNAL_LABELS:-}
+
+      # Tenant ID (for multi-tenancy)
+      PROMTAIL_TENANT_ID: ${PROMTAIL_TENANT_ID:-}
+
+      # Rate limiting
+      PROMTAIL_RATE_LIMIT: ${PROMTAIL_RATE_LIMIT:-true}
+      PROMTAIL_RATE_LIMIT_DROP: ${PROMTAIL_RATE_LIMIT_DROP:-false}
+
+      # Journal configuration
+      PROMTAIL_JOURNAL_ENABLED: ${PROMTAIL_JOURNAL_ENABLED:-true}
+      PROMTAIL_JOURNAL_PATH: /run/log/journal
+
+      # Docker configuration
+      PROMTAIL_DOCKER_MODE: ${PROMTAIL_DOCKER_MODE:-socket-proxy}
+
+      # Pipeline stages configuration
+      PROMTAIL_PIPELINE_STAGES_MULTILINE: ${PROMTAIL_PIPELINE_STAGES_MULTILINE:-true}
+
+    # ====================================================================
+    # HEALTH CHECK
+    # ====================================================================
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9080/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # ====================================================================
+    # LABELS
+    # ====================================================================
     labels:
       # Homepage Integration
-      - "homepage.group=Backend"
+      - "homepage.group=Monitoring"
       - "homepage.name=Promtail"
       - "homepage.icon=promtail.svg"
       - "homepage.description=Log Shipper for Loki"
+      - "homepage.weight=410"
 
-volumes:
-  promtail-positions:
+      # Service Discovery
+      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update monitoring
+      - "diun.enable=true"
+      - "diun.watch_repo=true"
+
+      # Monitoring
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9080"
+      - "prometheus.io/path=/metrics"

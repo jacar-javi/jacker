@@ -3,18 +3,19 @@
   "editor.formatOnSave": true,
   "editor.insertSpaces": true,
   "editor.tabSize": 2,
-  "editor.rulers": [80, 120],
+  "editor.rulers": [
+    80,
+    120
+  ],
   "editor.wordWrap": "on",
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
-
   // Shell script formatting
   "[shellscript]": {
     "editor.defaultFormatter": "foxundermoon.shell-format",
     "editor.tabSize": 4,
     "files.eol": "\n"
   },
-
   // Shell format settings
   "shellformat.flag": "-i 4 -ci -sr -bn",
   "shellformat.effectLanguages": [
@@ -30,19 +31,17 @@
     "azcli",
     "bats"
   ],
-
   // ShellCheck settings
   "shellcheck.enable": true,
   "shellcheck.enableQuickFix": true,
   "shellcheck.run": "onSave",
   "shellcheck.exclude": [
     "SC1090", // Can't follow non-constant source
-    "SC1091"  // Not following sourced files
+    "SC1091" // Not following sourced files
   ],
   "shellcheck.customArgs": [
     "-x" // Follow sourced files
   ],
-
   // YAML settings
   "[yaml]": {
     "editor.defaultFormatter": "redhat.vscode-yaml",
@@ -50,6 +49,9 @@
     "editor.tabSize": 2
   },
   "yaml.schemas": {
+    "file:///c%3A/Users/port-/.vscode/extensions/continue.continue-1.2.2-win32-x64/config-yaml-schema.json": [
+      ".continue/**/*.yaml"
+    ],
     "https://json.schemastore.org/docker-compose.json": [
       "docker-compose*.yml",
       "docker-compose*.yaml"
@@ -61,11 +63,11 @@
     "https://json.schemastore.org/github-workflow.json": [
       ".github/workflows/*.yml",
       ".github/workflows/*.yaml"
-    ]
+    ],
+    "https://www.schemastore.org/traefik-v3.json": "file:///workspaces/jacker/data/traefik/traefik.yml"
   },
   "yaml.format.enable": true,
   "yaml.validate": true,
-
   // Markdown settings
   "[markdown]": {
     "editor.defaultFormatter": "yzhang.markdown-all-in-one",
@@ -76,14 +78,12 @@
   "markdownlint.config": {
     "MD013": false, // Line length
     "MD033": false, // Inline HTML
-    "MD041": false  // First line in file should be a top level heading
+    "MD041": false // First line in file should be a top level heading
   },
-
   // Docker settings
   "docker.languageserver.diagnostics.deprecatedMaintainer": "warning",
   "docker.languageserver.diagnostics.directiveCasing": "warning",
   "docker.languageserver.diagnostics.instructionCasing": "warning",
-
   // File associations
   "files.associations": {
     "*.bats": "shellscript",
@@ -94,7 +94,6 @@
     "docker-compose*.yml": "yaml",
     "*.yml.template": "yaml"
   },
-
   // Files to exclude from explorer
   "files.exclude": {
     "**/.git": true,
@@ -106,7 +105,6 @@
     "**/.pytest_cache": true,
     "**/.mypy_cache": true
   },
-
   // Search settings
   "search.exclude": {
     "**/node_modules": true,
@@ -120,13 +118,11 @@
     "**/tests/lib/bats-*/**": true,
     "**/jacker-stacks/**": true
   },
-
   // Git settings
   "git.ignoreLimitWarning": true,
   "git.confirmSync": false,
   "git.autofetch": true,
   "git.enableSmartCommit": true,
-
   // TODO Tree settings
   "todo-tree.general.tags": [
     "TODO",
@@ -163,7 +159,6 @@
       "iconColour": "#ff00ff"
     }
   },
-
   // Spell checker settings
   "cSpell.words": [
     "jacker",
@@ -200,11 +195,9 @@
     "**/logs/**",
     "**/tests/lib/bats-*/**"
   ],
-
   // Terminal settings
   "terminal.integrated.defaultProfile.linux": "bash",
   "terminal.integrated.scrollback": 10000,
-
   // Better Comments settings
   "better-comments.tags": [
     {

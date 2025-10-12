@@ -1,0 +1,234 @@
+# Prometheus Configuration - Modular Architecture
+# This configuration uses file-based service discovery for dynamic target management
+# Place new scrape targets in /etc/prometheus/targets.d/*.json
+# Place new alert rules in /etc/prometheus/rules.d/*.yml
+
+# Global configuration
+global:
+  # How frequently to scrape targets by default
+  scrape_interval: 15s
+
+  # How frequently to evaluate rules
+  evaluation_interval: 15s
+
+  # How long until a scrape request times out
+  scrape_timeout: 10s
+
+  # Attach these labels to any time series or alerts when communicating with
+  # external systems (federation, remote storage, Alertmanager)
+  external_labels:
+    monitor: 'jacker-monitor'
+    environment: '${ENVIRONMENT:-production}'
+    hostname: '${HOSTNAME}'
+
+# Alertmanager configuration
+alerting:
+  # Load-balancing configuration for Alertmanagers
+  alert_relabel_configs:
+    # Add environment label to all alerts
+    - source_labels: [__address__]
+      target_label: environment
+      replacement: '${ENVIRONMENT:-production}'
+
+  alertmanagers:
+    # Static configuration for Alertmanager
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+      # Optional: Use file-based discovery for multiple Alertmanagers
+      # file_sd_configs:
+      #   - files:
+      #       - /etc/prometheus/alertmanagers.d/*.json
+      #     refresh_interval: 30s
+
+# Rule files - Load all rules from the rules.d directory
+rule_files:
+  # Infrastructure alerts
+  - /etc/prometheus/rules.d/infrastructure.yml
+  # Application-specific alerts
+  - /etc/prometheus/rules.d/applications/*.yml
+  # Service-specific alerts
+  - /etc/prometheus/rules.d/services/*.yml
+  # Custom alerts
+  - /etc/prometheus/rules.d/custom/*.yml
+
+# Remote write configuration (optional)
+# Uncomment to enable metrics forwarding to external systems
+# remote_write:
+#   - url: "http://remote-prometheus:9090/api/v1/write"
+#     queue_config:
+#       capacity: 10000
+#       max_shards: 5
+#       min_shards: 1
+#       max_samples_per_send: 2500
+#       batch_send_deadline: 5s
+#       min_backoff: 30ms
+#       max_backoff: 100ms
+
+# Remote read configuration (optional)
+# Uncomment to enable federation
+# remote_read:
+#   - url: "http://remote-prometheus:9090/api/v1/read"
+#     read_recent: true
+
+# Scrape configurations using modular approach
+scrape_configs:
+  # ====================================================================
+  # PROMETHEUS SELF-MONITORING
+  # ====================================================================
+  - job_name: 'prometheus'
+    # Override global settings
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+          component: 'monitoring'
+
+  # ====================================================================
+  # FILE-BASED SERVICE DISCOVERY FOR CORE SERVICES
+  # ====================================================================
+  # Core infrastructure services (Traefik, Socket-Proxy, etc.)
+  - job_name: 'infrastructure'
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets.d/infrastructure/*.json
+          - /etc/prometheus/targets.d/infrastructure/*.yml
+        refresh_interval: 30s
+
+    # Relabel configurations for infrastructure services
+    relabel_configs:
+      # Keep the job label from the target file
+      - source_labels: [__meta_filepath]
+        regex: '.*/([^/]+)\.(json|yml)'
+        target_label: __tmp_service_name
+        replacement: '${1}'
+
+      # Add environment label
+      - source_labels: [__address__]
+        target_label: environment
+        replacement: '${ENVIRONMENT:-production}'
+
+  # ====================================================================
+  # FILE-BASED SERVICE DISCOVERY FOR MONITORING STACK
+  # ====================================================================
+  # Monitoring services (Grafana, Loki, Alertmanager, etc.)
+  - job_name: 'monitoring'
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets.d/monitoring/*.json
+          - /etc/prometheus/targets.d/monitoring/*.yml
+        refresh_interval: 30s
+
+    # Different scrape interval for monitoring stack
+    scrape_interval: 30s
+
+  # ====================================================================
+  # FILE-BASED SERVICE DISCOVERY FOR APPLICATION SERVICES
+  # ====================================================================
+  # Application services (user-deployed containers)
+  - job_name: 'applications'
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets.d/applications/*.json
+          - /etc/prometheus/targets.d/applications/*.yml
+        refresh_interval: 60s
+
+    # Relabel configurations
+    relabel_configs:
+      # Extract application name from filename
+      - source_labels: [__meta_filepath]
+        regex: '.*/([^/]+)\.(json|yml)'
+        target_label: application
+        replacement: '${1}'
+
+  # ====================================================================
+  # FILE-BASED SERVICE DISCOVERY FOR EXPORTERS
+  # ====================================================================
+  # Various exporters (node-exporter, postgres-exporter, redis-exporter, etc.)
+  - job_name: 'exporters'
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets.d/exporters/*.json
+          - /etc/prometheus/targets.d/exporters/*.yml
+        refresh_interval: 30s
+
+    # Relabel configurations
+    relabel_configs:
+      # Extract exporter type from filename
+      - source_labels: [__meta_filepath]
+        regex: '.*/([^/]+)-exporter\.(json|yml)'
+        target_label: exporter_type
+        replacement: '${1}'
+
+  # ====================================================================
+  # BLACKBOX EXPORTER FOR ENDPOINT MONITORING
+  # ====================================================================
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets.d/blackbox/*.json
+          - /etc/prometheus/targets.d/blackbox/*.yml
+        refresh_interval: 60s
+
+    relabel_configs:
+      # Pass target to blackbox exporter
+      - source_labels: [__address__]
+        target_label: __param_target
+      # Use instance label for target identification
+      - source_labels: [__param_target]
+        target_label: instance
+      # Route through blackbox exporter
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # ====================================================================
+  # DOCKER SWARM SERVICE DISCOVERY (if using Swarm mode)
+  # ====================================================================
+  # Uncomment if using Docker Swarm
+  # - job_name: 'swarm-services'
+  #   dockerswarm_sd_configs:
+  #     - host: tcp://socket-proxy:2375
+  #       role: services
+  #       refresh_interval: 30s
+  #
+  #   relabel_configs:
+  #     # Only keep services with prometheus annotations
+  #     - source_labels: [__meta_dockerswarm_service_label_prometheus_enable]
+  #       regex: 'true'
+  #       action: keep
+
+  # ====================================================================
+  # KUBERNETES SERVICE DISCOVERY (if using Kubernetes)
+  # ====================================================================
+  # Uncomment if running in Kubernetes
+  # - job_name: 'kubernetes-pods'
+  #   kubernetes_sd_configs:
+  #     - role: pod
+  #
+  #   relabel_configs:
+  #     # Only keep pods with prometheus annotations
+  #     - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+  #       regex: 'true'
+  #       action: keep
+
+# Storage configuration (optional)
+# storage:
+#   tsdb:
+#     path: /prometheus
+#     retention.time: 30d
+#     retention.size: 50GB
+#     wal_compression: true
+
+# Web configuration
+# web:
+#   enable_admin_api: true
+#   enable_lifecycle: true
+#   # TLS configuration (optional)
+#   # config:
+#   #   file: /etc/prometheus/web.yml

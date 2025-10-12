@@ -1,0 +1,18 @@
+[
+  {
+    "targets": ["node-exporter:9100"],
+    "labels": {
+      "job": "node",
+      "instance": "host",
+      "component": "infrastructure"
+    }
+  },
+  {
+    "targets": ["cadvisor:8080"],
+    "labels": {
+      "job": "cadvisor",
+      "instance": "containers",
+      "component": "infrastructure"
+    }
+  }
+]
