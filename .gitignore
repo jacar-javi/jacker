@@ -188,8 +188,6 @@ site/
 # MCP Servers
 .serena/
 .claude/
-!.claude/CLAUDE.md
-!.claude/README.md
 
 # Trunk
 .trunk/
