@@ -1,0 +1,410 @@
+#!/usr/bin/env bash
+#
+# Jacker - Docker Home Server Management Platform
+# Main CLI interface for all Jacker operations
+#
+# Usage: jacker <command> [options]
+#
+
+set -euo pipefail
+
+# Script location detection
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export JACKER_ROOT="$SCRIPT_DIR"
+
+# Source common functions
+# shellcheck source=assets/lib/common.sh
+source "$JACKER_ROOT/assets/lib/common.sh"
+
+# Version
+readonly VERSION="2.0.0"
+
+# Main commands
+show_usage() {
+    cat << EOF
+Jacker - Docker Home Server Management Platform v${VERSION}
+
+Usage: jacker <command> [options]
+
+Commands:
+  setup           Initial setup and configuration
+  start           Start all services
+  stop            Stop all services
+  restart         Restart services
+  status          Show service status
+  health          Run health check
+  backup          Backup configuration and data
+  restore         Restore from backup
+  update          Update Jacker and services
+  fix             Fix common issues
+  check           Run diagnostic checks
+  logs            View service logs
+  shell           Access service shell
+  rotate-secrets  Rotate security secrets
+  clean           Clean up containers and volumes
+  help            Show this help message
+
+Options:
+  -h, --help      Show help for specific command
+  -v, --version   Show version information
+  -q, --quiet     Suppress output
+  -y, --yes       Auto-confirm prompts
+
+Examples:
+  jacker setup                    # Run initial setup
+  jacker health                   # Check system health
+  jacker fix loki                 # Fix Loki permissions
+  jacker logs traefik -f          # Follow Traefik logs
+  jacker backup --full            # Full system backup
+
+For more help: jacker <command> --help
+EOF
+}
+
+# Command: setup
+cmd_setup() {
+    local mode="${1:-interactive}"
+
+    case "$mode" in
+        --non-interactive|--auto)
+            exec "$JACKER_ROOT/assets/setup.sh" --non-interactive
+            ;;
+        --authentik)
+            exec "$JACKER_ROOT/assets/setup-authentik.sh"
+            ;;
+        *)
+            exec "$JACKER_ROOT/assets/setup.sh"
+            ;;
+    esac
+}
+
+# Command: start
+cmd_start() {
+    local services="${*:-}"
+    cd_jacker_root
+
+    if [[ -z "$services" ]]; then
+        info "Starting all services..."
+        docker compose up -d
+    else
+        info "Starting services: $services"
+        docker compose up -d "$@"
+    fi
+
+    success "Services started"
+}
+
+# Command: stop
+cmd_stop() {
+    local services="${*:-}"
+    cd_jacker_root
+
+    if [[ -z "$services" ]]; then
+        info "Stopping all services..."
+        docker compose down
+    else
+        info "Stopping services: $services"
+        docker compose stop "$@"
+    fi
+
+    success "Services stopped"
+}
+
+# Command: restart
+cmd_restart() {
+    local services="${*:-}"
+    cd_jacker_root
+
+    if [[ -z "$services" ]]; then
+        info "Restarting all services..."
+        docker compose restart
+    else
+        info "Restarting services: $services"
+        docker compose restart "$@"
+    fi
+
+    success "Services restarted"
+}
+
+# Command: status
+cmd_status() {
+    cd_jacker_root
+    docker compose ps
+}
+
+# Command: health
+cmd_health() {
+    # shellcheck source=assets/lib/health-check.sh
+    source "$JACKER_ROOT/assets/lib/health-check.sh"
+    run_health_check "$@"
+}
+
+# Command: backup
+cmd_backup() {
+    # shellcheck source=assets/lib/backup.sh
+    source "$JACKER_ROOT/assets/lib/backup.sh"
+    run_backup "$@"
+}
+
+# Command: restore
+cmd_restore() {
+    # shellcheck source=assets/lib/backup.sh
+    source "$JACKER_ROOT/assets/lib/backup.sh"
+    run_restore "$@"
+}
+
+# Command: update
+cmd_update() {
+    cd_jacker_root
+
+    info "Updating Jacker..."
+    git pull origin main
+
+    info "Pulling latest images..."
+    docker compose pull
+
+    info "Recreating services with new images..."
+    docker compose up -d
+
+    success "Update complete"
+}
+
+# Command: fix
+cmd_fix() {
+    local component="${1:-}"
+    shift || true
+
+    if [[ -z "$component" ]]; then
+        cat << EOF
+Usage: jacker fix <component> [options]
+
+Available components:
+  loki            Fix Loki permissions and configuration
+  alertmanager    Fix Alertmanager configuration
+  crowdsec        Fix CrowdSec database connection
+  postgres        Fix PostgreSQL permissions
+  traefik         Fix Traefik certificates
+  permissions     Fix all directory permissions
+  all             Run all fixes
+
+Example:
+  jacker fix loki
+  jacker fix all --force
+EOF
+        return 0
+    fi
+
+    # shellcheck source=assets/lib/fixes.sh
+    source "$JACKER_ROOT/assets/lib/fixes.sh"
+
+    case "$component" in
+        loki)
+            fix_loki "$@"
+            ;;
+        alertmanager)
+            fix_alertmanager "$@"
+            ;;
+        crowdsec)
+            fix_crowdsec "$@"
+            ;;
+        postgres)
+            fix_postgres "$@"
+            ;;
+        traefik)
+            fix_traefik "$@"
+            ;;
+        permissions)
+            fix_permissions "$@"
+            ;;
+        all)
+            fix_all "$@"
+            ;;
+        *)
+            error "Unknown component: $component"
+            cmd_fix
+            return 1
+            ;;
+    esac
+}
+
+# Command: check
+cmd_check() {
+    local type="${1:-all}"
+    shift || true
+
+    # shellcheck source=assets/lib/checks.sh
+    source "$JACKER_ROOT/assets/lib/checks.sh"
+
+    case "$type" in
+        config)
+            check_config "$@"
+            ;;
+        network)
+            check_network "$@"
+            ;;
+        postgres)
+            check_postgres "$@"
+            ;;
+        env)
+            check_env "$@"
+            ;;
+        all)
+            check_all "$@"
+            ;;
+        *)
+            error "Unknown check type: $type"
+            echo "Available: config, network, postgres, env, all"
+            return 1
+            ;;
+    esac
+}
+
+# Command: logs
+cmd_logs() {
+    local service="${1:-}"
+    shift || true
+
+    if [[ -z "$service" ]]; then
+        error "Service name required"
+        echo "Usage: jacker logs <service> [options]"
+        echo "Options: -f (follow), --tail N"
+        return 1
+    fi
+
+    cd_jacker_root
+    docker compose logs "$service" "$@"
+}
+
+# Command: shell
+cmd_shell() {
+    local service="${1:-}"
+    local shell="${2:-/bin/sh}"
+
+    if [[ -z "$service" ]]; then
+        error "Service name required"
+        echo "Usage: jacker shell <service> [shell]"
+        return 1
+    fi
+
+    cd_jacker_root
+    docker compose exec "$service" "$shell"
+}
+
+# Command: rotate-secrets
+cmd_rotate_secrets() {
+    exec "$JACKER_ROOT/assets/rotate-secrets.sh" "$@"
+}
+
+# Command: clean
+cmd_clean() {
+    local force="${1:-}"
+
+    if [[ "$force" != "--force" ]]; then
+        warning "This will remove all containers, volumes, and data!"
+        if ! confirm_action "Are you sure?"; then
+            info "Cancelled"
+            return 0
+        fi
+    fi
+
+    cd_jacker_root
+
+    info "Stopping all services..."
+    docker compose down -v
+
+    info "Removing data directory..."
+    sudo rm -rf data/
+
+    info "Removing orphaned volumes..."
+    docker volume prune -f
+
+    success "Cleanup complete"
+}
+
+# Version info
+show_version() {
+    echo "Jacker v${VERSION}"
+    echo "Copyright (c) 2024 Jacker Project"
+    echo "License: MIT"
+}
+
+# Main entry point
+main() {
+    # Handle global options
+    case "${1:-}" in
+        -v|--version)
+            show_version
+            exit 0
+            ;;
+        -h|--help|help)
+            show_usage
+            exit 0
+            ;;
+    esac
+
+    # Check if running in Jacker directory
+    if [[ ! -f "$JACKER_ROOT/docker-compose.yml" ]]; then
+        error "Not in Jacker directory"
+        exit 1
+    fi
+
+    # Route to command
+    local cmd="${1:-help}"
+    shift || true
+
+    case "$cmd" in
+        setup)
+            cmd_setup "$@"
+            ;;
+        start|up)
+            cmd_start "$@"
+            ;;
+        stop|down)
+            cmd_stop "$@"
+            ;;
+        restart)
+            cmd_restart "$@"
+            ;;
+        status|ps)
+            cmd_status "$@"
+            ;;
+        health)
+            cmd_health "$@"
+            ;;
+        backup)
+            cmd_backup "$@"
+            ;;
+        restore)
+            cmd_restore "$@"
+            ;;
+        update|upgrade)
+            cmd_update "$@"
+            ;;
+        fix)
+            cmd_fix "$@"
+            ;;
+        check)
+            cmd_check "$@"
+            ;;
+        logs)
+            cmd_logs "$@"
+            ;;
+        shell|exec)
+            cmd_shell "$@"
+            ;;
+        rotate-secrets)
+            cmd_rotate_secrets "$@"
+            ;;
+        clean)
+            cmd_clean "$@"
+            ;;
+        *)
+            error "Unknown command: $cmd"
+            show_usage
+            exit 1
+            ;;
+    esac
+}
+
+# Run main function
+main "$@"

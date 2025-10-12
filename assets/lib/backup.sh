@@ -362,26 +362,153 @@ verify_backup() {
 }
 
 # ============================================================================
-# Main Execution
+# Restore Functions
 # ============================================================================
 
-# Parse arguments
-case "${1:-create}" in
-    create)
-        create_backup "${2:-}"
-        ;;
-    list)
-        list_backups "${2:-}"
-        ;;
-    verify)
-        if [ -z "${2:-}" ]; then
-            error "Usage: $0 verify <backup-file>"
-            exit 1
+# Restore from backup
+restore_backup() {
+    local backup_file="$1"
+
+    section "Restoring from Backup"
+
+    if [ ! -f "$backup_file" ]; then
+        error "Backup file not found: $backup_file"
+        return 1
+    fi
+
+    # Verify backup first
+    if ! verify_backup "$backup_file"; then
+        error "Backup verification failed"
+        return 1
+    fi
+
+    warning "This will overwrite existing configuration and data!"
+    if ! confirm_action "Continue with restore?"; then
+        info "Restore cancelled"
+        return 0
+    fi
+
+    # Stop services
+    info "Stopping services"
+    stop_services
+
+    # Extract backup
+    local temp_dir="/tmp/jacker-restore-$(timestamp)"
+    mkdir -p "$temp_dir"
+
+    info "Extracting backup"
+    tar xzf "$backup_file" -C "$temp_dir" || {
+        error "Failed to extract backup"
+        rm -rf "$temp_dir"
+        return 1
+    }
+
+    local backup_dir=$(find "$temp_dir" -maxdepth 1 -type d -name "jacker-backup-*" | head -1)
+
+    # Restore configuration
+    info "Restoring configuration"
+    if [ -d "${backup_dir}/config" ]; then
+        cp -r "${backup_dir}/config/"* . 2>/dev/null || true
+        success "Configuration restored"
+    fi
+
+    # Restore data configs
+    if [ -d "${backup_dir}/data-configs" ]; then
+        info "Restoring data configurations"
+        cp -r "${backup_dir}/data-configs/"* . 2>/dev/null || true
+        success "Data configurations restored"
+    fi
+
+    # Restore databases
+    if [ -d "${backup_dir}/databases" ]; then
+        info "Restoring databases"
+
+        # Start only database services
+        docker compose up -d postgres redis
+        wait_for_healthy "postgres" 60
+
+        # Restore PostgreSQL
+        if [ -f "${backup_dir}/databases/postgres_dump.sql" ]; then
+            info "Restoring PostgreSQL"
+            docker_exec postgres psql -U "${POSTGRES_USER:-postgres}" < "${backup_dir}/databases/postgres_dump.sql"
+            success "PostgreSQL restored"
         fi
-        verify_backup "$2"
-        ;;
-    *)
-        # Treat as backup directory
-        create_backup "$1"
-        ;;
-esac
+
+        # Restore Redis
+        if [ -f "${backup_dir}/databases/redis_dump.rdb" ]; then
+            info "Restoring Redis"
+            docker cp "${backup_dir}/databases/redis_dump.rdb" redis:/data/dump.rdb
+            docker restart redis
+            success "Redis restored"
+        fi
+    fi
+
+    # Cleanup
+    rm -rf "$temp_dir"
+
+    # Start all services
+    info "Starting services"
+    start_services
+
+    success "Restore completed successfully"
+}
+
+# ============================================================================
+# Entry Points for CLI
+# ============================================================================
+
+# Entry point for backup command
+run_backup() {
+    local action="${1:-create}"
+    shift || true
+
+    case "$action" in
+        create)
+            create_backup "$@"
+            ;;
+        list)
+            list_backups "$@"
+            ;;
+        verify)
+            verify_backup "$@"
+            ;;
+        --help|-h)
+            cat << EOF
+Usage: jacker backup [action] [options]
+
+Actions:
+  create [dir]    Create a new backup (default)
+  list [dir]      List available backups
+  verify <file>   Verify backup integrity
+
+Options:
+  dir             Backup directory (default: ~/jacker-backups)
+
+Examples:
+  jacker backup                    # Create backup in default location
+  jacker backup create /backup     # Create backup in /backup
+  jacker backup list               # List all backups
+  jacker backup verify backup.tar.gz
+EOF
+            ;;
+        *)
+            # If not a known action, treat as backup directory
+            create_backup "$action" "$@"
+            ;;
+    esac
+}
+
+# Entry point for restore command
+run_restore() {
+    local backup_file="$1"
+
+    if [ -z "$backup_file" ]; then
+        error "Backup file required"
+        echo "Usage: jacker restore <backup-file>"
+        echo ""
+        echo "List backups: jacker backup list"
+        return 1
+    fi
+
+    restore_backup "$backup_file"
+}

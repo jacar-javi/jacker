@@ -36,52 +36,44 @@ help: ## Show this help message
 
 install: ## Run initial installation
 	@echo "$(BLUE)Starting Jacker installation...$(NC)"
-	@./assets/setup.sh
+	@./jacker setup
 
 reinstall: ## Reinstall (preserves .env)
 	@[ -f .env ] || { echo "$(RED)No .env file found$(NC)"; exit 1; }
 	@cp .env .env.backup-$$(date +%Y%m%d-%H%M%S)
-	@./assets/setup.sh
+	@./jacker setup
 
 update: ## Update all images and containers
 	@echo "$(BLUE)Updating Jacker...$(NC)"
-	@$(COMPOSE) pull
-	@$(COMPOSE) up -d --force-recreate
+	@./jacker update
 	@echo "$(GREEN)Update complete!$(NC)"
 
 clean: ## Remove all data and configuration (dangerous!)
-	@echo "$(RED)WARNING: This will remove all Jacker data!$(NC)"
-	@read -p "Are you sure? [y/N]: " confirm; \
-	[ "$$confirm" = "y" ] || exit 0; \
-	$(COMPOSE) down -v; \
-	rm -rf data/* logs/* secrets/* .env
+	@./jacker clean
 
 # =============================================================================
 ##@ Service Management
 # =============================================================================
 
 up: ## Start all services
-	@echo "$(GREEN)Starting services...$(NC)"
-	@$(COMPOSE) up -d $(SERVICE)
+	@./jacker start $(SERVICE)
 
 down: ## Stop all services
-	@echo "$(YELLOW)Stopping services...$(NC)"
-	@$(COMPOSE) down
+	@./jacker stop
 
 start: up ## Alias for 'up'
 
 stop: down ## Alias for 'down'
 
 restart: ## Restart services
-	@echo "$(YELLOW)Restarting services...$(NC)"
-	@$(COMPOSE) restart $(SERVICE)
+	@./jacker restart $(SERVICE)
 
 recreate: ## Recreate services
 	@echo "$(YELLOW)Recreating services...$(NC)"
 	@$(COMPOSE) up -d --force-recreate $(SERVICE)
 
 ps: ## Show service status
-	@$(COMPOSE) ps
+	@./jacker status
 
 stats: ## Show resource usage
 	@docker stats --no-stream
@@ -92,34 +84,33 @@ stats: ## Show resource usage
 
 .PHONY: logs logs-follow
 logs: ## View logs (use SERVICE=name for specific service)
-	@$(COMPOSE) logs $(if $(SERVICE),-f $(SERVICE),--tail=100)
+	@./jacker logs $(SERVICE) --tail=100
 
 logs-follow: ## Follow logs in real-time
-	@$(COMPOSE) logs -f $(SERVICE)
+	@./jacker logs $(SERVICE) -f
 
 health: ## Check health of all services
-	@./assets/lib/health-check.sh
+	@./jacker health
 
 health-watch: ## Watch health status
-	@watch -n 2 ./assets/lib/health-check.sh
+	@watch -n 2 ./jacker health
 
 diagnose: ## Run network diagnostics (DNS, firewall, SSL)
-	@./assets/diagnose-network.sh
+	@./jacker check network
 
 validate: ## Validate Docker Compose configuration
 	@echo "$(BLUE)Validating configuration...$(NC)"
 	@$(COMPOSE) config > /dev/null && echo "$(GREEN)✓ Configuration is valid$(NC)" || echo "$(RED)✗ Configuration has errors$(NC)"
 
 validate-env: ## Validate .env file variables
-	@./assets/validate-env.sh
+	@./jacker check env
 
 # =============================================================================
 ##@ Backup & Restore
 # =============================================================================
 
 backup: ## Create backup (use BACKUP_DIR=/path for custom location)
-	@echo "$(BLUE)Creating backup...$(NC)"
-	@./assets/lib/backup.sh $(BACKUP_DIR)
+	@./jacker backup create $(BACKUP_DIR)
 
 restore: ## Restore from backup (use BACKUP=/path/to/backup.tar.gz)
 ifndef BACKUP
@@ -127,8 +118,7 @@ ifndef BACKUP
 	@echo "Usage: make restore BACKUP=/path/to/backup.tar.gz"
 	@exit 1
 endif
-	@echo "$(BLUE)Restoring from $(BACKUP)...$(NC)"
-	@./assets/lib/restore.sh $(BACKUP)
+	@./jacker restore $(BACKUP)
 
 # =============================================================================
 ##@ Configuration
