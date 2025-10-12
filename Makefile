@@ -1,5 +1,6 @@
 # =============================================================================
-# Jacker - Simplified Makefile
+# Jacker - Simplified Makefile Wrapper
+# All functionality is now in the unified jacker CLI
 # =============================================================================
 
 .PHONY: help
@@ -13,42 +14,40 @@ RED := \033[0;31m
 NC := \033[0m
 
 # Variables
-COMPOSE := docker compose
-SHELL_CMD := sh -c
 SERVICE ?=
-STACK ?=
-BACKUP_DIR ?=
+BACKUP ?=
 
 # =============================================================================
 # Help
 # =============================================================================
 
 help: ## Show this help message
-	@echo "$(BLUE)Jacker - Docker Stack Management$(NC)"
+	@echo "$(BLUE)Jacker - Unified Docker Stack Management$(NC)"
 	@echo ""
-	@awk 'BEGIN {FS = ":.*##"; printf "$(GREEN)Usage:$(NC)\n  make [command]\n\n$(GREEN)Commands:$(NC)\n"} \
+	@echo "$(GREEN)Primary Interface:$(NC)"
+	@echo "  ./jacker [command] [options]    Use the jacker CLI directly"
+	@echo ""
+	@echo "$(GREEN)Common Make Targets:$(NC)"
+	@awk 'BEGIN {FS = ":.*##"} \
 		/^[a-zA-Z_-]+:.*?##/ { printf "  $(BLUE)%-20s$(NC) %s\n", $$1, $$2 } \
 		/^##@/ { printf "\n$(YELLOW)%s$(NC)\n", substr($$0, 5) }' $(MAKEFILE_LIST)
+	@echo ""
+	@echo "$(YELLOW)For full functionality, use: ./jacker help$(NC)"
 
 # =============================================================================
 ##@ Installation & Setup
 # =============================================================================
 
 install: ## Run initial installation
-	@echo "$(BLUE)Starting Jacker installation...$(NC)"
-	@./jacker setup
+	@./jacker init
 
-reinstall: ## Reinstall (preserves .env)
-	@[ -f .env ] || { echo "$(RED)No .env file found$(NC)"; exit 1; }
-	@cp .env .env.backup-$$(date +%Y%m%d-%H%M%S)
-	@./jacker setup
+reinstall: ## Reinstall preserving configuration
+	@./jacker init --reinstall
 
-update: ## Update all images and containers
-	@echo "$(BLUE)Updating Jacker...$(NC)"
-	@./jacker update
-	@echo "$(GREEN)Update complete!$(NC)"
+update: ## Update Jacker system and images
+	@./jacker update all
 
-clean: ## Remove all data and configuration (dangerous!)
+clean: ## Clean Docker resources and temp files
 	@./jacker clean
 
 # =============================================================================
@@ -59,7 +58,7 @@ up: ## Start all services
 	@./jacker start $(SERVICE)
 
 down: ## Stop all services
-	@./jacker stop
+	@./jacker stop $(SERVICE)
 
 start: up ## Alias for 'up'
 
@@ -68,204 +67,121 @@ stop: down ## Alias for 'down'
 restart: ## Restart services
 	@./jacker restart $(SERVICE)
 
-recreate: ## Recreate services
-	@echo "$(YELLOW)Recreating services...$(NC)"
-	@$(COMPOSE) up -d --force-recreate $(SERVICE)
-
 ps: ## Show service status
 	@./jacker status
 
-stats: ## Show resource usage
-	@docker stats --no-stream
-
 # =============================================================================
-##@ Logs & Monitoring
+##@ Monitoring & Health
 # =============================================================================
 
-.PHONY: logs logs-follow
-logs: ## View logs (use SERVICE=name for specific service)
-	@./jacker logs $(SERVICE) --tail=100
+logs: ## View service logs
+ifdef SERVICE
+	@./jacker logs $(SERVICE)
+else
+	@./jacker logs all --tail=50
+endif
 
-logs-follow: ## Follow logs in real-time
-	@./jacker logs $(SERVICE) -f
-
-health: ## Check health of all services
+health: ## Run health check
 	@./jacker health
 
-health-watch: ## Watch health status
-	@watch -n 2 ./jacker health
-
-diagnose: ## Run network diagnostics (DNS, firewall, SSL)
-	@./jacker check network
-
-validate: ## Validate Docker Compose configuration
-	@echo "$(BLUE)Validating configuration...$(NC)"
-	@$(COMPOSE) config > /dev/null && echo "$(GREEN)✓ Configuration is valid$(NC)" || echo "$(RED)✗ Configuration has errors$(NC)"
-
-validate-env: ## Validate .env file variables
-	@./jacker check env
+status: ## Show full status dashboard
+	@./jacker status --dashboard
 
 # =============================================================================
-##@ Backup & Restore
+##@ Backup & Maintenance
 # =============================================================================
 
-backup: ## Create backup (use BACKUP_DIR=/path for custom location)
-	@./jacker backup create $(BACKUP_DIR)
+backup: ## Create backup
+	@./jacker backup create
 
-restore: ## Restore from backup (use BACKUP=/path/to/backup.tar.gz)
-ifndef BACKUP
-	@echo "$(RED)ERROR: BACKUP path required$(NC)"
-	@echo "Usage: make restore BACKUP=/path/to/backup.tar.gz"
-	@exit 1
+restore: ## Restore from backup
+ifdef BACKUP
+	@./jacker backup restore $(BACKUP)
+else
+	@echo "$(RED)Usage: make restore BACKUP=/path/to/backup$(NC)"
 endif
-	@./jacker restore $(BACKUP)
+
+prune: ## Clean unused Docker resources
+	@./jacker clean docker
 
 # =============================================================================
 ##@ Configuration
 # =============================================================================
 
-config: ## Show Docker Compose configuration
-	@$(COMPOSE) config
+config: ## Show/edit configuration
+	@./jacker config show
 
-env: ## Show current environment variables
-	@[ -f .env ] && cat .env | grep -v '^#' | grep -v '^$$' || echo "$(RED)No .env file found$(NC)"
+reconfigure-oauth: ## Reconfigure OAuth
+	@./jacker config oauth
 
-reconfigure-oauth: ## Reconfigure OAuth authentication
-	@./assets/lib/reconfigure.sh oauth
+reconfigure-ssl: ## Reconfigure SSL/TLS
+	@./jacker config ssl
 
-reconfigure-ssl: ## Reconfigure SSL certificates
-	@./assets/lib/reconfigure.sh ssl
-
-reconfigure-domain: ## Reconfigure domain name
-	@./assets/lib/reconfigure.sh domain
-
-generate-passwords: ## Generate new passwords
-	@./assets/lib/reconfigure.sh passwords
+reconfigure-domain: ## Reconfigure domain
+	@./jacker config domain
 
 # =============================================================================
 ##@ Security
 # =============================================================================
 
+security-status: ## Show security status
+	@./jacker security status
+
+security-scan: ## Run security scan
+	@./jacker security scan
+
 crowdsec-status: ## Show CrowdSec status
-	@docker exec crowdsec cscli metrics
+	@./jacker security crowdsec status
 
-crowdsec-decisions: ## Show CrowdSec decisions
-	@docker exec crowdsec cscli decisions list
-
-crowdsec-bouncers: ## Show CrowdSec bouncers
-	@docker exec crowdsec cscli bouncers list
-
-crowdsec-update: ## Update CrowdSec collections
-	@docker exec crowdsec cscli hub update
-	@docker exec crowdsec cscli collections upgrade --all
-
-ufw-status: ## Show firewall status
-	@sudo ufw status verbose
-
-rotate-secrets: ## Rotate all secrets
-	@./assets/lib/rotate-secrets.sh
-
-secrets-verify: ## Verify Docker secrets
-	@bash -c 'source ./assets/lib/secrets.sh && verify_secrets'
-
-secrets-generate: ## Generate missing secrets
-	@bash -c 'source ./assets/lib/secrets.sh && generate_all_secrets'
-
-secrets-migrate: ## Migrate secrets from .env to files
-	@bash -c 'source ./assets/lib/secrets.sh && migrate_env_to_secrets'
-
-# =============================================================================
-##@ Stack Management
-# =============================================================================
-
-stacks: ## List available stacks (alias for stack-list)
-	@./assets/stack.sh list
-
-stack-list: ## List available stacks
-	@./assets/stack.sh list
-
-stack-search: ## Search stacks (use QUERY=term)
-ifdef QUERY
-	@./assets/stack.sh search $(QUERY)
-else
-	@echo "$(RED)Usage: make stack-search QUERY=wordpress$(NC)"
-endif
-
-stack-install: ## Install a stack (use STACK=name)
-ifdef STACK
-	@./assets/stack.sh install $(STACK)
-else
-	@echo "$(RED)Usage: make stack-install STACK=wordpress$(NC)"
-endif
-
-stack-uninstall: ## Uninstall a stack (use STACK=name)
-ifdef STACK
-	@./assets/stack.sh uninstall $(STACK)
-else
-	@echo "$(RED)Usage: make stack-uninstall STACK=wordpress$(NC)"
-endif
-
-# =============================================================================
-##@ Maintenance
-# =============================================================================
-
-pull: ## Pull latest images
-	@echo "$(BLUE)Pulling latest images...$(NC)"
-	@$(COMPOSE) pull
-
-prune: ## Clean unused Docker resources
-	@echo "$(YELLOW)Cleaning Docker resources...$(NC)"
-	@docker system prune -af --volumes
-	@echo "$(GREEN)Cleanup complete!$(NC)"
-
-shell: ## Open shell in service (use SERVICE=name)
-ifdef SERVICE
-	@$(COMPOSE) exec $(SERVICE) $(SHELL_CMD) 'bash || sh'
-else
-	@echo "$(RED)Usage: make shell SERVICE=traefik$(NC)"
-endif
-
-
-version: ## Show component versions
-	@echo "$(BLUE)Component Versions:$(NC)"
-	@docker --version
-	@$(COMPOSE) version
-	@echo ""
-	@$(COMPOSE) ps --format "table {{.Name}}\t{{.Image}}"
+firewall-status: ## Show firewall status
+	@./jacker security firewall status
 
 # =============================================================================
 ##@ Development
 # =============================================================================
 
-dev-up: ## Start in development mode
-	@$(COMPOSE) -f docker-compose.yml -f docker-compose.dev.yml up -d
-
-dev-logs: ## Show development logs
-	@$(COMPOSE) -f docker-compose.yml -f docker-compose.dev.yml logs -f
-
 lint: ## Lint configuration files
-	@echo "$(BLUE)Linting configuration...$(NC)"
-	@yamllint docker-compose.yml compose/*.yml 2>/dev/null || true
-	@shellcheck assets/*.sh assets/lib/*.sh 2>/dev/null || true
+	@./jacker check lint
 
-# =============================================================================
-# Hidden targets for backward compatibility
-# =============================================================================
+validate: ## Validate configuration
+	@./jacker check validate
 
-.PHONY: up-monitoring
-up-monitoring: up
+test: ## Run tests
+	@./jacker check test
 
-.PHONY: status
-status: ps
-
-.PHONY: start-service stop-service restart-service
-start-service stop-service restart-service: SERVICE_REQUIRED
-	@$(COMPOSE) $(@:-service=) $(SERVICE)
-
-.PHONY: SERVICE_REQUIRED
-SERVICE_REQUIRED:
-ifndef SERVICE
-	@echo "$(RED)ERROR: SERVICE not specified$(NC)"
-	@echo "Usage: make $@ SERVICE=name"
-	@exit 1
+shell: ## Open shell in service
+ifdef SERVICE
+	@./jacker exec $(SERVICE) bash
+else
+	@echo "$(RED)Usage: make shell SERVICE=traefik$(NC)"
 endif
+
+# =============================================================================
+# Shortcuts for common operations
+# =============================================================================
+
+.PHONY: quick-start quick-stop quick-restart
+quick-start: ## Quick start essential services
+	@./jacker start traefik oauth postgres redis
+
+quick-stop: ## Quick stop all services
+	@./jacker stop --all
+
+quick-restart: ## Quick restart with pull
+	@./jacker stop --all
+	@./jacker update images
+	@./jacker start --all
+
+# =============================================================================
+# Legacy compatibility (will be deprecated)
+# =============================================================================
+
+.PHONY: env generate-passwords crowdsec-decisions
+env: ## Show environment (legacy)
+	@./jacker config show
+
+generate-passwords: ## Generate passwords (legacy)
+	@./jacker secrets regenerate
+
+crowdsec-decisions: ## Show CrowdSec decisions (legacy)
+	@./jacker security crowdsec list-decisions

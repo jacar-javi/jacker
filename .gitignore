@@ -1,78 +1,64 @@
 # ============================================
-# Environment Files
+# Jacker Project .gitignore
+# ============================================
+
+# ============================================
+# Environment & Configuration
 # ============================================
 .env
-.env.bak
-.env.local
-.env.*.bak.*
+.env.*
+!.env.defaults
+!.env.sample
+*.env.bak
+*.env.backup
+.env.bak.*
 
 # ============================================
-# Setup Markers
+# Data Directories (Runtime Only)
 # ============================================
-.FIRST_ROUND
+# All runtime data should be in data/
+data/*/*
+!data/*/.gitkeep
+!data/*/README.md
+!data/README.md
+
+# Traefik rules are configuration, not data
+!data/traefik/rules/
+data/traefik/rules/*
+!data/traefik/rules/*.yml
+!data/traefik/rules/.gitkeep
+
+# Specific runtime files that should never be tracked
+data/traefik/acme/acme.json
+data/crowdsec/config/config.yaml.local
+data/homepage/custom.css
+data/homepage/custom.js
+data/prometheus/config/alert.rules
 
 # ============================================
-# Data Directories (Runtime Data Only)
+# Secrets & Sensitive Files
 # ============================================
-# All of data/ is now for runtime data only
-# Configuration files have been moved to config/
-data/
-
-# Except .gitkeep files to preserve structure
-!data/**/.gitkeep
-
-# ============================================
-# Configuration Files (Tracked in config/)
-# ============================================
-# Configuration files are in config/ directory
-# and should be tracked in version control
-
-# ============================================
-# Important: Keep These Tracked
-# ============================================
-!.gitkeep
-
-# All configuration files are now in config/
-# No need to track files in data/ anymore
+secrets/*
+!secrets/.gitkeep
+!secrets/README.md
+*.key
+*.pem
+*.crt
+*.p12
+*.jks
+*.pfx
+acme.json
 
 # ============================================
 # Logs
 # ============================================
 logs/
 *.log
+*.log.*
 assets/logs/
 
 # ============================================
-# Secrets & Sensitive Files
-# ============================================
-secrets/
-*.key
-*.pem
-*.crt
-*.p12
-*.jks
-
-# ============================================
-# Stacks (User-defined stacks)
-# ============================================
-stacks/*
-!stacks/.gitkeep
-!stacks/newstack.sh
-!stacks/README.md
-
-# ============================================
-# Development & Testing
-# ============================================
-dev/
-.jacker/
-.claude/
-tests/results/
-*.tap
-coverage/
-.nyc_output/
-
-# ============================================
-# Backups
+# Backups & Archives
 # ============================================
 backups/
 backup/
@@ -84,7 +70,38 @@ restored/
 *.bak.*
 *.old
 *.tmp
+*.temp
 *~
+*.swp
+*.swo
+
+# ============================================
+# Setup & Installation Markers
+# ============================================
+.FIRST_ROUND
+.SECOND_ROUND
+.setup_complete
+.installed
+
+# ============================================
+# Stacks (User-defined)
+# ============================================
+stacks/*
+!stacks/.gitkeep
+!stacks/README.md
+!stacks/newstack.sh
+
+# ============================================
+# Development & Testing
+# ============================================
+.jacker/
+tests/results/
+test-results/
+*.tap
+coverage/
+.nyc_output/
+.pytest_cache/
+htmlcov/
 
 # ============================================
 # IDE & Editor Files
@@ -93,10 +110,14 @@ restored/
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/README.md
 *.swp
 *.swo
 *.swn
 .history/
+.vim/
 
 # ============================================
 # OS Files
@@ -109,18 +130,21 @@ restored/
 ehthumbs.db
 Thumbs.db
 desktop.ini
+.directory
 
 # ============================================
-# Node.js (if applicable)
+# Language Specific
 # ============================================
+
+# Node.js
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
 
-# ============================================
-# Python (if applicable)
-# ============================================
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -128,8 +152,65 @@ __pycache__/
 venv/
 env/
 ENV/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
 
 # ============================================
-# MCP Server Directories
+# Build & Distribution
 # ============================================
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# ============================================
+# Documentation Build
+# ============================================
+docs/_build/
+docs/.doctrees/
+site/
+
+# ============================================
+# Tool Specific
+# ============================================
+
+# MCP Servers
 .serena/
+.claude/
+!.claude/CLAUDE.md
+!.claude/README.md
+
+# Trunk
+.trunk/
+
+# Docker
+.docker/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
+
+# ============================================
+# Misc
+# ============================================
+.cache/
+.local/
+.config/
+tmp/
+temp/
+obsolete/
+deprecated/
+archive/

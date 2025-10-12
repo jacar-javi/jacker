@@ -51,9 +51,9 @@ services:
     depends_on:
       socket-proxy:
         condition: service_healthy
-      # Optional: Add Redis for distributed rate limiting
-      # redis:
-      #   condition: service_healthy
+      # Redis for distributed rate limiting
+      redis:
+        condition: service_healthy
 
     # Enhanced health check with more detailed configuration
     healthcheck:
@@ -198,8 +198,8 @@ services:
       # Optional: Enable debug mode
       # TRAEFIK_API_DEBUG: ${TRAEFIK_DEBUG:-false}
 
-      # Optional: Redis for distributed rate limiting
-      # TRAEFIK_RATELIMIT_REDIS_ENDPOINT: redis:6379
+      # Redis for distributed rate limiting
+      TRAEFIK_RATELIMIT_REDIS_ENDPOINT: redis:6379
 
       # Optional: OpenTelemetry tracing
       # TRAEFIK_TRACING_ENABLED: ${TRACING_ENABLED:-false}

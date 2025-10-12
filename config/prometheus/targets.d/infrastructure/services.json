@@ -1,0 +1,49 @@
+[
+  {
+    "targets": ["traefik:8080"],
+    "labels": {
+      "job": "traefik",
+      "service": "reverse-proxy",
+      "component": "infrastructure",
+      "__metrics_path__": "/metrics"
+    }
+  },
+  {
+    "targets": ["node-exporter:9100"],
+    "labels": {
+      "job": "node-exporter",
+      "service": "system-metrics",
+      "component": "infrastructure",
+      "__metrics_path__": "/metrics"
+    }
+  },
+  {
+    "targets": ["postgres-exporter:9187"],
+    "labels": {
+      "job": "postgres",
+      "service": "database",
+      "component": "infrastructure",
+      "database": "postgresql",
+      "__metrics_path__": "/metrics"
+    }
+  },
+  {
+    "targets": ["redis-exporter:9121"],
+    "labels": {
+      "job": "redis",
+      "service": "cache",
+      "component": "infrastructure",
+      "cache": "redis",
+      "__metrics_path__": "/metrics"
+    }
+  },
+  {
+    "targets": ["cadvisor:8080"],
+    "labels": {
+      "job": "cadvisor",
+      "service": "container-metrics",
+      "component": "infrastructure",
+      "__metrics_path__": "/metrics"
+    }
+  }
+]

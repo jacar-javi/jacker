@@ -6,11 +6,12 @@ We actively maintain and provide security updates for the following versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 3.x.x   | :white_check_mark: |
 | main    | :white_check_mark: |
 | develop | :white_check_mark: |
-| < 1.0   | :x:                |
+| < 3.0   | :x:                |
 
-The `main` branch represents the latest stable release, while `develop` contains the latest features under active development.
+Version 3.0.0 introduced the unified Jacker CLI. The `main` branch represents the latest stable release, while `develop` contains features under active development.
 
 ## Reporting a Vulnerability
 
@@ -112,10 +113,10 @@ Jacker includes multiple security layers:
 
 ### Operation
 
-1. **Regular Updates** - Run `make update` to pull latest images
+1. **Regular Updates** - Run `./jacker update` to pull latest images
 2. **Monitor Logs** - Check Grafana dashboards regularly
 3. **Review Alerts** - Configure Alertmanager notifications
-4. **Backup Regularly** - Run `make backup` before major changes
+4. **Backup Regularly** - Run `./jacker backup` before major changes
 5. **Audit Access** - Review OAuth whitelist and authentication logs
 
 ### Network Configuration
@@ -150,11 +151,22 @@ The Socket Proxy container has access to the Docker socket. This is necessary fo
 
 ### OAuth Bypass
 
-Emergency OAuth bypass is available via `./assets/disable-oauth-for-testing.sh`. **Only use for troubleshooting** and re-enable authentication immediately after.
+Emergency OAuth bypass is available for development environments only. **Never disable OAuth in production**. To temporarily disable for testing:
+```bash
+./jacker config oauth disable
+```
+
+Re-enable immediately after testing:
+```bash
+./jacker config oauth enable
+```
 
 ### Default Credentials
 
-Setup scripts generate random passwords for PostgreSQL and CrowdSec. Review and rotate these if needed using `./assets/rotate-secrets.sh`.
+The setup process generates strong random passwords for all services. To rotate secrets:
+```bash
+./jacker secrets rotate
+```
 
 ### Network Exposure
 
@@ -206,6 +218,7 @@ We thank security researchers who responsibly disclose vulnerabilities. Contribu
 
 ---
 
-**Last Updated**: 2025-10-11
+**Last Updated**: 2025-10-12
+**Jacker Version**: 3.0.0 (Unified CLI)
 
 **Security is a shared responsibility**. This document outlines our commitment to security, but proper configuration and operational security depend on deployment-specific factors. Always review and customize security settings for your environment.

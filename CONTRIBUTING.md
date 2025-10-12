@@ -15,7 +15,7 @@ If you find a bug or have a feature request:
 1. **Search existing issues** to avoid duplicates
 2. **Open a new issue** with a clear title and description
 3. **Include relevant information**:
-   - Jacker version
+   - Jacker version (run `./jacker version`)
    - Operating system and version
    - Steps to reproduce (for bugs)
    - Expected vs actual behavior
@@ -61,17 +61,18 @@ git checkout -b fix/issue-description
 #### 4. Test Your Changes
 
 ```bash
-# Run ShellCheck linting
-make lint
-
-# Run test suite
-make test
+# Run ShellCheck linting on the jacker CLI
+shellcheck jacker assets/lib/*.sh
 
 # Test installation (if applicable)
-make install
+./jacker init
 
-# Check health
-make health
+# Run health checks
+./jacker health
+
+# Test specific functionality
+./jacker status
+./jacker logs
 ```
 
 #### 5. Commit Guidelines
@@ -112,31 +113,69 @@ Then create a pull request on GitHub with:
 
 ## Development Guidelines
 
+### Unified Jacker CLI
+
+The Jacker project uses a unified CLI (`jacker`) that consolidates all functionality. When contributing:
+
+- All new features should be added to the main `jacker` script
+- Use the library modules in `assets/lib/` for shared functionality
+- Follow the existing command structure and patterns
+
+### Library Modules
+
+Jacker uses modular libraries in `assets/lib/`:
+
+- `common.sh` - Core utility functions, logging, environment loading
+- `setup.sh` - Installation and configuration
+- `config.sh` - Configuration management
+- `security.sh` - Security operations
+- `monitoring.sh` - Health checks and monitoring
+- `maintenance.sh` - Backup, restore, updates
+- `fixes.sh` - Problem resolution functions
+
+Example of adding a new command:
+
+```bash
+# In the main jacker script
+case "${1:-}" in
+    your-command)
+        shift
+        source "$SCRIPT_DIR/assets/lib/your-module.sh"
+        your_function "$@"
+        ;;
+esac
+```
+
 ### Shell Scripts
 
-- Follow existing patterns in `assets/` directory
+When creating new library modules:
+
 - Use `#!/usr/bin/env bash` shebang
 - Add ShellCheck directives when needed
-- Source `common.sh` for shared functions
 - Include error handling (`set -euo pipefail`)
 - Add comments for complex logic
+- Follow existing patterns
 
-Example:
+Example library module:
 
 ```bash
 #!/usr/bin/env bash
 #
-# script-name.sh - Brief description
+# lib/your-module.sh - Brief description
 #
 
 set -euo pipefail
 
-# Source common library
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=assets/lib/common.sh
-source "$SCRIPT_DIR/lib/common.sh"
+# Function documentation
+your_function() {
+    local param="${1:-}"
 
-# Your code here
+    # Your code here
+    info "Processing: $param"
+
+    # Use common functions for output
+    success "Operation completed"
+}
 ```
 
 ### Docker Compose Services
@@ -152,34 +191,60 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 - Update README.md for significant changes
 - Add service documentation to `compose/README.md`
-- Update CLAUDE.md for codebase changes that affect development
 - Keep documentation clear, concise, and up-to-date
 
 ### Testing
 
 Before submitting a pull request:
 
-1. **Lint all scripts**: `make lint`
-2. **Run tests**: `make test`
-3. **Test installation**: Fresh install on clean system (if applicable)
-4. **Check health**: `make health` passes all checks
+1. **Lint the jacker CLI and libraries**:
+   ```bash
+   shellcheck jacker
+   shellcheck assets/lib/*.sh
+   ```
+
+2. **Test installation**: Fresh install on clean system
+   ```bash
+   ./jacker init
+   ```
+
+3. **Check health**: Ensure all services are healthy
+   ```bash
+   ./jacker health
+   ```
+
+4. **Test affected commands**:
+   ```bash
+   ./jacker status
+   ./jacker config validate
+   ./jacker logs
+   ```
+
 5. **Verify functionality**: Manual testing of affected features
 
 ## Project Structure
 
 ```
 jacker/
-├── assets/              # Scripts and utilities
-│   ├── lib/            # Shared libraries
-│   ├── setup.sh        # Main installation script
-│   ├── backup.sh       # Backup functionality
-│   └── *.sh            # Maintenance scripts
-├── compose/            # Modular service definitions
-├── data/               # Persistent data (gitignored)
-├── .github/            # GitHub workflows and configs
-├── docker-compose.yml  # Main compose file
-├── Makefile           # Management commands
-└── README.md          # User documentation
+├── jacker              # Unified CLI (main entry point)
+├── assets/             # Support files
+│   ├── lib/           # Library modules
+│   │   ├── common.sh      # Core utilities
+│   │   ├── setup.sh       # Installation functions
+│   │   ├── config.sh      # Configuration management
+│   │   ├── security.sh    # Security operations
+│   │   ├── monitoring.sh  # Health and monitoring
+│   │   ├── maintenance.sh # Backup/restore/updates
+│   │   └── fixes.sh       # Problem resolution
+│   └── templates/     # Configuration templates
+├── compose/           # Modular service definitions
+├── config/            # Service configurations
+├── data/              # Persistent data (gitignored)
+├── secrets/           # Docker secrets (gitignored)
+├── .github/           # GitHub workflows and configs
+├── docker-compose.yml # Main compose file with includes
+├── Makefile          # Backward compatibility wrapper
+└── README.md         # User documentation
 ```
 
 ## Getting Help

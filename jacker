@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Jacker - Docker Home Server Management Platform
-# Main CLI interface for all Jacker operations
+# Jacker - Unified Docker Home Server Management Platform
+# Single CLI interface for all Jacker operations
 #
 # Usage: jacker <command> [options]
 #
@@ -17,292 +17,984 @@ export JACKER_ROOT="$SCRIPT_DIR"
 source "$JACKER_ROOT/assets/lib/common.sh"
 
 # Version
-readonly VERSION="2.0.0"
+readonly VERSION="3.0.0"
 
-# Main commands
+# ============================================================================
+# Main Commands
+# ============================================================================
+
+# Show usage
 show_usage() {
     cat << EOF
-Jacker - Docker Home Server Management Platform v${VERSION}
+${BLUE}Jacker - Docker Home Server Management Platform v${VERSION}${NC}
 
-Usage: jacker <command> [options]
+${GREEN}Usage:${NC} jacker <command> [options]
 
-Commands:
-  setup           Initial setup and configuration
-  start           Start all services
-  stop            Stop all services
+${YELLOW}Core Commands:${NC}
+  init            Initialize Jacker (first-time setup)
+  start           Start services
+  stop            Stop services
   restart         Restart services
   status          Show service status
-  health          Run health check
-  backup          Backup configuration and data
-  restore         Restore from backup
-  update          Update Jacker and services
-  fix             Fix common issues
-  check           Run diagnostic checks
   logs            View service logs
   shell           Access service shell
-  rotate-secrets  Rotate security secrets
-  clean           Clean up containers and volumes
+
+${YELLOW}Management Commands:${NC}
+  health          Run health checks
+  fix             Fix common issues
+  backup          Create backup
+  restore         Restore from backup
+  update          Update Jacker and services
+  clean           Clean up containers and data
+
+${YELLOW}Configuration Commands:${NC}
+  config          Manage configuration
+  secrets         Manage secrets
+  security        Security operations
+
+${YELLOW}Information Commands:${NC}
+  info            Show system information
+  version         Show version information
   help            Show this help message
 
-Options:
+${GREEN}Options:${NC}
   -h, --help      Show help for specific command
   -v, --version   Show version information
-  -q, --quiet     Suppress output
+  -q, --quiet     Suppress non-critical output
   -y, --yes       Auto-confirm prompts
 
-Examples:
-  jacker setup                    # Run initial setup
-  jacker health                   # Check system health
-  jacker fix loki                 # Fix Loki permissions
+${GREEN}Examples:${NC}
+  jacker init                     # First-time setup
+  jacker init --auto              # Automated setup with defaults
+  jacker status                   # Show all services status
   jacker logs traefik -f          # Follow Traefik logs
-  jacker backup --full            # Full system backup
+  jacker config show              # Show current configuration
+  jacker health --verbose         # Detailed health check
 
-For more help: jacker <command> --help
+For command help: ${CYAN}jacker <command> --help${NC}
+Documentation: ${CYAN}https://github.com/yourusername/jacker${NC}
 EOF
 }
 
-# Command: setup
-cmd_setup() {
-    local mode="${1:-interactive}"
+# ============================================================================
+# Command: init (replaces setup)
+# ============================================================================
+cmd_init() {
+    local auto_mode=false
+    local force=false
 
-    case "$mode" in
-        --non-interactive|--auto)
-            exec "$JACKER_ROOT/assets/setup.sh" --non-interactive
-            ;;
-        --authentik)
-            exec "$JACKER_ROOT/assets/setup-authentik.sh"
-            ;;
-        *)
-            exec "$JACKER_ROOT/assets/setup.sh"
-            ;;
-    esac
-}
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --auto)
+                auto_mode=true
+                shift
+                ;;
+            --force)
+                force=true
+                shift
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker init [options]
 
-# Command: start
-cmd_start() {
-    local services="${*:-}"
-    cd_jacker_root
+Initialize Jacker with smart setup process.
 
-    if [[ -z "$services" ]]; then
-        info "Starting all services..."
-        docker compose up -d
-    else
-        info "Starting services: $services"
-        docker compose up -d "$@"
+${YELLOW}Options:${NC}
+  --auto          Use automatic setup with defaults
+  --force         Force reinstall even if already configured
+  --help, -h      Show this help message
+
+${GREEN}Examples:${NC}
+  jacker init              # Interactive setup
+  jacker init --auto       # Automatic setup with smart defaults
+  jacker init --force      # Force reinstallation
+EOF
+                return 0
+                ;;
+            *)
+                error "Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+
+    # Check if already initialized
+    if [[ -f "$JACKER_ROOT/.env" ]] && [[ "$force" != "true" ]]; then
+        warning "Jacker is already initialized"
+        if confirm_action "Do you want to reconfigure?"; then
+            backup_file "$JACKER_ROOT/.env"
+        else
+            info "Use 'jacker init --force' to force reinstallation"
+            return 0
+        fi
     fi
 
-    success "Services started"
+    # Source setup library
+    # shellcheck source=assets/lib/setup.sh
+    source "$JACKER_ROOT/assets/lib/setup.sh"
+
+    if [[ "$auto_mode" == "true" ]]; then
+        run_auto_setup
+    else
+        run_interactive_setup
+    fi
 }
 
-# Command: stop
-cmd_stop() {
-    local services="${*:-}"
-    cd_jacker_root
+# ============================================================================
+# Command: start
+# ============================================================================
+cmd_start() {
+    local services=()
+    local detach=true
 
-    if [[ -z "$services" ]]; then
-        info "Stopping all services..."
-        docker compose down
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --attach)
+                detach=false
+                shift
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker start [services...] [options]
+
+Start Jacker services.
+
+${YELLOW}Options:${NC}
+  --attach        Don't detach (run in foreground)
+  --help, -h      Show this help message
+
+${GREEN}Examples:${NC}
+  jacker start                # Start all services
+  jacker start traefik oauth  # Start specific services
+  jacker start --attach       # Start in foreground
+EOF
+                return 0
+                ;;
+            -*)
+                error "Unknown option: $1"
+                return 1
+                ;;
+            *)
+                services+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    cd_jacker_root
+    check_env_exists
+
+    if [[ ${#services[@]} -eq 0 ]]; then
+        info "Starting all services..."
+        if [[ "$detach" == "true" ]]; then
+            docker compose up -d
+        else
+            docker compose up
+        fi
     else
-        info "Stopping services: $services"
-        docker compose stop "$@"
+        info "Starting services: ${services[*]}"
+        if [[ "$detach" == "true" ]]; then
+            docker compose up -d "${services[@]}"
+        else
+            docker compose up "${services[@]}"
+        fi
+    fi
+
+    if [[ "$detach" == "true" ]]; then
+        success "Services started"
+        info "Run 'jacker status' to check service status"
+    fi
+}
+
+# ============================================================================
+# Command: stop
+# ============================================================================
+cmd_stop() {
+    local services=()
+    local remove_volumes=false
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --volumes|-v)
+                remove_volumes=true
+                shift
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker stop [services...] [options]
+
+Stop Jacker services.
+
+${YELLOW}Options:${NC}
+  --volumes, -v   Also remove volumes
+  --help, -h      Show this help message
+
+${GREEN}Examples:${NC}
+  jacker stop                 # Stop all services
+  jacker stop traefik        # Stop specific service
+  jacker stop --volumes      # Stop and remove volumes
+EOF
+                return 0
+                ;;
+            -*)
+                error "Unknown option: $1"
+                return 1
+                ;;
+            *)
+                services+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    cd_jacker_root
+    check_env_exists
+
+    if [[ ${#services[@]} -eq 0 ]]; then
+        info "Stopping all services..."
+        if [[ "$remove_volumes" == "true" ]]; then
+            docker compose down -v
+        else
+            docker compose down
+        fi
+    else
+        info "Stopping services: ${services[*]}"
+        docker compose stop "${services[@]}"
     fi
 
     success "Services stopped"
 }
 
+# ============================================================================
 # Command: restart
+# ============================================================================
 cmd_restart() {
-    local services="${*:-}"
-    cd_jacker_root
+    local services=()
 
-    if [[ -z "$services" ]]; then
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker restart [services...] [options]
+
+Restart Jacker services.
+
+${YELLOW}Options:${NC}
+  --help, -h      Show this help message
+
+${GREEN}Examples:${NC}
+  jacker restart              # Restart all services
+  jacker restart traefik      # Restart specific service
+EOF
+                return 0
+                ;;
+            -*)
+                error "Unknown option: $1"
+                return 1
+                ;;
+            *)
+                services+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    cd_jacker_root
+    check_env_exists
+
+    if [[ ${#services[@]} -eq 0 ]]; then
         info "Restarting all services..."
         docker compose restart
     else
-        info "Restarting services: $services"
-        docker compose restart "$@"
+        info "Restarting services: ${services[*]}"
+        docker compose restart "${services[@]}"
     fi
 
     success "Services restarted"
 }
 
+# ============================================================================
 # Command: status
+# ============================================================================
 cmd_status() {
-    cd_jacker_root
-    docker compose ps
-}
+    local watch_mode=false
+    local format="table"
 
-# Command: health
-cmd_health() {
-    # shellcheck source=assets/lib/health-check.sh
-    source "$JACKER_ROOT/assets/lib/health-check.sh"
-    run_health_check "$@"
-}
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --watch|-w)
+                watch_mode=true
+                shift
+                ;;
+            --json)
+                format="json"
+                shift
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker status [options]
 
-# Command: backup
-cmd_backup() {
-    # shellcheck source=assets/lib/backup.sh
-    source "$JACKER_ROOT/assets/lib/backup.sh"
-    run_backup "$@"
-}
+Show status of Jacker services.
 
-# Command: restore
-cmd_restore() {
-    # shellcheck source=assets/lib/backup.sh
-    source "$JACKER_ROOT/assets/lib/backup.sh"
-    run_restore "$@"
-}
+${YELLOW}Options:${NC}
+  --watch, -w     Watch mode (refresh every 2s)
+  --json          Output in JSON format
+  --help, -h      Show this help message
 
-# Command: update
-cmd_update() {
-    cd_jacker_root
-
-    info "Updating Jacker..."
-    git pull origin main
-
-    info "Pulling latest images..."
-    docker compose pull
-
-    info "Recreating services with new images..."
-    docker compose up -d
-
-    success "Update complete"
-}
-
-# Command: fix
-cmd_fix() {
-    local component="${1:-}"
-    shift || true
-
-    if [[ -z "$component" ]]; then
-        cat << EOF
-Usage: jacker fix <component> [options]
-
-Available components:
-  loki            Fix Loki permissions and configuration
-  alertmanager    Fix Alertmanager configuration
-  crowdsec        Fix CrowdSec database connection
-  postgres        Fix PostgreSQL permissions
-  traefik         Fix Traefik certificates
-  permissions     Fix all directory permissions
-  all             Run all fixes
-
-Example:
-  jacker fix loki
-  jacker fix all --force
+${GREEN}Examples:${NC}
+  jacker status           # Show current status
+  jacker status --watch   # Watch status updates
+  jacker status --json    # JSON output
 EOF
-        return 0
+                return 0
+                ;;
+            *)
+                error "Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+
+    cd_jacker_root
+    check_env_exists
+
+    if [[ "$watch_mode" == "true" ]]; then
+        watch -n 2 "docker compose ps --format $format"
+    else
+        docker compose ps --format "$format"
     fi
-
-    # shellcheck source=assets/lib/fixes.sh
-    source "$JACKER_ROOT/assets/lib/fixes.sh"
-
-    case "$component" in
-        loki)
-            fix_loki "$@"
-            ;;
-        alertmanager)
-            fix_alertmanager "$@"
-            ;;
-        crowdsec)
-            fix_crowdsec "$@"
-            ;;
-        postgres)
-            fix_postgres "$@"
-            ;;
-        traefik)
-            fix_traefik "$@"
-            ;;
-        permissions)
-            fix_permissions "$@"
-            ;;
-        all)
-            fix_all "$@"
-            ;;
-        *)
-            error "Unknown component: $component"
-            cmd_fix
-            return 1
-            ;;
-    esac
 }
 
-# Command: check
-cmd_check() {
-    local type="${1:-all}"
-    shift || true
-
-    # shellcheck source=assets/lib/checks.sh
-    source "$JACKER_ROOT/assets/lib/checks.sh"
-
-    case "$type" in
-        config)
-            check_config "$@"
-            ;;
-        network)
-            check_network "$@"
-            ;;
-        postgres)
-            check_postgres "$@"
-            ;;
-        env)
-            check_env "$@"
-            ;;
-        all)
-            check_all "$@"
-            ;;
-        *)
-            error "Unknown check type: $type"
-            echo "Available: config, network, postgres, env, all"
-            return 1
-            ;;
-    esac
-}
-
+# ============================================================================
 # Command: logs
+# ============================================================================
 cmd_logs() {
-    local service="${1:-}"
-    shift || true
+    local service=""
+    local follow=false
+    local tail="100"
+    local since=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -f|--follow)
+                follow=true
+                shift
+                ;;
+            --tail)
+                tail="$2"
+                shift 2
+                ;;
+            --since)
+                since="$2"
+                shift 2
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker logs <service> [options]
+
+View logs for a specific service.
+
+${YELLOW}Options:${NC}
+  -f, --follow    Follow log output
+  --tail N        Number of lines to show (default: 100)
+  --since TIME    Show logs since timestamp
+  --help, -h      Show this help message
+
+${GREEN}Examples:${NC}
+  jacker logs traefik             # Show last 100 lines
+  jacker logs traefik -f          # Follow logs
+  jacker logs oauth --tail 50     # Show last 50 lines
+  jacker logs crowdsec --since 1h # Logs from last hour
+EOF
+                return 0
+                ;;
+            -*)
+                error "Unknown option: $1"
+                return 1
+                ;;
+            *)
+                if [[ -z "$service" ]]; then
+                    service="$1"
+                else
+                    error "Multiple services specified"
+                    return 1
+                fi
+                shift
+                ;;
+        esac
+    done
 
     if [[ -z "$service" ]]; then
         error "Service name required"
         echo "Usage: jacker logs <service> [options]"
-        echo "Options: -f (follow), --tail N"
+        echo "Run 'jacker logs --help' for more information"
         return 1
     fi
 
     cd_jacker_root
-    docker compose logs "$service" "$@"
+    check_env_exists
+
+    local args=()
+    [[ "$follow" == "true" ]] && args+=("-f")
+    [[ -n "$tail" ]] && args+=("--tail" "$tail")
+    [[ -n "$since" ]] && args+=("--since" "$since")
+
+    docker compose logs "${args[@]}" "$service"
 }
 
+# ============================================================================
 # Command: shell
+# ============================================================================
 cmd_shell() {
-    local service="${1:-}"
-    local shell="${2:-/bin/sh}"
+    local service=""
+    local shell_cmd="/bin/sh"
+    local user=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --bash)
+                shell_cmd="/bin/bash"
+                shift
+                ;;
+            --user)
+                user="$2"
+                shift 2
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker shell <service> [options]
+
+Access shell in a service container.
+
+${YELLOW}Options:${NC}
+  --bash          Use bash instead of sh
+  --user USER     Run shell as specific user
+  --help, -h      Show this help message
+
+${GREEN}Examples:${NC}
+  jacker shell traefik            # Access traefik container
+  jacker shell postgres --bash    # Use bash shell
+  jacker shell crowdsec --user root # Run as root
+EOF
+                return 0
+                ;;
+            -*)
+                error "Unknown option: $1"
+                return 1
+                ;;
+            *)
+                if [[ -z "$service" ]]; then
+                    service="$1"
+                else
+                    error "Multiple services specified"
+                    return 1
+                fi
+                shift
+                ;;
+        esac
+    done
 
     if [[ -z "$service" ]]; then
         error "Service name required"
-        echo "Usage: jacker shell <service> [shell]"
+        echo "Usage: jacker shell <service> [options]"
         return 1
     fi
 
     cd_jacker_root
-    docker compose exec "$service" "$shell"
+    check_env_exists
+
+    local args=()
+    [[ -n "$user" ]] && args+=("--user" "$user")
+
+    info "Connecting to $service container..."
+    docker compose exec "${args[@]}" "$service" "$shell_cmd"
 }
 
-# Command: rotate-secrets
-cmd_rotate_secrets() {
-    exec "$JACKER_ROOT/assets/rotate-secrets.sh" "$@"
+# ============================================================================
+# Command: health
+# ============================================================================
+cmd_health() {
+    local verbose=false
+    local json_output=false
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --verbose|-v)
+                verbose=true
+                shift
+                ;;
+            --json)
+                json_output=true
+                shift
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker health [options]
+
+Run comprehensive health checks on all services.
+
+${YELLOW}Options:${NC}
+  --verbose, -v   Show detailed health information
+  --json          Output results in JSON format
+  --help, -h      Show this help message
+
+${GREEN}Examples:${NC}
+  jacker health              # Basic health check
+  jacker health --verbose    # Detailed health check
+  jacker health --json       # JSON output
+EOF
+                return 0
+                ;;
+            *)
+                error "Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+
+    # shellcheck source=assets/lib/monitoring.sh
+    source "$JACKER_ROOT/assets/lib/monitoring.sh"
+    run_health_check "$verbose" "$json_output"
 }
 
+# ============================================================================
+# Command: fix
+# ============================================================================
+cmd_fix() {
+    local component=""
+    local force=false
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --force|-f)
+                force=true
+                shift
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker fix [component] [options]
+
+Fix common issues with Jacker components.
+
+${YELLOW}Components:${NC}
+  all             Fix all known issues
+  loki            Fix Loki permissions
+  traefik         Fix Traefik certificates
+  crowdsec        Fix CrowdSec database
+  postgres        Fix PostgreSQL issues
+  permissions     Fix all file permissions
+  network         Fix Docker networks
+
+${YELLOW}Options:${NC}
+  --force, -f     Force fix without confirmation
+  --help, -h      Show this help message
+
+${GREEN}Examples:${NC}
+  jacker fix                  # Interactive fix menu
+  jacker fix all              # Fix all issues
+  jacker fix loki --force     # Fix Loki without confirmation
+EOF
+                return 0
+                ;;
+            -*)
+                error "Unknown option: $1"
+                return 1
+                ;;
+            *)
+                component="$1"
+                shift
+                ;;
+        esac
+    done
+
+    # shellcheck source=assets/lib/fixes.sh
+    source "$JACKER_ROOT/assets/lib/fixes.sh"
+
+    if [[ -z "$component" ]]; then
+        # Interactive menu
+        select_fix_component
+    else
+        run_fix "$component" "$force"
+    fi
+}
+
+# ============================================================================
+# Command: backup
+# ============================================================================
+cmd_backup() {
+    local location=""
+    local include_volumes=false
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --location|-l)
+                location="$2"
+                shift 2
+                ;;
+            --with-volumes)
+                include_volumes=true
+                shift
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker backup [options]
+
+Create backup of Jacker configuration and data.
+
+${YELLOW}Options:${NC}
+  --location, -l PATH   Backup location (default: ./backups)
+  --with-volumes        Include Docker volumes in backup
+  --help, -h            Show this help message
+
+${GREEN}Examples:${NC}
+  jacker backup                           # Default backup
+  jacker backup --location /mnt/backup    # Custom location
+  jacker backup --with-volumes            # Include volumes
+EOF
+                return 0
+                ;;
+            *)
+                error "Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+
+    # shellcheck source=assets/lib/maintenance.sh
+    source "$JACKER_ROOT/assets/lib/maintenance.sh"
+    create_backup "$location" "$include_volumes"
+}
+
+# ============================================================================
+# Command: restore
+# ============================================================================
+cmd_restore() {
+    local backup_file=""
+    local force=false
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --force|-f)
+                force=true
+                shift
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker restore <backup-file> [options]
+
+Restore Jacker from backup.
+
+${YELLOW}Options:${NC}
+  --force, -f     Force restore without confirmation
+  --help, -h      Show this help message
+
+${GREEN}Examples:${NC}
+  jacker restore backup-20240101.tar.gz
+  jacker restore /path/to/backup.tar.gz --force
+EOF
+                return 0
+                ;;
+            -*)
+                error "Unknown option: $1"
+                return 1
+                ;;
+            *)
+                backup_file="$1"
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -z "$backup_file" ]]; then
+        error "Backup file required"
+        echo "Usage: jacker restore <backup-file>"
+        return 1
+    fi
+
+    # shellcheck source=assets/lib/maintenance.sh
+    source "$JACKER_ROOT/assets/lib/maintenance.sh"
+    restore_backup "$backup_file" "$force"
+}
+
+# ============================================================================
+# Command: update
+# ============================================================================
+cmd_update() {
+    local check_only=false
+    local skip_pull=false
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --check-only|-c)
+                check_only=true
+                shift
+                ;;
+            --skip-pull)
+                skip_pull=true
+                shift
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker update [options]
+
+Update Jacker and service images.
+
+${YELLOW}Options:${NC}
+  --check-only, -c   Only check for updates
+  --skip-pull        Skip pulling new images
+  --help, -h         Show this help message
+
+${GREEN}Examples:${NC}
+  jacker update              # Update everything
+  jacker update --check-only # Check for updates only
+  jacker update --skip-pull  # Update Jacker only
+EOF
+                return 0
+                ;;
+            *)
+                error "Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+
+    # shellcheck source=assets/lib/maintenance.sh
+    source "$JACKER_ROOT/assets/lib/maintenance.sh"
+    run_update "$check_only" "$skip_pull"
+}
+
+# ============================================================================
+# Command: config
+# ============================================================================
+cmd_config() {
+    local subcommand="${1:-show}"
+    shift || true
+
+    case "$subcommand" in
+        show)
+            # shellcheck source=assets/lib/config.sh
+            source "$JACKER_ROOT/assets/lib/config.sh"
+            show_config "$@"
+            ;;
+        set)
+            # shellcheck source=assets/lib/config.sh
+            source "$JACKER_ROOT/assets/lib/config.sh"
+            set_config "$@"
+            ;;
+        validate)
+            # shellcheck source=assets/lib/config.sh
+            source "$JACKER_ROOT/assets/lib/config.sh"
+            validate_config "$@"
+            ;;
+        oauth)
+            # shellcheck source=assets/lib/config.sh
+            source "$JACKER_ROOT/assets/lib/config.sh"
+            configure_oauth "$@"
+            ;;
+        domain)
+            # shellcheck source=assets/lib/config.sh
+            source "$JACKER_ROOT/assets/lib/config.sh"
+            configure_domain "$@"
+            ;;
+        ssl)
+            # shellcheck source=assets/lib/config.sh
+            source "$JACKER_ROOT/assets/lib/config.sh"
+            configure_ssl "$@"
+            ;;
+        authentik)
+            # shellcheck source=assets/lib/config.sh
+            source "$JACKER_ROOT/assets/lib/config.sh"
+            configure_authentik "$@"
+            ;;
+        help|--help|-h)
+            cat << EOF
+${GREEN}Usage:${NC} jacker config <subcommand> [options]
+
+Manage Jacker configuration.
+
+${YELLOW}Subcommands:${NC}
+  show            Display current configuration
+  set             Set configuration value
+  validate        Validate configuration
+  oauth           Configure OAuth authentication
+  domain          Configure domain name
+  ssl             Configure SSL certificates
+  authentik       Configure Authentik (optional)
+
+${GREEN}Examples:${NC}
+  jacker config show                    # Show all configuration
+  jacker config set TZ America/New_York # Set timezone
+  jacker config validate                # Validate config
+  jacker config oauth --disable         # Disable OAuth
+  jacker config domain myserver.com     # Update domain
+EOF
+            ;;
+        *)
+            error "Unknown subcommand: $subcommand"
+            cmd_config help
+            return 1
+            ;;
+    esac
+}
+
+# ============================================================================
+# Command: secrets
+# ============================================================================
+cmd_secrets() {
+    local subcommand="${1:-list}"
+    shift || true
+
+    case "$subcommand" in
+        list)
+            # shellcheck source=assets/lib/security.sh
+            source "$JACKER_ROOT/assets/lib/security.sh"
+            list_secrets "$@"
+            ;;
+        rotate)
+            # shellcheck source=assets/lib/security.sh
+            source "$JACKER_ROOT/assets/lib/security.sh"
+            rotate_secrets "$@"
+            ;;
+        generate)
+            # shellcheck source=assets/lib/security.sh
+            source "$JACKER_ROOT/assets/lib/security.sh"
+            generate_secrets "$@"
+            ;;
+        verify)
+            # shellcheck source=assets/lib/security.sh
+            source "$JACKER_ROOT/assets/lib/security.sh"
+            verify_secrets "$@"
+            ;;
+        help|--help|-h)
+            cat << EOF
+${GREEN}Usage:${NC} jacker secrets <subcommand> [options]
+
+Manage Docker secrets.
+
+${YELLOW}Subcommands:${NC}
+  list            List all secrets
+  rotate          Rotate secrets
+  generate        Generate missing secrets
+  verify          Verify secrets integrity
+
+${GREEN}Examples:${NC}
+  jacker secrets list              # List all secrets
+  jacker secrets rotate all        # Rotate all secrets
+  jacker secrets rotate postgres   # Rotate specific secret
+  jacker secrets generate          # Generate missing secrets
+  jacker secrets verify            # Verify all secrets
+EOF
+            ;;
+        *)
+            error "Unknown subcommand: $subcommand"
+            cmd_secrets help
+            return 1
+            ;;
+    esac
+}
+
+# ============================================================================
+# Command: security
+# ============================================================================
+cmd_security() {
+    local subcommand="${1:-status}"
+    shift || true
+
+    case "$subcommand" in
+        status)
+            # shellcheck source=assets/lib/security.sh
+            source "$JACKER_ROOT/assets/lib/security.sh"
+            security_status "$@"
+            ;;
+        crowdsec)
+            # shellcheck source=assets/lib/security.sh
+            source "$JACKER_ROOT/assets/lib/security.sh"
+            manage_crowdsec "$@"
+            ;;
+        firewall)
+            # shellcheck source=assets/lib/security.sh
+            source "$JACKER_ROOT/assets/lib/security.sh"
+            manage_firewall "$@"
+            ;;
+        scan)
+            # shellcheck source=assets/lib/security.sh
+            source "$JACKER_ROOT/assets/lib/security.sh"
+            run_security_scan "$@"
+            ;;
+        help|--help|-h)
+            cat << EOF
+${GREEN}Usage:${NC} jacker security <subcommand> [options]
+
+Manage security features.
+
+${YELLOW}Subcommands:${NC}
+  status          Show security status
+  crowdsec        Manage CrowdSec IPS
+  firewall        Manage firewall rules
+  scan            Run security scan
+
+${GREEN}Examples:${NC}
+  jacker security status              # Security overview
+  jacker security crowdsec status     # CrowdSec status
+  jacker security firewall update     # Update firewall
+  jacker security scan                # Run security scan
+EOF
+            ;;
+        *)
+            error "Unknown subcommand: $subcommand"
+            cmd_security help
+            return 1
+            ;;
+    esac
+}
+
+# ============================================================================
 # Command: clean
+# ============================================================================
 cmd_clean() {
-    local force="${1:-}"
+    local force=false
+    local deep=false
 
-    if [[ "$force" != "--force" ]]; then
-        warning "This will remove all containers, volumes, and data!"
-        if ! confirm_action "Are you sure?"; then
-            info "Cancelled"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --force|-f)
+                force=true
+                shift
+                ;;
+            --deep)
+                deep=true
+                shift
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker clean [options]
+
+Clean up containers, volumes, and data.
+
+${YELLOW}Options:${NC}
+  --force, -f     Skip confirmation prompts
+  --deep          Deep clean (remove all data)
+  --help, -h      Show this help message
+
+${GREEN}Examples:${NC}
+  jacker clean              # Interactive cleanup
+  jacker clean --force      # Force cleanup
+  jacker clean --deep       # Remove everything
+EOF
+                return 0
+                ;;
+            *)
+                error "Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+
+    if [[ "$force" != "true" ]]; then
+        warning "This will remove containers and optionally data!"
+        if ! confirm_action "Continue with cleanup?"; then
+            info "Cleanup cancelled"
             return 0
         fi
     fi
@@ -312,28 +1004,120 @@ cmd_clean() {
     info "Stopping all services..."
     docker compose down -v
 
-    info "Removing data directory..."
-    sudo rm -rf data/
+    if [[ "$deep" == "true" ]]; then
+        warning "Deep clean requested - removing all data"
+        if [[ "$force" != "true" ]]; then
+            if ! confirm_action "Remove ALL data directories?"; then
+                info "Skipping data removal"
+            else
+                info "Removing data directories..."
+                sudo rm -rf data/ logs/ backups/
+            fi
+        else
+            info "Removing data directories..."
+            sudo rm -rf data/ logs/ backups/
+        fi
+    fi
 
-    info "Removing orphaned volumes..."
-    docker volume prune -f
+    info "Pruning Docker system..."
+    docker system prune -af --volumes
 
     success "Cleanup complete"
 }
 
-# Version info
-show_version() {
+# ============================================================================
+# Command: info
+# ============================================================================
+cmd_info() {
+    local format="text"
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --json)
+                format="json"
+                shift
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker info [options]
+
+Show system and configuration information.
+
+${YELLOW}Options:${NC}
+  --json          Output in JSON format
+  --help, -h      Show this help message
+
+${GREEN}Examples:${NC}
+  jacker info              # Show system info
+  jacker info --json       # JSON output
+EOF
+                return 0
+                ;;
+            *)
+                error "Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+
+    section "System Information"
+
+    # System info
+    subsection "Host System"
+    echo "OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)"
+    echo "Kernel: $(uname -r)"
+    echo "Architecture: $(uname -m)"
+    echo "CPU Cores: $(nproc)"
+    echo "Memory: $(free -h | awk '/^Mem:/ {print $2}')"
+    echo "Disk Space: $(df -h / | awk 'NR==2 {print $4}' ) available"
+
+    # Docker info
+    subsection "Docker Environment"
+    echo "Docker Version: $(docker --version | cut -d' ' -f3 | tr -d ',')"
+    echo "Compose Version: $(docker compose version --short)"
+
+    # Jacker info
+    subsection "Jacker Configuration"
+    if [[ -f "$JACKER_ROOT/.env" ]]; then
+        echo "Domain: $(grep '^DOMAINNAME=' .env | cut -d'=' -f2)"
+        echo "FQDN: $(grep '^PUBLIC_FQDN=' .env | cut -d'=' -f2)"
+        echo "OAuth: $(grep '^OAUTH_CLIENT_ID=' .env | cut -d'=' -f2 | grep -q . && echo 'Configured' || echo 'Not configured')"
+    else
+        echo "Status: Not initialized"
+        echo "Run 'jacker init' to set up"
+    fi
+
+    # Service status
+    subsection "Service Status"
+    if [[ -f "$JACKER_ROOT/.env" ]]; then
+        local running=$(docker compose ps --services --filter "status=running" 2>/dev/null | wc -l)
+        local total=$(docker compose ps --services 2>/dev/null | wc -l)
+        echo "Running: $running / $total services"
+    else
+        echo "No services configured"
+    fi
+}
+
+# ============================================================================
+# Command: version
+# ============================================================================
+cmd_version() {
     echo "Jacker v${VERSION}"
     echo "Copyright (c) 2024 Jacker Project"
     echo "License: MIT"
+    echo ""
+    echo "GitHub: https://github.com/yourusername/jacker"
+    echo "Docs: https://jacker.io"
 }
 
-# Main entry point
+# ============================================================================
+# Main Entry Point
+# ============================================================================
 main() {
-    # Handle global options
+    # Handle global flags
     case "${1:-}" in
-        -v|--version)
-            show_version
+        -v|--version|version)
+            cmd_version
             exit 0
             ;;
         -h|--help|help)
@@ -342,9 +1126,10 @@ main() {
             ;;
     esac
 
-    # Check if running in Jacker directory
+    # Check if running from Jacker directory
     if [[ ! -f "$JACKER_ROOT/docker-compose.yml" ]]; then
         error "Not in Jacker directory"
+        error "Please run from the Jacker installation directory"
         exit 1
     fi
 
@@ -353,8 +1138,9 @@ main() {
     shift || true
 
     case "$cmd" in
-        setup)
-            cmd_setup "$@"
+        # Core commands
+        init|setup)
+            cmd_init "$@"
             ;;
         start|up)
             cmd_start "$@"
@@ -368,10 +1154,21 @@ main() {
         status|ps)
             cmd_status "$@"
             ;;
-        health)
+        logs|log)
+            cmd_logs "$@"
+            ;;
+        shell|exec|sh)
+            cmd_shell "$@"
+            ;;
+
+        # Management commands
+        health|check)
             cmd_health "$@"
             ;;
-        backup)
+        fix|repair)
+            cmd_fix "$@"
+            ;;
+        backup|bak)
             cmd_backup "$@"
             ;;
         restore)
@@ -380,26 +1177,30 @@ main() {
         update|upgrade)
             cmd_update "$@"
             ;;
-        fix)
-            cmd_fix "$@"
-            ;;
-        check)
-            cmd_check "$@"
-            ;;
-        logs)
-            cmd_logs "$@"
-            ;;
-        shell|exec)
-            cmd_shell "$@"
-            ;;
-        rotate-secrets)
-            cmd_rotate_secrets "$@"
-            ;;
-        clean)
+        clean|cleanup)
             cmd_clean "$@"
             ;;
+
+        # Configuration commands
+        config|configure|cfg)
+            cmd_config "$@"
+            ;;
+        secrets|secret)
+            cmd_secrets "$@"
+            ;;
+        security|sec)
+            cmd_security "$@"
+            ;;
+
+        # Information commands
+        info|information)
+            cmd_info "$@"
+            ;;
+
+        # Unknown command
         *)
             error "Unknown command: $cmd"
+            echo ""
             show_usage
             exit 1
             ;;

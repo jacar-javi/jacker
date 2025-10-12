@@ -69,10 +69,10 @@ git clone https://github.com/jacar-javi/jacker.git
 cd jacker
 
 # Run installer (choose Quick or Advanced setup)
-make install
+./jacker init
 
 # Check health
-make health
+./jacker health
 
 # Access your services
 # https://yourdomain.com - Homepage dashboard
@@ -87,7 +87,7 @@ That's it! Your Jacker platform is now running with all 21 services ready to use
 **Quick Setup** (< 1 minute)
 - Minimal prompts, auto-detection of system settings
 - Perfect for testing or development
-- Can reconfigure OAuth/SSL later with `make reconfigure-oauth` and `make reconfigure-ssl`
+- Can reconfigure OAuth/SSL later with `./jacker config oauth` and `./jacker config ssl`
 
 **Advanced Setup** (Full customization)
 - Complete control over all settings
@@ -132,16 +132,16 @@ Install additional stacks with the integrated stack manager:
 
 ```bash
 # List available stacks
-make stacks
+./jacker stacks list
 
 # Search for specific applications
-./assets/stack.sh search wordpress
+./jacker stacks search wordpress
 
 # Install a stack
-./assets/stack.sh install wordpress
+./jacker stacks install wordpress
 
 # List installed stacks
-./assets/stack.sh installed
+./jacker stacks installed
 ```
 
 ## Documentation
@@ -158,6 +158,9 @@ Complete documentation is available at **[jacker.jacar.es](https://jacker.jacar.
 #### Repository Documentation
 - **[compose/README.md](compose/README.md)** - All 21 services documented with URLs, images, and descriptions
 - **[assets/README.md](assets/README.md)** - All scripts, libraries, and maintenance tools
+- **[config/README.md](config/README.md)** - Configuration management and templates
+- **[data/README.md](data/README.md)** - Runtime data, permissions, and storage
+- **[secrets/README.md](secrets/README.md)** - Secrets management and security
 
 #### Operations
 - **[User Guide](https://jacker.jacar.es/guide/)** - Daily operations and management
@@ -169,19 +172,19 @@ Complete documentation is available at **[jacker.jacar.es](https://jacker.jacar.
 
 ```bash
 # Basic commands
-make start              # Start all services
-make stop               # Stop all services
-make restart            # Restart all services
-make status             # Show service status
-make logs               # View all logs
+./jacker start          # Start all services
+./jacker stop           # Stop all services
+./jacker restart        # Restart all services
+./jacker status         # Show service status
+./jacker logs           # View all logs
 
 # Updates and maintenance
-make update             # Update all images
-make backup             # Create backup
-make health             # Check service health
+./jacker update         # Update all images
+./jacker backup         # Create backup
+./jacker health         # Check service health
 
 # View all available commands
-make help
+./jacker help
 ```
 
 ## Support

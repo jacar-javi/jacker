@@ -25,7 +25,7 @@ Related to #
 <!-- Describe how you tested these changes -->
 
 ### Test Environment
-- [ ] Tested with fresh install (`make install`)
+- [ ] Tested with fresh install (`./jacker init`)
 - [ ] Tested with upgrade from previous version
 - [ ] Tested with existing data preserved
 - [ ] Tested OAuth authentication flow
@@ -34,9 +34,10 @@ Related to #
 ### Test Commands Run
 ```bash
 # List commands used to test
-make ps
-make logs
-make health
+./jacker status
+./jacker logs
+./jacker health
+./jacker config validate
 ```
 
 ## Checklist
@@ -47,7 +48,7 @@ make health
 - [ ] My changes generate no new warnings or errors
 - [ ] I have tested my changes thoroughly
 - [ ] I have updated `.env.defaults` if new environment variables were added
-- [ ] I have run `make lint` and fixed any issues
+- [ ] I have run `shellcheck jacker assets/lib/*.sh` and fixed any issues
 - [ ] All GitHub Actions workflows pass
 
 ## Documentation

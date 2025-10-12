@@ -19,14 +19,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run ShellCheck
+      - name: Run ShellCheck on Jacker CLI
+        run: |
+          shellcheck jacker
+
+      - name: Run ShellCheck on library modules
+        run: |
+          shellcheck assets/lib/*.sh
+
+      - name: Run ShellCheck on other scripts
         uses: ludeeus/action-shellcheck@master
         with:
-          scandir: '.'
+          scandir: './assets'
           severity: warning
           ignore_paths: |
             jacker-stacks
             templates
+            assets/lib
 
   docker-compose-validation:
     name: Docker Compose Validation

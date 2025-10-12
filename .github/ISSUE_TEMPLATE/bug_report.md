@@ -13,7 +13,7 @@ assignees: ''
 ## Environment Information
 
 **Installation Method:**
-- [ ] Fresh install via `make install`
+- [ ] Fresh install via `./jacker init`
 - [ ] Upgraded from previous version
 - [ ] Manual setup
 
@@ -21,7 +21,7 @@ assignees: ''
 - OS: [e.g., Ubuntu 22.04, Debian 12]
 - Docker version: [run `docker --version`]
 - Docker Compose version: [run `docker compose version`]
-- Jacker version/commit: [run `git rev-parse --short HEAD`]
+- Jacker version: [run `./jacker version`]
 
 **Configuration:**
 - Domain configured: [yes/no]
@@ -47,7 +47,7 @@ Steps to reproduce the behavior:
 <summary>Docker Compose Logs</summary>
 
 ```
-# Paste output of: make logs SVC=<affected-service>
+# Paste output of: ./jacker logs <affected-service>
 ```
 </details>
 
@@ -55,7 +55,7 @@ Steps to reproduce the behavior:
 <summary>Container Status</summary>
 
 ```
-# Paste output of: make ps
+# Paste output of: ./jacker status
 ```
 </details>
 
@@ -63,7 +63,15 @@ Steps to reproduce the behavior:
 <summary>Configuration Check</summary>
 
 ```
-# Paste output of: ./assets/check-jacker-config.sh
+# Paste output of: ./jacker config validate
+```
+</details>
+
+<details>
+<summary>Health Check</summary>
+
+```
+# Paste output of: ./jacker health
 ```
 </details>
 
