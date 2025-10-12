@@ -139,7 +139,7 @@ done
 print_status "HEADER" "Traefik Integration"
 
 # Check if Traefik uses socket-proxy
-if grep -q "endpoint: tcp://socket-proxy:2375" data/traefik/traefik.yml 2>/dev/null; then
+if grep -q "endpoint: tcp://socket-proxy:2375" config/traefik/traefik.yml 2>/dev/null; then
     print_status "PASS" "Traefik configured to use socket-proxy"
 else
     print_status "FAIL" "Traefik not configured to use socket-proxy"
@@ -201,7 +201,7 @@ fi
 print_status "HEADER" "Promtail Integration"
 
 # Check if Promtail uses socket-proxy in config
-if grep -q "host: tcp://socket-proxy:2375" data/loki/promtail-config.yml 2>/dev/null; then
+if grep -q "host: tcp://socket-proxy:2375" config/loki/promtail-config.yml 2>/dev/null; then
     print_status "PASS" "Promtail configured to use socket-proxy for Docker discovery"
 else
     print_status "FAIL" "Promtail not configured to use socket-proxy"

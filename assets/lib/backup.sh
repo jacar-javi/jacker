@@ -105,9 +105,9 @@ backup_configuration() {
     # Backup data configurations
     local data_configs=(
         "data/traefik"
-        "data/crowdsec/config"
+        "config/crowdsec/config"
         "data/prometheus"
-        "data/grafana/provisioning"
+        "config/grafana/provisioning"
         "data/alertmanager"
         "data/loki/*.yml"
     )

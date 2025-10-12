@@ -60,11 +60,11 @@ echo ""
 echo "✓ Modified $COUNT service(s)"
 
 # Check if chain-no-auth middleware exists
-if [ ! -f "data/traefik/rules/chain-no-auth.yml" ]; then
+if [ ! -f "config/traefik/rules/chain-no-auth.yml" ]; then
     echo ""
     echo "Creating chain-no-auth middleware..."
 
-    cat > data/traefik/rules/chain-no-auth.yml <<'EOF'
+    cat > config/traefik/rules/chain-no-auth.yml <<'EOF'
 http:
   middlewares:
     # OAuth-free chain for testing/development

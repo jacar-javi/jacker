@@ -167,11 +167,11 @@ echo
 echo "4. Alert Rules Checks:"
 echo "--------------------"
 
-if [[ -f data/prometheus/rules/oauth.yml ]]; then
+if [[ -f config/prometheus/rules/oauth.yml ]]; then
     print_status "PASS" "OAuth alert rules file exists"
 
     # Count alerts
-    alert_count=$(grep -c "alert:" data/prometheus/rules/oauth.yml || true)
+    alert_count=$(grep -c "alert:" config/prometheus/rules/oauth.yml || true)
     print_status "INFO" "Found $alert_count alert rules for OAuth2-Proxy"
 
     # Check if alerts are loaded in Prometheus
@@ -190,18 +190,18 @@ echo
 echo "5. Grafana Dashboard Checks:"
 echo "--------------------------"
 
-if [[ -f data/grafana/provisioning/dashboards/oauth2-proxy.json ]]; then
+if [[ -f config/grafana/provisioning/dashboards/oauth2-proxy.json ]]; then
     print_status "PASS" "OAuth2-Proxy dashboard file exists"
 
     # Check dashboard structure
-    if grep -q '"uid": "oauth2-proxy"' data/grafana/provisioning/dashboards/oauth2-proxy.json; then
+    if grep -q '"uid": "oauth2-proxy"' config/grafana/provisioning/dashboards/oauth2-proxy.json; then
         print_status "PASS" "Dashboard has correct UID"
     else
         print_status "FAIL" "Dashboard UID not found or incorrect"
     fi
 
     # Count panels
-    panel_count=$(grep -c '"type":' data/grafana/provisioning/dashboards/oauth2-proxy.json || true)
+    panel_count=$(grep -c '"type":' config/grafana/provisioning/dashboards/oauth2-proxy.json || true)
     print_status "INFO" "Dashboard contains $panel_count panels"
 else
     print_status "FAIL" "OAuth2-Proxy dashboard file not found"
@@ -213,11 +213,11 @@ echo
 echo "6. Log Collection Checks:"
 echo "-----------------------"
 
-if [[ -f data/loki/promtail-config.yml ]]; then
+if [[ -f config/loki/promtail-config.yml ]]; then
     print_status "PASS" "Promtail configuration file exists"
 
     # Check for OAuth job
-    if grep -q "job_name: oauth2_proxy" data/loki/promtail-config.yml; then
+    if grep -q "job_name: oauth2_proxy" config/loki/promtail-config.yml; then
         print_status "PASS" "OAuth2-Proxy log collection job configured"
     else
         print_status "FAIL" "OAuth2-Proxy log collection job not found"
@@ -270,7 +270,7 @@ fi
 
 # Check if metrics port matches in compose and prometheus
 compose_port=$(grep -A1 "ports:" compose/oauth.yml | grep "9090:9090" | cut -d: -f2 | head -1)
-prometheus_port=$(grep -A1 "oauth2-proxy" data/prometheus/prometheus.yml | grep "targets:" | grep -o "9090" || echo "")
+prometheus_port=$(grep -A1 "oauth2-proxy" config/prometheus/prometheus.yml | grep "targets:" | grep -o "9090" || echo "")
 
 if [[ "$compose_port" == "$prometheus_port" ]]; then
     print_status "PASS" "Metrics port configuration is consistent"

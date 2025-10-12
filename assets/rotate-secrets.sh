@@ -62,9 +62,9 @@ generate_oauth_secret() {
     fi
 
     # Update OAuth2-Proxy config
-    if [ -f data/oauth2-proxy/oauth2-proxy.cfg ]; then
-        sed -i "s/^cookie_secret = .*/cookie_secret = \"$NEW_OAUTH_COOKIE_SECRET\"/" data/oauth2-proxy/oauth2-proxy.cfg
-        sed -i "s/^signature_key = .*/signature_key = \"$NEW_OAUTH_SIGNATURE_KEY\"/" data/oauth2-proxy/oauth2-proxy.cfg
+    if [ -f config/oauth2-proxy/oauth2-proxy.cfg ]; then
+        sed -i "s/^cookie_secret = .*/cookie_secret = \"$NEW_OAUTH_COOKIE_SECRET\"/" config/oauth2-proxy/oauth2-proxy.cfg
+        sed -i "s/^signature_key = .*/signature_key = \"$NEW_OAUTH_SIGNATURE_KEY\"/" config/oauth2-proxy/oauth2-proxy.cfg
     fi
 
     echo -e "${GREEN}✓ OAuth secrets rotated${NC}"
@@ -138,8 +138,8 @@ source .env
 if [ "$ROTATE_MODE" = "--all" ] || [ "$ROTATE_MODE" = "--oauth" ]; then
     echo "Updating OAuth2-Proxy configuration..."
     if [ -f assets/templates/oauth2-proxy.cfg.template ]; then
-        envsubst < assets/templates/oauth2-proxy.cfg.template > data/oauth2-proxy/oauth2-proxy.cfg
-        chmod 600 data/oauth2-proxy/oauth2-proxy.cfg
+        envsubst < assets/templates/oauth2-proxy.cfg.template > config/oauth2-proxy/oauth2-proxy.cfg
+        chmod 600 config/oauth2-proxy/oauth2-proxy.cfg
     fi
     echo -e "${GREEN}✓ OAuth2-Proxy configuration updated${NC}"
 fi

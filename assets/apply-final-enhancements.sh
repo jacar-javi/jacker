@@ -100,7 +100,7 @@ apply_final_enhancements() {
     # ==========================================================================
     print_info "Creating enhanced Loki configuration..."
 
-    cat > "data/loki/loki-config.yml" <<'EOF'
+    cat > "config/loki/loki-config.yml" <<'EOF'
 # Loki Enhanced Configuration
 # https://grafana.com/docs/loki/latest/configuration/
 
@@ -238,7 +238,7 @@ EOF
     # ==========================================================================
     print_info "Creating Grafana configuration file..."
 
-    cat > "data/grafana/grafana.ini" <<'EOF'
+    cat > "config/grafana/grafana.ini" <<'EOF'
 # Grafana Enhanced Configuration
 # https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/
 
@@ -341,7 +341,7 @@ EOF
     # ==========================================================================
     print_info "Creating Alertmanager configuration..."
 
-    cat > "data/alertmanager/alertmanager.yml" <<'EOF'
+    cat > "config/alertmanager/alertmanager.yml" <<'EOF'
 # Alertmanager Enhanced Configuration
 # https://prometheus.io/docs/alerting/latest/configuration/
 
@@ -417,7 +417,7 @@ EOF
     # ==========================================================================
     print_info "Creating enhanced Promtail configuration..."
 
-    cat > "data/loki/promtail-config.yml" <<'EOF'
+    cat > "config/loki/promtail-config.yml" <<'EOF'
 # Promtail Enhanced Configuration
 # https://grafana.com/docs/loki/latest/send-data/promtail/configuration/
 
@@ -632,7 +632,7 @@ EOF
     mkdir -p data/node-exporter/textfile_collector
 
     # Prometheus targets directory structure
-    mkdir -p data/prometheus/config/targets.d/{infrastructure,applications,exporters,security}
+    mkdir -p config/prometheus/config/targets.d/{infrastructure,applications,exporters,security}
 
     # ==========================================================================
     # 8. CREATE MONITORING TARGET FILES
@@ -640,7 +640,7 @@ EOF
     print_info "Creating modular Prometheus target files..."
 
     # Infrastructure targets
-    cat > "data/prometheus/config/targets.d/infrastructure/docker.json" <<'EOF'
+    cat > "config/prometheus/config/targets.d/infrastructure/docker.json" <<'EOF'
 [
   {
     "targets": ["node-exporter:9100"],
@@ -662,7 +662,7 @@ EOF
 EOF
 
     # Exporter targets
-    cat > "data/prometheus/config/targets.d/exporters/databases.json" <<'EOF'
+    cat > "config/prometheus/config/targets.d/exporters/databases.json" <<'EOF'
 [
   {
     "targets": ["postgres-exporter:9187"],
@@ -684,7 +684,7 @@ EOF
 EOF
 
     # Application targets
-    cat > "data/prometheus/config/targets.d/applications/monitoring.json" <<'EOF'
+    cat > "config/prometheus/config/targets.d/applications/monitoring.json" <<'EOF'
 [
   {
     "targets": ["grafana:3000"],
@@ -722,7 +722,7 @@ EOF
 EOF
 
     # Security targets
-    cat > "data/prometheus/config/targets.d/security/security.json" <<'EOF'
+    cat > "config/prometheus/config/targets.d/security/security.json" <<'EOF'
 [
   {
     "targets": ["crowdsec:6060"],
@@ -767,7 +767,7 @@ EOF
     print_info "Creating sample Grafana dashboards..."
 
     # Dashboard provisioning config
-    cat > "data/grafana/provisioning/dashboards/default.yml" <<'EOF'
+    cat > "config/grafana/provisioning/dashboards/default.yml" <<'EOF'
 apiVersion: 1
 
 providers:
@@ -785,7 +785,7 @@ providers:
 EOF
 
     # Datasource provisioning (Prometheus and Loki)
-    cat > "data/grafana/provisioning/datasources/all.yml" <<'EOF'
+    cat > "config/grafana/provisioning/datasources/all.yml" <<'EOF'
 apiVersion: 1
 
 deleteDatasources:

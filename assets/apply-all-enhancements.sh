@@ -165,7 +165,7 @@ EOF
     # ==========================================================================
     print_info "Creating Prometheus web configuration..."
 
-    cat > "data/prometheus/config/web.yml" <<'EOF'
+    cat > "config/prometheus/config/web.yml" <<'EOF'
 # Prometheus Web Configuration
 # https://prometheus.io/docs/prometheus/latest/configuration/https/
 
@@ -196,7 +196,7 @@ EOF
     # ==========================================================================
     print_info "Creating modular Prometheus configuration..."
 
-    cat > "data/prometheus/config/prometheus.yml" <<'EOF'
+    cat > "config/prometheus/config/prometheus.yml" <<'EOF'
 # Prometheus Enhanced Configuration
 global:
   scrape_interval: 15s
@@ -332,7 +332,7 @@ EOF
     mkdir -p data/redis/{data,logs,certs}
 
     # Prometheus directories
-    mkdir -p data/prometheus/config/{rules,targets.d/{infrastructure,applications,exporters,security},file_sd}
+    mkdir -p config/prometheus/config/{rules,targets.d/{infrastructure,applications,exporters,security},file_sd}
     mkdir -p data/prometheus/{data,console_libraries,consoles,certs}
 
     # Grafana directories
@@ -372,7 +372,7 @@ EOF
     print_info "Creating Grafana provisioning configuration..."
 
     # Datasource provisioning
-    cat > "data/grafana/provisioning/datasources/prometheus.yml" <<'EOF'
+    cat > "config/grafana/provisioning/datasources/prometheus.yml" <<'EOF'
 apiVersion: 1
 
 datasources:
@@ -397,7 +397,7 @@ datasources:
 EOF
 
     # Dashboard provisioning
-    cat > "data/grafana/provisioning/dashboards/default.yml" <<'EOF'
+    cat > "config/grafana/provisioning/dashboards/default.yml" <<'EOF'
 apiVersion: 1
 
 providers:

@@ -27,7 +27,7 @@ fix_loki() {
     if [[ -f "$JACKER_ROOT/assets/templates/loki-config.yml.template" ]]; then
         create_from_template \
             "$JACKER_ROOT/assets/templates/loki-config.yml.template" \
-            "$JACKER_ROOT/data/loki/loki-config.yml"
+            "$JACKER_ROOT/config/loki/loki-config.yml"
     fi
 
     info "Restarting Loki..."
@@ -49,7 +49,7 @@ fix_alertmanager() {
     ensure_dir "$JACKER_ROOT/data/alertmanager"
 
     info "Creating minimal configuration..."
-    cat > "$JACKER_ROOT/data/alertmanager/alertmanager.yml" << 'EOF'
+    cat > "$JACKER_ROOT/config/alertmanager/alertmanager.yml" << 'EOF'
 global:
   resolve_timeout: 5m
 
@@ -124,13 +124,13 @@ fix_crowdsec() {
             "CREATE DATABASE ${POSTGRES_DB:-crowdsec_db};"
 
     info "Updating CrowdSec configuration..."
-    if [[ -f "$JACKER_ROOT/data/crowdsec/config/config.yaml.local" ]]; then
+    if [[ -f "$JACKER_ROOT/config/crowdsec/config/config.yaml.local" ]]; then
         sed -i "s|db_name:.*|db_name: ${POSTGRES_DB:-crowdsec_db}|g" \
-            "$JACKER_ROOT/data/crowdsec/config/config.yaml.local"
+            "$JACKER_ROOT/config/crowdsec/config/config.yaml.local"
         sed -i "s|user:.*|user: ${POSTGRES_USER:-postgres}|g" \
-            "$JACKER_ROOT/data/crowdsec/config/config.yaml.local"
+            "$JACKER_ROOT/config/crowdsec/config/config.yaml.local"
         sed -i "s|password:.*|password: ${POSTGRES_PASSWORD}|g" \
-            "$JACKER_ROOT/data/crowdsec/config/config.yaml.local"
+            "$JACKER_ROOT/config/crowdsec/config/config.yaml.local"
     fi
 
     info "Restarting CrowdSec..."

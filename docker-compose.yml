@@ -36,81 +36,81 @@ secrets:
 configs:
   # Traefik configs
   traefik_yml:
-    file: ${DATADIR}/traefik/traefik.yml
+    file: ${DOCKERDIR}/config/traefik/traefik.yml
   traefik_middlewares_oauth:
-    file: ${DATADIR}/traefik/rules/middlewares-oauth.yml
+    file: ${DOCKERDIR}/config/traefik/rules/middlewares-oauth.yml
   traefik_middlewares_cache:
-    file: ${DATADIR}/traefik/rules/middlewares-cache.yml
+    file: ${DOCKERDIR}/config/traefik/rules/middlewares-cache.yml
   traefik_middlewares_compress:
-    file: ${DATADIR}/traefik/rules/middlewares-compress.yml
+    file: ${DOCKERDIR}/config/traefik/rules/middlewares-compress.yml
   traefik_middlewares_cors:
-    file: ${DATADIR}/traefik/rules/middlewares-cors.yml
+    file: ${DOCKERDIR}/config/traefik/rules/middlewares-cors.yml
   traefik_middlewares_rate_limit:
-    file: ${DATADIR}/traefik/rules/middlewares-rate-limit.yml
+    file: ${DOCKERDIR}/config/traefik/rules/middlewares-rate-limit.yml
   traefik_middlewares_secure_headers:
-    file: ${DATADIR}/traefik/rules/middlewares-secure-headers.yml
+    file: ${DOCKERDIR}/config/traefik/rules/middlewares-secure-headers.yml
   traefik_chain_api:
-    file: ${DATADIR}/traefik/rules/chain-api.yml
+    file: ${DOCKERDIR}/config/traefik/rules/chain-api.yml
   traefik_chain_oauth:
-    file: ${DATADIR}/traefik/rules/chain-oauth.yml
+    file: ${DOCKERDIR}/config/traefik/rules/chain-oauth.yml
   traefik_chain_no_oauth:
-    file: ${DATADIR}/traefik/rules/chain-no-oauth.yml
+    file: ${DOCKERDIR}/config/traefik/rules/chain-no-oauth.yml
   traefik_chain_public:
-    file: ${DATADIR}/traefik/rules/chain-public.yml
+    file: ${DOCKERDIR}/config/traefik/rules/chain-public.yml
   traefik_chain_strict:
-    file: ${DATADIR}/traefik/rules/chain-strict.yml
+    file: ${DOCKERDIR}/config/traefik/rules/chain-strict.yml
   traefik_tls_opts:
-    file: ${DATADIR}/traefik/rules/tls-opts.yml
+    file: ${DOCKERDIR}/config/traefik/rules/tls-opts.yml
 
   # Prometheus configs
   prometheus_yml:
-    file: ${DATADIR}/prometheus/config/prometheus.yml
+    file: ${DOCKERDIR}/config/prometheus/config/prometheus.yml
 
   # Loki configs
   loki_config:
-    file: ${DATADIR}/loki/loki-config.yml
+    file: ${DOCKERDIR}/config/loki/loki-config.yml
 
   # Promtail configs
   promtail_config:
-    file: ${DATADIR}/loki/promtail-config.yml
+    file: ${DOCKERDIR}/config/loki/promtail-config.yml
 
   # Grafana configs
   grafana_ini:
-    file: ${DATADIR}/grafana/grafana.ini
+    file: ${DOCKERDIR}/config/grafana/grafana.ini
   grafana_datasources:
-    file: ${DATADIR}/grafana/provisioning/datasources/all.yml
+    file: ${DOCKERDIR}/config/grafana/provisioning/datasources/all.yml
   grafana_dashboards:
-    file: ${DATADIR}/grafana/provisioning/dashboards/default.yml
+    file: ${DOCKERDIR}/config/grafana/provisioning/dashboards/default.yml
 
   # AlertManager configs
   alertmanager_yml:
-    file: ${DATADIR}/alertmanager/alertmanager.yml
+    file: ${DOCKERDIR}/config/alertmanager/alertmanager.yml
   alertmanager_template:
-    file: ${DATADIR}/alertmanager/templates/default.tmpl
+    file: ${DOCKERDIR}/config/alertmanager/templates/default.tmpl
 
   # CrowdSec configs
   crowdsec_config:
-    file: ${DATADIR}/crowdsec/config/config.yaml.local
+    file: ${DOCKERDIR}/config/crowdsec/config/config.yaml.local
   crowdsec_acquis:
-    file: ${DATADIR}/crowdsec/acquis.d/docker-logs.yaml
+    file: ${DOCKERDIR}/config/crowdsec/acquis.d/docker-logs.yaml
 
   # PostgreSQL configs
   postgres_conf:
-    file: ${DATADIR}/postgres/postgresql.conf
+    file: ${DOCKERDIR}/config/postgres/postgresql.conf
   postgres_hba:
-    file: ${DATADIR}/postgres/pg_hba.conf
+    file: ${DOCKERDIR}/config/postgres/pg_hba.conf
   postgres_init:
-    file: ${DATADIR}/postgres/init/00-create-databases.sh
+    file: ${DOCKERDIR}/config/postgres/init/00-create-databases.sh
 
   # Redis configs
   redis_conf:
-    file: ${DATADIR}/redis/redis.conf
+    file: ${DOCKERDIR}/config/redis/redis.conf
   redis_acl:
-    file: ${DATADIR}/redis/users.acl
+    file: ${DOCKERDIR}/config/redis/users.acl
 
   # OAuth2-Proxy configs
   oauth2_proxy_cfg:
-    file: ${DATADIR}/oauth2-proxy/oauth2-proxy.cfg
+    file: ${DOCKERDIR}/config/oauth2-proxy/oauth2-proxy.cfg
 
 include:
   # CORE

@@ -79,20 +79,20 @@ apply_enhancements() {
     # ==========================================================================
     print_info "Creating required directories..."
 
-    ensure_dir "data/traefik/rules"
+    ensure_dir "config/traefik/rules"
     ensure_dir "data/traefik/acme"
     ensure_dir "data/traefik/logs"
     ensure_dir "data/traefik/certs"
     ensure_dir "data/traefik/plugins"
 
-    ensure_dir "data/postgres/init"
+    ensure_dir "config/postgres/init"
     ensure_dir "data/postgres/backups"
     ensure_dir "data/postgres/archive"
     ensure_dir "data/postgres/ssl"
     ensure_dir "data/pgbackrest/config"
     ensure_dir "data/pgbackrest/log"
 
-    ensure_dir "data/crowdsec/acquis.d"
+    ensure_dir "config/crowdsec/acquis.d"
     ensure_dir "data/crowdsec/patterns"
     ensure_dir "data/crowdsec/scenarios"
     ensure_dir "data/crowdsec/hub"
@@ -104,8 +104,8 @@ apply_enhancements() {
 
     ensure_dir "data/alertmanager/templates"
     ensure_dir "data/grafana/dashboards"
-    ensure_dir "data/grafana/provisioning/dashboards"
-    ensure_dir "data/grafana/provisioning/datasources"
+    ensure_dir "config/grafana/provisioning/dashboards"
+    ensure_dir "config/grafana/provisioning/datasources"
 
     # ==========================================================================
     # 2. SET PROPER PERMISSIONS
@@ -172,8 +172,8 @@ apply_enhancements() {
     print_info "Creating enhanced configuration files..."
 
     # Create pg_hba.conf if not exists
-    if [[ ! -f "data/postgres/pg_hba.conf" ]]; then
-        cat > "data/postgres/pg_hba.conf" <<'EOF'
+    if [[ ! -f "config/postgres/pg_hba.conf" ]]; then
+        cat > "config/postgres/pg_hba.conf" <<'EOF'
 # PostgreSQL Client Authentication Configuration
 # TYPE  DATABASE        USER            ADDRESS                 METHOD
 
@@ -199,7 +199,7 @@ EOF
     fi
 
     # Create PostgreSQL init script for multiple databases
-    cat > "data/postgres/init/00-create-databases.sh" <<'EOF'
+    cat > "config/postgres/init/00-create-databases.sh" <<'EOF'
 #!/bin/bash
 set -e
 
@@ -230,7 +230,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
     CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 EOSQL
 EOF
-    chmod +x "data/postgres/init/00-create-databases.sh"
+    chmod +x "config/postgres/init/00-create-databases.sh"
 
     # ==========================================================================
     # 5. CREATE MONITORING TARGETS

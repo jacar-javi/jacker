@@ -12,53 +12,28 @@
 .FIRST_ROUND
 
 # ============================================
-# Data Directories (Runtime Data)
+# Data Directories (Runtime Data Only)
 # ============================================
-# Databases
-data/postgres/
-data/mysql/
-data/redis/data/
+# All of data/ is now for runtime data only
+# Configuration files have been moved to config/
+data/
 
-# Authentication & Security
-data/authentik/
-data/crowdsec/data/
-data/oauth2-proxy/
+# Except .gitkeep files to preserve structure
+!data/**/.gitkeep
 
-# Monitoring & Logging
-data/grafana/data/
-data/prometheus/data/
-data/loki/data/
-data/loki/wal/
-data/loki/chunks/
-data/loki/index/
-data/loki/cache/
-data/alertmanager/data/
-data/alertmanager-secondary/data/
-data/jaeger/data/
-
-# Application Services
-data/portainer/
-data/vscode/
-data/homepage/data/
-
-# Traefik Sensitive Files
-data/traefik/acme/acme.json
-data/traefik/certs/*.key
-data/traefik/certs/*.pem
-
-# Test Data
-data/test/
-
-# Backup Data
-data/.update-backup/
+# ============================================
+# Configuration Files (Tracked in config/)
+# ============================================
+# Configuration files are in config/ directory
+# and should be tracked in version control
 
 # ============================================
 # Important: Keep These Tracked
 # ============================================
 !.gitkeep
-# !data/**/config/
-# !data/**/rules/
-# !data/**/provisioning/
+
+# All configuration files are now in config/
+# No need to track files in data/ anymore
 
 # ============================================
 # Logs
