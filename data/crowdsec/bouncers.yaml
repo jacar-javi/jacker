@@ -1,0 +1,3 @@
+- name: traefik-bouncer
+  key: test_bouncer_key
+  type: traefik

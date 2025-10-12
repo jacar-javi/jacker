@@ -1,0 +1,177 @@
+# CrowdSec Enhanced Log Acquisition Configuration
+# Documentation: https://docs.crowdsec.net/docs/data_sources/intro
+
+# ====================================================================
+# DOCKER LOGS ACQUISITION
+# ====================================================================
+# Docker socket monitoring for all containers
+source: docker
+container_name:
+  - "*"
+container_id:
+  - "*"
+labels:
+  type: docker
+---
+
+# ====================================================================
+# TRAEFIK ACCESS LOGS
+# ====================================================================
+filenames:
+  - /logs/traefik/access.log
+  - /logs/traefik/traefik-access.log
+labels:
+  type: traefik
+force_inotify: true
+poll_without_inotify: true
+---
+
+# ====================================================================
+# TRAEFIK ERROR LOGS
+# ====================================================================
+filenames:
+  - /logs/traefik/traefik.log
+  - /logs/traefik/traefik-error.log
+labels:
+  type: traefik-error
+  parser: traefik-logs
+force_inotify: true
+---
+
+# ====================================================================
+# SSH AUTHENTICATION LOGS
+# ====================================================================
+filenames:
+  - /host/var/log/auth.log
+  - /host/var/log/secure
+  - /var/log/auth.log
+  - /var/log/secure
+labels:
+  type: syslog
+force_inotify: true
+---
+
+# ====================================================================
+# SYSTEM LOGS
+# ====================================================================
+filenames:
+  - /host/var/log/syslog
+  - /host/var/log/messages
+  - /var/log/syslog
+  - /var/log/messages
+labels:
+  type: syslog
+force_inotify: true
+---
+
+# ====================================================================
+# NGINX LOGS (if present)
+# ====================================================================
+filenames:
+  - /logs/nginx/access.log
+  - /logs/nginx/error.log
+  - /host/var/log/nginx/access.log
+  - /host/var/log/nginx/error.log
+labels:
+  type: nginx
+force_inotify: true
+---
+
+# ====================================================================
+# APACHE LOGS (if present)
+# ====================================================================
+filenames:
+  - /logs/apache2/access.log
+  - /logs/apache2/error.log
+  - /host/var/log/apache2/access.log
+  - /host/var/log/apache2/error.log
+labels:
+  type: apache2
+force_inotify: true
+---
+
+# ====================================================================
+# POSTGRESQL LOGS
+# ====================================================================
+filenames:
+  - /logs/postgres/postgresql*.log
+  - /logs/docker/postgres*.log
+labels:
+  type: postgres
+force_inotify: true
+---
+
+# ====================================================================
+# REDIS LOGS
+# ====================================================================
+filenames:
+  - /logs/redis/redis*.log
+  - /logs/docker/redis*.log
+labels:
+  type: redis
+force_inotify: true
+---
+
+# ====================================================================
+# GRAFANA LOGS
+# ====================================================================
+filenames:
+  - /logs/grafana/grafana.log
+  - /logs/docker/grafana*.log
+labels:
+  type: grafana
+force_inotify: true
+---
+
+# ====================================================================
+# FAIL2BAN LOGS (if migrating from fail2ban)
+# ====================================================================
+filenames:
+  - /host/var/log/fail2ban.log
+labels:
+  type: fail2ban
+force_inotify: true
+---
+
+# ====================================================================
+# UFW FIREWALL LOGS
+# ====================================================================
+filenames:
+  - /host/var/log/ufw.log
+labels:
+  type: firewall
+  parser: ufw-logs
+force_inotify: true
+---
+
+# ====================================================================
+# KERNEL LOGS
+# ====================================================================
+journalctl_filter:
+  - "_SYSTEMD_UNIT=kernel"
+labels:
+  type: syslog
+---
+
+# ====================================================================
+# DOCKER DAEMON LOGS
+# ====================================================================
+journalctl_filter:
+  - "_SYSTEMD_UNIT=docker.service"
+labels:
+  type: docker-daemon
+---
+
+# ====================================================================
+# CUSTOM APPLICATION LOGS
+# ====================================================================
+filenames:
+  - /logs/docker/*.log
+exclude_regexps:
+  - ".*health.*"
+  - ".*ping.*"
+  - ".*metrics.*"
+labels:
+  type: application
+force_inotify: true
+poll_without_inotify: true

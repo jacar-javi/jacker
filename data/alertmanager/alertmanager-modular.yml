@@ -1,0 +1,261 @@
+# Alertmanager Configuration - Modular Architecture
+# This configuration uses templates and route trees for flexible alert routing
+
+# Global configuration
+global:
+  # The smarthost and SMTP sender used for mail notifications
+  smtp_from: '${SMTP_FROM}'
+  smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
+  smtp_auth_username: '${SMTP_USERNAME}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
+
+  # Global HTTP config
+  http_config:
+    follow_redirects: true
+
+  # The root URL for the Alertmanager instance
+  # slack_api_url: '${SLACK_API_URL}'
+  # pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+  # opsgenie_api_key: '${OPSGENIE_API_KEY}'
+  # telegram_api_url: 'https://api.telegram.org'
+
+# Templates directory
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# The root route - This is the entry point for all alerts
+route:
+  # Group alerts by these labels
+  group_by: ['alertname', 'cluster', 'service', 'severity']
+
+  # Wait time before sending the first notification
+  group_wait: 30s
+
+  # Wait time before sending notifications about new alerts added to a group
+  group_interval: 5m
+
+  # Wait time before re-sending notifications
+  repeat_interval: 12h
+
+  # Default receiver
+  receiver: 'default-receiver'
+
+  # Child routes for different alert types
+  routes:
+    # ====================================================================
+    # CRITICAL ALERTS - Immediate notification
+    # ====================================================================
+    - match:
+        severity: critical
+      receiver: critical-receiver
+      group_wait: 10s
+      group_interval: 2m
+      repeat_interval: 1h
+      continue: true
+
+    # ====================================================================
+    # WARNING ALERTS - Standard notification
+    # ====================================================================
+    - match:
+        severity: warning
+      receiver: warning-receiver
+      group_wait: 1m
+      group_interval: 10m
+      repeat_interval: 4h
+      continue: true
+
+    # ====================================================================
+    # INFO ALERTS - Batched notification
+    # ====================================================================
+    - match:
+        severity: info
+      receiver: info-receiver
+      group_wait: 5m
+      group_interval: 30m
+      repeat_interval: 24h
+
+    # ====================================================================
+    # SERVICE-SPECIFIC ROUTES
+    # ====================================================================
+    # Database alerts
+    - match_re:
+        service: ^(postgres|redis|mysql).*
+      receiver: database-receiver
+      group_by: ['alertname', 'instance', 'database']
+      continue: true
+
+    # Security alerts
+    - match_re:
+        alertname: ^(Security|Intrusion|Authentication).*
+      receiver: security-receiver
+      group_wait: 10s
+      repeat_interval: 30m
+      continue: true
+
+    # Monitoring stack alerts
+    - match_re:
+        service: ^(prometheus|grafana|loki|alertmanager).*
+      receiver: monitoring-receiver
+      continue: true
+
+    # Application alerts
+    - match:
+        component: application
+      receiver: application-receiver
+      continue: true
+
+# Inhibition rules - Suppress alerts if other alerts are firing
+inhibit_rules:
+  # If a critical alert is firing, suppress warnings for the same service
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['service', 'alertname']
+
+  # If a node is down, suppress all other alerts for that node
+  - source_match:
+      alertname: 'NodeDown'
+    target_match_re:
+      alertname: '^(?!NodeDown).*'
+    equal: ['instance']
+
+  # If Prometheus is down, suppress all other monitoring alerts
+  - source_match:
+      alertname: 'PrometheusDown'
+    target_match_re:
+      service: '^(prometheus|grafana|loki|alertmanager).*'
+
+# Receivers configuration
+receivers:
+  # ====================================================================
+  # DEFAULT RECEIVER - Catches all unmatched alerts
+  # ====================================================================
+  - name: 'default-receiver'
+    webhook_configs:
+      - url: 'http://webhook-logger:8080/log'
+        send_resolved: true
+
+  # ====================================================================
+  # CRITICAL ALERTS RECEIVER
+  # ====================================================================
+  - name: 'critical-receiver'
+    # Email notifications
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        from: '${SMTP_FROM}'
+        smarthost: '${SMTP_HOST}:${SMTP_PORT}'
+        auth_username: '${SMTP_USERNAME}'
+        auth_password: '${SMTP_PASSWORD}'
+        require_tls: true
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }} - {{ .GroupLabels.service }}'
+        html: '{{ template "email.html" . }}'
+        text: '{{ template "email.text" . }}'
+        send_resolved: true
+
+    # Telegram notifications (if configured)
+    # telegram_configs:
+    #   - bot_token: '${TELEGRAM_BOT_TOKEN}'
+    #     chat_id: '${TELEGRAM_CHAT_ID}'
+    #     parse_mode: 'MarkdownV2'
+    #     disable_web_page_preview: true
+    #     message: |
+    #       🚨 *CRITICAL ALERT*
+    #       *Alert:* {{ .GroupLabels.alertname }}
+    #       *Service:* {{ .GroupLabels.service }}
+    #       *Description:* {{ .CommonAnnotations.description }}
+    #       *Details:* [View in Grafana]({{ .ExternalURL }})
+
+    # PagerDuty integration (if configured)
+    # pagerduty_configs:
+    #   - routing_key: '${PAGERDUTY_ROUTING_KEY}'
+    #     description: '{{ .GroupLabels.alertname }}'
+    #     severity: 'critical'
+
+  # ====================================================================
+  # WARNING ALERTS RECEIVER
+  # ====================================================================
+  - name: 'warning-receiver'
+    # Slack notifications (if configured)
+    # slack_configs:
+    #   - api_url: '${SLACK_API_URL}'
+    #     channel: '#alerts-warning'
+    #     username: 'Alertmanager'
+    #     icon_emoji: ':warning:'
+    #     title: 'Warning Alert'
+    #     text: '{{ .GroupLabels.alertname }} - {{ .GroupLabels.service }}'
+    #     send_resolved: true
+
+    # Email digest
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        send_resolved: true
+        headers:
+          Subject: '[WARNING] {{ .GroupLabels.alertname }}'
+
+  # ====================================================================
+  # INFO ALERTS RECEIVER
+  # ====================================================================
+  - name: 'info-receiver'
+    # Discord webhook (if configured)
+    # discord_configs:
+    #   - webhook_url: '${DISCORD_WEBHOOK_URL}'
+    #     title: 'Information'
+    #     message: '{{ .CommonAnnotations.summary }}'
+
+  # ====================================================================
+  # SERVICE-SPECIFIC RECEIVERS
+  # ====================================================================
+  - name: 'database-receiver'
+    email_configs:
+      - to: '${DBA_EMAIL:-ALERT_EMAIL_TO}'
+        headers:
+          Subject: '[DB] {{ .GroupLabels.alertname }} - {{ .GroupLabels.database }}'
+
+  - name: 'security-receiver'
+    email_configs:
+      - to: '${SECURITY_EMAIL:-ALERT_EMAIL_TO}'
+        headers:
+          Subject: '[SECURITY] {{ .GroupLabels.alertname }}'
+        send_resolved: false
+
+  - name: 'monitoring-receiver'
+    webhook_configs:
+      - url: 'http://monitoring-webhook:8080/alert'
+        send_resolved: true
+
+  - name: 'application-receiver'
+    email_configs:
+      - to: '${APP_TEAM_EMAIL:-ALERT_EMAIL_TO}'
+        headers:
+          Subject: '[APP] {{ .GroupLabels.alertname }} - {{ .GroupLabels.application }}'
+
+# Mute time intervals (business hours, maintenance windows)
+mute_time_intervals:
+  # Weekend maintenance window
+  - name: weekend-maintenance
+    time_intervals:
+      - weekdays: ['saturday', 'sunday']
+        times:
+          - start_time: '00:00'
+            end_time: '06:00'
+
+  # Nightly maintenance window
+  - name: nightly-maintenance
+    time_intervals:
+      - times:
+          - start_time: '02:00'
+            end_time: '04:00'
+
+  # Business hours only (for non-critical alerts)
+  - name: outside-business-hours
+    time_intervals:
+      - weekdays: ['monday:friday']
+        times:
+          - start_time: '18:00'
+            end_time: '23:59'
+          - start_time: '00:00'
+            end_time: '09:00'
+      - weekdays: ['saturday', 'sunday']
