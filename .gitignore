@@ -1,72 +1,160 @@
-# Environment files
+# ============================================
+# Environment Files
+# ============================================
 .env
 .env.bak
 .env.local
+.env.*.bak.*
 
-# First round setup marker
+# ============================================
+# Setup Markers
+# ============================================
 .FIRST_ROUND
 
-# Data directories
-data/crowdsec
-data/grafana/data
-data/postgres
-data/authentik
-data/mysql
-data/redis
-data/portainer
-data/prometheus/data
-data/loki
-data/alertmanager
-data/vscode
-data/traefik/acme.json
-data/traefik/certs/
-data/jaeger
+# ============================================
+# Data Directories (Runtime Data)
+# ============================================
+# Databases
+data/postgres/
+data/mysql/
+data/redis/data/
+
+# Authentication & Security
+data/authentik/
+data/crowdsec/data/
 data/oauth2-proxy/
+
+# Monitoring & Logging
+data/grafana/data/
+data/prometheus/data/
+data/loki/data/
+data/loki/wal/
+data/loki/chunks/
+data/loki/index/
+data/loki/cache/
+data/alertmanager/data/
+data/alertmanager-secondary/data/
+data/jaeger/data/
+
+# Application Services
+data/portainer/
+data/vscode/
+data/homepage/data/
+
+# Traefik Sensitive Files
+data/traefik/acme/acme.json
+data/traefik/certs/*.key
+data/traefik/certs/*.pem
+
+# Test Data
 data/test/
+
+# Backup Data
 data/.update-backup/
 
+# ============================================
+# Important: Keep These Tracked
+# ============================================
+# !.claude/
+# !data/**/.gitkeep
+# !data/**/config/
+# !data/**/rules/
+# !data/**/provisioning/
+
+# ============================================
 # Logs
+# ============================================
 logs/
-logs/traefik/*
-assets/logs/*
+*.log
+assets/logs/
 
-# Secrets
-secrets/*
+# ============================================
+# Secrets & Sensitive Files
+# ============================================
+secrets/
+*.key
+*.pem
+*.crt
+*.p12
+*.jks
 
-# Stacks
+# ============================================
+# Stacks (User-defined stacks)
+# ============================================
 stacks/*
+!stacks/.gitkeep
 !stacks/newstack.sh
 !stacks/README.md
+
+# ============================================
+# Development & Testing
+# ============================================
+dev/
 .jacker/
+tests/results/
+*.tap
+coverage/
+.nyc_output/
 
-# Development
-dev/*
-
+# ============================================
 # Backups
-backups/*
+# ============================================
+backups/
 backup/
 restored/
 *.tar.gz
+*.tar
+*.zip
 *.bak
+*.bak.*
 *.old
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# IDE
-.idea/
-*.swp
-*.swo
+*.tmp
 *~
 
-.claude/
+# ============================================
+# IDE & Editor Files
+# ============================================
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*.swn
+.history/
+
+# ============================================
+# OS Files
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ============================================
+# Node.js (if applicable)
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ============================================
+# Python (if applicable)
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+ENV/
+
+# ============================================
+# MCP Server Directories
+# ============================================
 .serena/
-
-# Test artifacts
-tests/results/
-*.tap
-
-secrets/
-stacks/*
-!stacks/.gitkeep

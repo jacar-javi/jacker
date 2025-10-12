@@ -1,38 +1,89 @@
 ---
 name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
+about: Report an issue with Jacker Docker stack
+title: '[BUG] '
+labels: 'bug'
 assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## Bug Description
+<!-- A clear and concise description of the bug -->
 
-**To Reproduce**
+## Environment Information
+
+**Installation Method:**
+- [ ] Fresh install via `make install`
+- [ ] Upgraded from previous version
+- [ ] Manual setup
+
+**Host System:**
+- OS: [e.g., Ubuntu 22.04, Debian 12]
+- Docker version: [run `docker --version`]
+- Docker Compose version: [run `docker compose version`]
+- Jacker version/commit: [run `git rev-parse --short HEAD`]
+
+**Configuration:**
+- Domain configured: [yes/no]
+- OAuth configured: [Google/Authentik/None]
+- Services affected: [e.g., Traefik, Grafana, Loki]
+
+## To Reproduce
+
 Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+1. Run command '...'
+2. Access service at '...'
+3. Observe error '...'
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+## Expected Behavior
+<!-- What you expected to happen -->
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+## Actual Behavior
+<!-- What actually happened -->
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+## Logs and Error Messages
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
+<details>
+<summary>Docker Compose Logs</summary>
 
-**Additional context**
-Add any other context about the problem here.
+```
+# Paste output of: make logs SVC=<affected-service>
+```
+</details>
+
+<details>
+<summary>Container Status</summary>
+
+```
+# Paste output of: make ps
+```
+</details>
+
+<details>
+<summary>Configuration Check</summary>
+
+```
+# Paste output of: ./assets/check-jacker-config.sh
+```
+</details>
+
+## Additional Context
+
+**Have you made any modifications to:**
+- [ ] docker-compose.yml
+- [ ] Any compose/*.yml files
+- [ ] .env file (beyond setup values)
+- [ ] Traefik rules
+- [ ] Other configuration files
+
+**Network Setup:**
+- [ ] Behind NAT
+- [ ] Using reverse proxy
+- [ ] Firewall rules configured
+- [ ] Ports 80/443 accessible
+
+## Possible Solution
+<!-- If you have suggestions on how to fix the bug -->
+
+## Screenshots
+<!-- If applicable, add screenshots to help explain your problem -->

@@ -1,0 +1,45 @@
+version: 2
+updates:
+  # Enable version updates for Docker
+  - package-ecosystem: "docker"
+    directory: "/compose"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "04:00"
+    labels:
+      - "dependencies"
+      - "docker"
+    reviewers:
+      - "ajcborges"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    pull-request-branch-name:
+      separator: "-"
+    open-pull-requests-limit: 10
+    ignore:
+      # Don't update socket-proxy as it uses latest by design
+      - dependency-name: "tecnativa/docker-socket-proxy"
+      # Critical services - update manually
+      - dependency-name: "crowdsecurity/crowdsec"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "traefik"
+        update-types: ["version-update:semver-major"]
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    pull-request-branch-name:
+      separator: "-"
+    open-pull-requests-limit: 5
