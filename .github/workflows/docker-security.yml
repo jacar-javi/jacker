@@ -3,12 +3,12 @@ name: Docker Security Scan
 on:
   schedule:
     # Run every Monday at 2 AM UTC
-    - cron: '0 2 * * 1'
+    - cron: "0 2 * * 1"
   workflow_dispatch:
   pull_request:
     paths:
-      - 'compose/*.yml'
-      - 'docker-compose.yml'
+      - "compose/*.yml"
+      - "docker-compose.yml"
 
 permissions:
   contents: read
@@ -65,17 +65,17 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ matrix.image }}
-          format: 'sarif'
-          output: 'trivy-${{ matrix.service }}.sarif'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
+          format: "sarif"
+          output: "trivy-${{ matrix.service }}.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: 'trivy-${{ matrix.service }}.sarif'
-          category: 'docker-${{ matrix.service }}'
+          sarif_file: "trivy-${{ matrix.service }}.sarif"
+          category: "docker-${{ matrix.service }}"
         continue-on-error: true
 
       - name: Generate vulnerability summary
@@ -117,7 +117,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: "3.x"
 
       - name: Check for newer versions
         run: |
@@ -321,9 +321,9 @@ jobs:
                   title: '🚨 Critical Docker vulnerabilities detected',
                   body: `Critical security vulnerabilities have been detected in Docker images.
 
-Please review the [security scan workflow results](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.
+                      Please review the [security scan workflow results](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.
 
-**Action required:** Update affected Docker images to patched versions.`,
+                      **Action required:** Update affected Docker images to patched versions.`,
                   labels: ['security', 'docker', 'critical']
                 });
               }
