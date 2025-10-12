@@ -51,7 +51,9 @@ check_service_health() {
     fi
 
     # Check container health status if available
-    local health_status=$(docker inspect --format='{{.State.Health.Status}}' "$service" 2>/dev/null || echo "none")
+    local health_status
+    health_status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$service" 2>/dev/null || echo "none")
+    health_status=$(echo "$health_status" | tr -d '\n\r' | tr -d ' ')
 
     case "$health_status" in
         healthy)
@@ -68,7 +70,11 @@ check_service_health() {
             ;;
         none|"")
             # No health check defined, check if running
-            echo "$(print_color "$GREEN" "$CHECK_MARK") $description: Running"
+            if [ "$health_status" = "none" ]; then
+                echo "$(print_color "$YELLOW" "$WARNING_SIGN") $description: Unknown (no healthcheck)"
+            else
+                echo "$(print_color "$GREEN" "$CHECK_MARK") $description: Running"
+            fi
             return 0
             ;;
         *)
