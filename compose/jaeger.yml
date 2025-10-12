@@ -85,6 +85,7 @@ services:
       # Jaeger UI Router
       - "traefik.http.routers.jaeger.rule=Host(`jaeger.$PUBLIC_FQDN`)"
       - "traefik.http.routers.jaeger.entrypoints=websecure"
+      - "traefik.http.routers.jaeger.tls.certResolver=http"
       - "traefik.http.routers.jaeger.service=jaeger-ui"
       - "traefik.http.routers.jaeger.middlewares=chain-oauth-no-crowdsec@file"
 

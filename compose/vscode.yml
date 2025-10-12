@@ -40,6 +40,7 @@ services:
       # HTTP Routers
       - "traefik.http.routers.vscode-rtr.entrypoints=websecure"
       - "traefik.http.routers.vscode-rtr.rule=Host(`code.$PUBLIC_FQDN`)"
+      - "traefik.http.routers.vscode-rtr.tls.certResolver=http"
       # Middlewares
       - "traefik.http.routers.vscode-rtr.middlewares=chain-oauth@file"
       # HTTP Services
