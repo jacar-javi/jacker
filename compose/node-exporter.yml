@@ -12,7 +12,7 @@ services:
     # ====================================================================
     security_opt:
       - no-new-privileges:true
-      - apparmor:unconfined  # Or custom profile
+      - apparmor:unconfined # Or custom profile
       - seccomp:unconfined
 
     # Run as nobody user
@@ -34,10 +34,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 256M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 64M
 
     # ====================================================================
@@ -63,90 +63,90 @@ services:
     # ====================================================================
     command:
       # Path configuration
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--path.rootfs=/rootfs'
-      - '--path.udev.data=/host/run/udev/data'
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--path.udev.data=/host/run/udev/data"
 
       # Web configuration
-      - '--web.listen-address=:${NODE_EXPORTER_PORT:-9100}'
-      - '--web.telemetry-path=/metrics'
-      - '--web.disable-exporter-metrics=${NODE_EXPORTER_DISABLE_EXPORTER_METRICS:-false}'
-      - '--web.max-requests=${NODE_EXPORTER_MAX_REQUESTS:-40}'
+      - "--web.listen-address=:${NODE_EXPORTER_PORT:-9100}"
+      - "--web.telemetry-path=/metrics"
+      - "--web.disable-exporter-metrics=${NODE_EXPORTER_DISABLE_EXPORTER_METRICS:-false}"
+      - "--web.max-requests=${NODE_EXPORTER_MAX_REQUESTS:-40}"
 
       # Collectors to enable (comprehensive list)
-      - '--collector.arp'
-      - '--collector.bcache'
-      - '--collector.bonding'
-      - '--collector.conntrack'
-      - '--collector.cpu'
-      - '--collector.cpufreq'
-      - '--collector.diskstats'
-      - '--collector.edac'
-      - '--collector.entropy'
-      - '--collector.ethtool'
-      - '--collector.fibrechannel'
-      - '--collector.filefd'
-      - '--collector.filesystem'
-      - '--collector.hwmon'
-      - '--collector.infiniband'
-      - '--collector.interrupts'
-      - '--collector.ipvs'
-      - '--collector.loadavg'
-      - '--collector.mdadm'
-      - '--collector.meminfo'
-      - '--collector.netclass'
-      - '--collector.netdev'
-      - '--collector.netstat'
-      - '--collector.nfs'
-      - '--collector.nfsd'
-      - '--collector.nvme'
-      - '--collector.os'
-      - '--collector.powersupplyclass'
-      - '--collector.pressure'
-      - '--collector.processes'
-      - '--collector.rapl'
-      - '--collector.schedstat'
-      - '--collector.selinux'
-      - '--collector.sockstat'
-      - '--collector.softnet'
-      - '--collector.stat'
-      - '--collector.systemd'
-      - '--collector.tcpstat'
-      - '--collector.textfile'
-      - '--collector.thermal_zone'
-      - '--collector.time'
-      - '--collector.timex'
-      - '--collector.udp_queues'
-      - '--collector.uname'
-      - '--collector.vmstat'
-      - '--collector.wifi'
-      - '--collector.xfs'
-      - '--collector.zfs'
+      - "--collector.arp"
+      - "--collector.bcache"
+      - "--collector.bonding"
+      - "--collector.conntrack"
+      - "--collector.cpu"
+      - "--collector.cpufreq"
+      - "--collector.diskstats"
+      - "--collector.edac"
+      - "--collector.entropy"
+      - "--collector.ethtool"
+      - "--collector.fibrechannel"
+      - "--collector.filefd"
+      - "--collector.filesystem"
+      - "--collector.hwmon"
+      - "--collector.infiniband"
+      - "--collector.interrupts"
+      - "--collector.ipvs"
+      - "--collector.loadavg"
+      - "--collector.mdadm"
+      - "--collector.meminfo"
+      - "--collector.netclass"
+      - "--collector.netdev"
+      - "--collector.netstat"
+      - "--collector.nfs"
+      - "--collector.nfsd"
+      - "--collector.nvme"
+      - "--collector.os"
+      - "--collector.powersupplyclass"
+      - "--collector.pressure"
+      - "--collector.processes"
+      - "--collector.rapl"
+      - "--collector.schedstat"
+      - "--collector.selinux"
+      - "--collector.sockstat"
+      - "--collector.softnet"
+      - "--collector.stat"
+      - "--collector.systemd"
+      - "--collector.tcpstat"
+      - "--collector.textfile"
+      - "--collector.thermal_zone"
+      - "--collector.time"
+      - "--collector.timex"
+      - "--collector.udp_queues"
+      - "--collector.uname"
+      - "--collector.vmstat"
+      - "--collector.wifi"
+      - "--collector.xfs"
+      - "--collector.zfs"
 
       # Filesystem collector configuration
-      - '--collector.filesystem.mount-points-exclude=${NODE_EXPORTER_FS_EXCLUDE:-^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)}'
-      - '--collector.filesystem.fs-types-exclude=${NODE_EXPORTER_FS_TYPES_EXCLUDE:-^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$}'
+      - "--collector.filesystem.mount-points-exclude=${NODE_EXPORTER_FS_EXCLUDE:-^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)}"
+      - "--collector.filesystem.fs-types-exclude=${NODE_EXPORTER_FS_TYPES_EXCLUDE:-^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$}"
 
       # Netclass collector configuration
-      - '--collector.netclass.ignored-devices=${NODE_EXPORTER_NETCLASS_IGNORE:-^(veth|cali|[a-f0-9]{15}).*}'
-      - '--collector.netdev.device-exclude=${NODE_EXPORTER_NETDEV_EXCLUDE:-^(veth|cali|[a-f0-9]{15}).*}'
+      - "--collector.netclass.ignored-devices=${NODE_EXPORTER_NETCLASS_IGNORE:-^(veth|cali|[a-f0-9]{15}).*}"
+      - "--collector.netdev.device-exclude=${NODE_EXPORTER_NETDEV_EXCLUDE:-^(veth|cali|[a-f0-9]{15}).*}"
 
       # Diskstats collector configuration
       - '--collector.diskstats.device-exclude=${NODE_EXPORTER_DISKSTATS_EXCLUDE:-^(ram|loop|fd|(h|s|v|xv)d[a-z]|nvme\\d+n\\d+p)\\d+$}'
 
       # Systemd collector configuration
       - '--collector.systemd.unit-include=${NODE_EXPORTER_SYSTEMD_INCLUDE:-^(docker|containerd|kubelet|sshd|networkd|resolved|systemd-.*)\\.service$}'
-      - '--collector.systemd.enable-task-metrics'
-      - '--collector.systemd.enable-restarts-metrics'
-      - '--collector.systemd.enable-start-time-metrics'
+      - "--collector.systemd.enable-task-metrics"
+      - "--collector.systemd.enable-restarts-metrics"
+      - "--collector.systemd.enable-start-time-metrics"
 
       # Textfile collector directory
-      - '--collector.textfile.directory=/var/lib/node_exporter/textfile_collector'
+      - "--collector.textfile.directory=/var/lib/node_exporter/textfile_collector"
 
       # Logging
-      - '--log.level=${NODE_EXPORTER_LOG_LEVEL:-info}'
-      - '--log.format=${NODE_EXPORTER_LOG_FORMAT:-logfmt}'
+      - "--log.level=${NODE_EXPORTER_LOG_LEVEL:-info}"
+      - "--log.format=${NODE_EXPORTER_LOG_FORMAT:-logfmt}"
 
     # ====================================================================
     # ENVIRONMENT CONFIGURATION
@@ -168,7 +168,11 @@ services:
     # HEALTH CHECK
     # ====================================================================
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9100/metrics || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:9100/metrics || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -187,7 +191,7 @@ services:
       - "homepage.weight=420"
 
       # Service Discovery
-      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update monitoring
+      - "com.centurylinklabs.watchtower.enable=false" # Don't auto-update monitoring
       - "diun.enable=true"
       - "diun.watch_repo=true"
 

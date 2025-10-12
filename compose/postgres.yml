@@ -4,7 +4,7 @@ services:
   # Official Image: https://hub.docker.com/_/postgres
   # ====================================================================
   postgres:
-    image: postgres:17-alpine  # Alpine for smaller footprint
+    image: postgres:17-alpine # Alpine for smaller footprint
     container_name: postgres
 
     # ====================================================================
@@ -12,11 +12,11 @@ services:
     # ====================================================================
     security_opt:
       - no-new-privileges:true
-      - apparmor:unconfined  # Or custom profile
+      - apparmor:unconfined # Or custom profile
       - seccomp:unconfined
 
     # Run as specific user
-    user: "${PUID:-999}:${PGID:-999}"  # Default PostgreSQL user
+    user: "${PUID:-999}:${PGID:-999}" # Default PostgreSQL user
 
     # Restart policy
     restart: unless-stopped
@@ -27,14 +27,14 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
-          memory: 2048M  # Adjust based on workload
+          cpus: "2.0"
+          memory: 2048M # Adjust based on workload
         reservations:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 512M
 
     # Memory and process limits
-    shm_size: 256MB  # Shared memory for PostgreSQL
+    shm_size: 256MB # Shared memory for PostgreSQL
     ulimits:
       nofile:
         soft: 65536
@@ -169,7 +169,11 @@ services:
     # HEALTH CHECK
     # ====================================================================
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h localhost -p 5432 -U $$POSTGRES_USER -d $$POSTGRES_DB",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -191,10 +195,10 @@ services:
 
       # Monitoring
       - "prometheus.io/scrape=true"
-      - "prometheus.io/port=9187"  # postgres_exporter port
+      - "prometheus.io/port=9187" # postgres_exporter port
 
       # Service Discovery
-      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update databases
+      - "com.centurylinklabs.watchtower.enable=false" # Don't auto-update databases
       - "diun.enable=true"
       - "diun.watch_repo=true"
 

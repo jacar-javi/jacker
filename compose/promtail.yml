@@ -12,11 +12,11 @@ services:
     # ====================================================================
     security_opt:
       - no-new-privileges:true
-      - apparmor:unconfined  # Or custom profile
+      - apparmor:unconfined # Or custom profile
       - seccomp:unconfined
 
     # Run as specific user
-    user: "${PUID:-0}:${PGID:-0}"  # Root needed for log access
+    user: "${PUID:-0}:${PGID:-0}" # Root needed for log access
 
     # Restart policy
     restart: unless-stopped
@@ -27,10 +27,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 512M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
     # ====================================================================
@@ -49,8 +49,8 @@ services:
       monitoring:
         aliases:
           - promtail-agent
-      socket_proxy:  # For Docker discovery
-      traefik_proxy:  # For service connectivity
+      socket_proxy: # For Docker discovery
+      traefik_proxy: # For service connectivity
 
     # ====================================================================
     # VOLUME MOUNTS
@@ -92,22 +92,22 @@ services:
     # COMMAND CONFIGURATION
     # ====================================================================
     command:
-      - '-config.file=/etc/promtail/config.yml'
-      - '-config.expand-env=true'
-      - '-log.level=${PROMTAIL_LOG_LEVEL:-info}'
-      - '-log.format=${PROMTAIL_LOG_FORMAT:-json}'
-      - '-server.http-listen-port=${PROMTAIL_HTTP_PORT:-9080}'
-      - '-server.grpc-listen-port=${PROMTAIL_GRPC_PORT:-0}'
-      - '-positions.file=/positions/positions.yaml'
-      - '-positions.sync-period=${PROMTAIL_POSITIONS_SYNC:-10s}'
-      - '-positions.ignore-invalid-yaml=${PROMTAIL_IGNORE_INVALID_YAML:-false}'
-      - '-client.batch-wait=${PROMTAIL_BATCH_WAIT:-1s}'
-      - '-client.batch-size-bytes=${PROMTAIL_BATCH_SIZE:-1048576}'
-      - '-client.timeout=${PROMTAIL_CLIENT_TIMEOUT:-10s}'
-      - '-client.min-backoff=${PROMTAIL_MIN_BACKOFF:-500ms}'
-      - '-client.max-backoff=${PROMTAIL_MAX_BACKOFF:-5m}'
-      - '-client.max-retries=${PROMTAIL_MAX_RETRIES:-10}'
-      - '-print-config-stderr=${PROMTAIL_PRINT_CONFIG:-false}'
+      - "-config.file=/etc/promtail/config.yml"
+      - "-config.expand-env=true"
+      - "-log.level=${PROMTAIL_LOG_LEVEL:-info}"
+      - "-log.format=${PROMTAIL_LOG_FORMAT:-json}"
+      - "-server.http-listen-port=${PROMTAIL_HTTP_PORT:-9080}"
+      - "-server.grpc-listen-port=${PROMTAIL_GRPC_PORT:-0}"
+      - "-positions.file=/positions/positions.yaml"
+      - "-positions.sync-period=${PROMTAIL_POSITIONS_SYNC:-10s}"
+      - "-positions.ignore-invalid-yaml=${PROMTAIL_IGNORE_INVALID_YAML:-false}"
+      - "-client.batch-wait=${PROMTAIL_BATCH_WAIT:-1s}"
+      - "-client.batch-size-bytes=${PROMTAIL_BATCH_SIZE:-1048576}"
+      - "-client.timeout=${PROMTAIL_CLIENT_TIMEOUT:-10s}"
+      - "-client.min-backoff=${PROMTAIL_MIN_BACKOFF:-500ms}"
+      - "-client.max-backoff=${PROMTAIL_MAX_BACKOFF:-5m}"
+      - "-client.max-retries=${PROMTAIL_MAX_RETRIES:-10}"
+      - "-print-config-stderr=${PROMTAIL_PRINT_CONFIG:-false}"
 
     # ====================================================================
     # ENVIRONMENT CONFIGURATION
@@ -151,7 +151,11 @@ services:
     # HEALTH CHECK
     # ====================================================================
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9080/ready || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:9080/ready || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -169,7 +173,7 @@ services:
       - "homepage.weight=410"
 
       # Service Discovery
-      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update monitoring
+      - "com.centurylinklabs.watchtower.enable=false" # Don't auto-update monitoring
       - "diun.enable=true"
       - "diun.watch_repo=true"
 

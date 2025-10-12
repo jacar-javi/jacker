@@ -4,7 +4,7 @@ services:
   # Official Image: https://hub.docker.com/r/grafana/grafana-enterprise
   # ====================================================================
   grafana:
-    image: grafana/grafana-enterprise:12.2.0  # Enterprise includes all OSS features
+    image: grafana/grafana-enterprise:12.2.0 # Enterprise includes all OSS features
     container_name: grafana
 
     # ====================================================================
@@ -12,11 +12,11 @@ services:
     # ====================================================================
     security_opt:
       - no-new-privileges:true
-      - apparmor:unconfined  # Or custom profile
+      - apparmor:unconfined # Or custom profile
       - seccomp:unconfined
 
     # Run as specific user
-    user: "${PUID:-472}:${PGID:-472}"  # Grafana default UID/GID
+    user: "${PUID:-472}:${PGID:-472}" # Grafana default UID/GID
 
     # Restart policy
     restart: unless-stopped
@@ -27,10 +27,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: "2.0"
           memory: 1024M
         reservations:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 256M
 
     # ====================================================================
@@ -52,8 +52,8 @@ services:
         aliases:
           - grafana-server
       traefik_proxy:
-      database:  # To connect to data sources
-      cache:  # For Redis session storage
+      database: # To connect to data sources
+      cache: # For Redis session storage
 
     # Port exposure (only bind to localhost for security)
     ports:
@@ -189,7 +189,11 @@ services:
     # HEALTH CHECK
     # ====================================================================
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -222,7 +226,7 @@ services:
       - "homepage.widget.password=${GRAFANA_ADMIN_PASSWORD:-}"
 
       # Service Discovery
-      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update monitoring
+      - "com.centurylinklabs.watchtower.enable=false" # Don't auto-update monitoring
       - "diun.enable=true"
       - "diun.watch_repo=true"
 

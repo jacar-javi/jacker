@@ -12,11 +12,11 @@ services:
     # ====================================================================
     security_opt:
       - no-new-privileges:true
-      - apparmor:unconfined  # Or custom profile
+      - apparmor:unconfined # Or custom profile
       - seccomp:unconfined
 
     # Run as specific user
-    user: "${PUID:-65534}:${PGID:-65534}"  # nobody:nobody
+    user: "${PUID:-65534}:${PGID:-65534}" # nobody:nobody
 
     # Read-only root filesystem for security
     read_only: true
@@ -30,10 +30,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: "2.0"
           memory: 2048M
         reservations:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 512M
 
     # ====================================================================
@@ -51,9 +51,9 @@ services:
         aliases:
           - prometheus-server
       traefik_proxy:
-      database:  # To scrape database exporters
-      cache:  # To scrape Redis exporter
-      socket_proxy:  # To scrape Docker metrics
+      database: # To scrape database exporters
+      cache: # To scrape Redis exporter
+      socket_proxy: # To scrape Docker metrics
 
     # Port exposure (only bind to localhost for security)
     ports:
@@ -97,26 +97,26 @@ services:
     # COMMAND CONFIGURATION
     # ====================================================================
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}'
-      - '--storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-10GB}'
-      - '--storage.tsdb.wal-compression'
-      - '--storage.tsdb.max-block-duration=2h'
-      - '--storage.tsdb.min-block-duration=2h'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-lifecycle'  # Allow config reload via HTTP
-      - '--web.enable-admin-api'  # Enable admin API
-      - '--web.external-url=https://prometheus.${PUBLIC_FQDN}'
-      - '--web.route-prefix=/'
-      - '--web.listen-address=0.0.0.0:9090'
-      - '--web.config.file=/etc/prometheus/web.yml'
-      - '--log.level=${PROMETHEUS_LOG_LEVEL:-info}'
-      - '--log.format=${PROMETHEUS_LOG_FORMAT:-logfmt}'
-      - '--query.timeout=${PROMETHEUS_QUERY_TIMEOUT:-2m}'
-      - '--query.max-concurrency=${PROMETHEUS_QUERY_MAX_CONCURRENCY:-20}'
-      - '--query.max-samples=${PROMETHEUS_QUERY_MAX_SAMPLES:-50000000}'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}"
+      - "--storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-10GB}"
+      - "--storage.tsdb.wal-compression"
+      - "--storage.tsdb.max-block-duration=2h"
+      - "--storage.tsdb.min-block-duration=2h"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle" # Allow config reload via HTTP
+      - "--web.enable-admin-api" # Enable admin API
+      - "--web.external-url=https://prometheus.${PUBLIC_FQDN}"
+      - "--web.route-prefix=/"
+      - "--web.listen-address=0.0.0.0:9090"
+      - "--web.config.file=/etc/prometheus/web.yml"
+      - "--log.level=${PROMETHEUS_LOG_LEVEL:-info}"
+      - "--log.format=${PROMETHEUS_LOG_FORMAT:-logfmt}"
+      - "--query.timeout=${PROMETHEUS_QUERY_TIMEOUT:-2m}"
+      - "--query.max-concurrency=${PROMETHEUS_QUERY_MAX_CONCURRENCY:-20}"
+      - "--query.max-samples=${PROMETHEUS_QUERY_MAX_SAMPLES:-50000000}"
 
     # ====================================================================
     # ENVIRONMENT CONFIGURATION
@@ -144,7 +144,15 @@ services:
     # HEALTH CHECK
     # ====================================================================
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9090/-/healthy",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -175,7 +183,7 @@ services:
       - "homepage.widget.url=http://prometheus:9090"
 
       # Service Discovery
-      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update monitoring
+      - "com.centurylinklabs.watchtower.enable=false" # Don't auto-update monitoring
       - "diun.enable=true"
       - "diun.watch_repo=true"
 
@@ -191,7 +199,7 @@ services:
 
     restart: unless-stopped
 
-    privileged: true  # Required for container metrics
+    privileged: true # Required for container metrics
 
     devices:
       - /dev/kmsg
@@ -213,11 +221,11 @@ services:
       - /var/lib/dbus/machine-id:/var/lib/dbus/machine-id:ro
 
     command:
-      - '--housekeeping_interval=10s'
-      - '--docker_only=true'
-      - '--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl'
-      - '--store_container_labels=false'
-      - '--whitelisted_container_labels=com.docker.compose.project,com.docker.compose.service'
+      - "--housekeeping_interval=10s"
+      - "--docker_only=true"
+      - "--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl"
+      - "--store_container_labels=false"
+      - "--whitelisted_container_labels=com.docker.compose.project,com.docker.compose.service"
 
     labels:
       - "prometheus.io/scrape=true"
@@ -244,15 +252,15 @@ services:
       - "127.0.0.1:9091:9091"
 
     command:
-      - '--persistence.file=/data/metrics.txt'
-      - '--persistence.interval=5m'
-      - '--log.level=${PUSHGATEWAY_LOG_LEVEL:-info}'
-      - '--log.format=${PUSHGATEWAY_LOG_FORMAT:-logfmt}'
-      - '--web.listen-address=:9091'
-      - '--web.telemetry-path=/metrics'
-      - '--web.external-url=https://pushgateway.${PUBLIC_FQDN}'
-      - '--web.route-prefix=/'
-      - '--push.disable-consistency-check=false'
+      - "--persistence.file=/data/metrics.txt"
+      - "--persistence.interval=5m"
+      - "--log.level=${PUSHGATEWAY_LOG_LEVEL:-info}"
+      - "--log.format=${PUSHGATEWAY_LOG_FORMAT:-logfmt}"
+      - "--web.listen-address=:9091"
+      - "--web.telemetry-path=/metrics"
+      - "--web.external-url=https://pushgateway.${PUBLIC_FQDN}"
+      - "--web.route-prefix=/"
+      - "--push.disable-consistency-check=false"
 
     volumes:
       - ${DATADIR}/pushgateway:/data

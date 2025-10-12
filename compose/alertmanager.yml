@@ -12,11 +12,11 @@ services:
     # ====================================================================
     security_opt:
       - no-new-privileges:true
-      - apparmor:unconfined  # Or custom profile
+      - apparmor:unconfined # Or custom profile
       - seccomp:unconfined
 
     # Run as specific user
-    user: "${PUID:-65534}:${PGID:-65534}"  # nobody:nobody
+    user: "${PUID:-65534}:${PGID:-65534}" # nobody:nobody
 
     # Read-only root filesystem for security
     read_only: true
@@ -30,10 +30,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 512M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
     # ====================================================================
@@ -55,7 +55,7 @@ services:
     # Port exposure (only bind to localhost for security)
     ports:
       - "127.0.0.1:${ALERTMANAGER_PORT:-9093}:9093"
-      - "127.0.0.1:${ALERTMANAGER_CLUSTER_PORT:-9094}:9094"  # Cluster port for HA
+      - "127.0.0.1:${ALERTMANAGER_CLUSTER_PORT:-9094}:9094" # Cluster port for HA
 
     # ====================================================================
     # VOLUME MOUNTS
@@ -83,29 +83,29 @@ services:
     # COMMAND CONFIGURATION
     # ====================================================================
     command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-      - '--data.retention=${ALERTMANAGER_RETENTION:-120h}'
-      - '--alerts.gc-interval=${ALERTMANAGER_GC_INTERVAL:-30m}'
-      - '--web.listen-address=0.0.0.0:9093'
-      - '--web.external-url=https://alertmanager.${PUBLIC_FQDN}'
-      - '--web.route-prefix=/'
-      - '--web.get-concurrency=${ALERTMANAGER_WEB_CONCURRENCY:-0}'
-      - '--web.timeout=${ALERTMANAGER_WEB_TIMEOUT:-0}'
-      - '--cluster.listen-address=0.0.0.0:9094'
-      - '--cluster.advertise-address=${ALERTMANAGER_CLUSTER_ADVERTISE:-}'
-      - '--cluster.peer=${ALERTMANAGER_CLUSTER_PEERS:-}'
-      - '--cluster.peer-timeout=${ALERTMANAGER_CLUSTER_TIMEOUT:-15s}'
-      - '--cluster.gossip-interval=${ALERTMANAGER_GOSSIP_INTERVAL:-200ms}'
-      - '--cluster.pushpull-interval=${ALERTMANAGER_PUSHPULL_INTERVAL:-1m}'
-      - '--cluster.tcp-timeout=${ALERTMANAGER_TCP_TIMEOUT:-10s}'
-      - '--cluster.probe-timeout=${ALERTMANAGER_PROBE_TIMEOUT:-500ms}'
-      - '--cluster.probe-interval=${ALERTMANAGER_PROBE_INTERVAL:-1s}'
-      - '--cluster.settle-timeout=${ALERTMANAGER_SETTLE_TIMEOUT:-1m}'
-      - '--cluster.reconnect-interval=${ALERTMANAGER_RECONNECT_INTERVAL:-10s}'
-      - '--cluster.reconnect-timeout=${ALERTMANAGER_RECONNECT_TIMEOUT:-6h}'
-      - '--log.level=${ALERTMANAGER_LOG_LEVEL:-info}'
-      - '--log.format=${ALERTMANAGER_LOG_FORMAT:-logfmt}'
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+      - "--data.retention=${ALERTMANAGER_RETENTION:-120h}"
+      - "--alerts.gc-interval=${ALERTMANAGER_GC_INTERVAL:-30m}"
+      - "--web.listen-address=0.0.0.0:9093"
+      - "--web.external-url=https://alertmanager.${PUBLIC_FQDN}"
+      - "--web.route-prefix=/"
+      - "--web.get-concurrency=${ALERTMANAGER_WEB_CONCURRENCY:-0}"
+      - "--web.timeout=${ALERTMANAGER_WEB_TIMEOUT:-0}"
+      - "--cluster.listen-address=0.0.0.0:9094"
+      - "--cluster.advertise-address=${ALERTMANAGER_CLUSTER_ADVERTISE:-}"
+      - "--cluster.peer=${ALERTMANAGER_CLUSTER_PEERS:-}"
+      - "--cluster.peer-timeout=${ALERTMANAGER_CLUSTER_TIMEOUT:-15s}"
+      - "--cluster.gossip-interval=${ALERTMANAGER_GOSSIP_INTERVAL:-200ms}"
+      - "--cluster.pushpull-interval=${ALERTMANAGER_PUSHPULL_INTERVAL:-1m}"
+      - "--cluster.tcp-timeout=${ALERTMANAGER_TCP_TIMEOUT:-10s}"
+      - "--cluster.probe-timeout=${ALERTMANAGER_PROBE_TIMEOUT:-500ms}"
+      - "--cluster.probe-interval=${ALERTMANAGER_PROBE_INTERVAL:-1s}"
+      - "--cluster.settle-timeout=${ALERTMANAGER_SETTLE_TIMEOUT:-1m}"
+      - "--cluster.reconnect-interval=${ALERTMANAGER_RECONNECT_INTERVAL:-10s}"
+      - "--cluster.reconnect-timeout=${ALERTMANAGER_RECONNECT_TIMEOUT:-6h}"
+      - "--log.level=${ALERTMANAGER_LOG_LEVEL:-info}"
+      - "--log.format=${ALERTMANAGER_LOG_FORMAT:-logfmt}"
 
     # ====================================================================
     # ENVIRONMENT CONFIGURATION
@@ -163,7 +163,11 @@ services:
     # HEALTH CHECK
     # ====================================================================
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9093/-/healthy || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:9093/-/healthy || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -194,7 +198,7 @@ services:
       - "homepage.widget.url=http://alertmanager:9093"
 
       # Service Discovery
-      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update monitoring
+      - "com.centurylinklabs.watchtower.enable=false" # Don't auto-update monitoring
       - "diun.enable=true"
       - "diun.watch_repo=true"
 
@@ -210,7 +214,7 @@ services:
     image: prom/alertmanager:v0.28.1
     container_name: alertmanager-secondary
     profiles:
-      - ha  # Only deployed when HA profile is active
+      - ha # Only deployed when HA profile is active
 
     security_opt:
       - no-new-privileges:true
@@ -222,10 +226,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 512M
         reservations:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 128M
 
     networks:
@@ -240,11 +244,11 @@ services:
       - /tmp
 
     command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-      - '--web.listen-address=0.0.0.0:9093'
-      - '--cluster.listen-address=0.0.0.0:9094'
-      - '--cluster.peer=alertmanager:9094'
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+      - "--web.listen-address=0.0.0.0:9093"
+      - "--cluster.listen-address=0.0.0.0:9094"
+      - "--cluster.peer=alertmanager:9094"
 
     environment:
       TZ: ${TZ}

@@ -1,0 +1,325 @@
+# Promtail Configuration Template for Jacker
+# This template is processed during setup to create the actual config file
+# https://grafana.com/docs/loki/latest/clients/promtail/configuration/
+
+# ====================================================================
+# SERVER CONFIGURATION
+# ====================================================================
+server:
+  http_listen_port: ${PROMTAIL_HTTP_PORT:-9080}
+  grpc_listen_port: ${PROMTAIL_GRPC_PORT:-0}
+  log_level: ${PROMTAIL_LOG_LEVEL:-info}
+  log_format: ${PROMTAIL_LOG_FORMAT:-json}
+
+  # Graceful shutdown
+  graceful_shutdown_timeout: 30s
+
+  # Server limits
+  grpc_server_max_recv_msg_size: 4194304
+  grpc_server_max_send_msg_size: 4194304
+  grpc_server_max_concurrent_streams: 100
+
+# ====================================================================
+# POSITIONS TRACKING
+# ====================================================================
+positions:
+  filename: /positions/positions.yaml
+  sync_period: ${PROMTAIL_POSITIONS_SYNC:-10s}
+  ignore_invalid_yaml: ${PROMTAIL_IGNORE_INVALID_YAML:-false}
+
+# ====================================================================
+# LOKI CLIENT CONFIGURATION
+# ====================================================================
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    tenant_id: ${PROMTAIL_TENANT_ID:-}
+
+    # Batching
+    batchwait: ${PROMTAIL_BATCH_WAIT:-1s}
+    batchsize: ${PROMTAIL_BATCH_SIZE:-1048576}
+
+    # Timeouts
+    timeout: ${PROMTAIL_CLIENT_TIMEOUT:-10s}
+
+    # Backoff configuration
+    backoff_config:
+      min_period: ${PROMTAIL_MIN_BACKOFF:-500ms}
+      max_period: ${PROMTAIL_MAX_BACKOFF:-5m}
+      max_retries: ${PROMTAIL_MAX_RETRIES:-10}
+
+    # External labels
+    external_labels:
+      hostname: ${HOSTNAME}
+      environment: ${ENVIRONMENT:-production}
+      datacenter: ${DATACENTER:-local}
+      cluster: ${CLUSTER_NAME:-jacker}
+
+    # TLS configuration (optional)
+    tls_config:
+      insecure_skip_verify: ${PROMTAIL_TLS_SKIP_VERIFY:-false}
+
+# ====================================================================
+# LIMITS CONFIGURATION
+# ====================================================================
+limits_config:
+  readline_rate_enabled: true
+  readline_rate: ${PROMTAIL_READLINE_RATE:-100}
+  readline_rate_drop: false
+  readline_burst: ${PROMTAIL_READLINE_BURST:-1000}
+  max_streams: ${PROMTAIL_MAX_STREAMS:-0}
+
+# ====================================================================
+# SCRAPE CONFIGURATIONS
+# ====================================================================
+scrape_configs:
+  # ------------------------------------------------------------
+  # Docker Containers via Docker API
+  # ------------------------------------------------------------
+  - job_name: docker
+    docker_sd_configs:
+      - host: tcp://socket-proxy:2375
+        refresh_interval: 30s
+        filters:
+          - name: label
+            values: ["com.docker.compose.project"]
+
+    relabel_configs:
+      # Keep only running containers
+      - source_labels: ['__meta_docker_container_state']
+        regex: 'running'
+        action: keep
+
+      # Use container name as instance label
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+
+      # Add compose labels
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
+        target_label: 'compose_project'
+
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: 'compose_service'
+
+      # Add container ID
+      - source_labels: ['__meta_docker_container_id']
+        target_label: 'container_id'
+        replacement: '${1:12}' # First 12 chars
+
+      # Add image name
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_image']
+        target_label: 'image'
+
+      # Add custom labels
+      - source_labels: ['__meta_docker_container_label_app_name']
+        target_label: 'app_name'
+
+      - source_labels: ['__meta_docker_container_label_app_group']
+        target_label: 'app_group'
+
+      # Set log path
+      - source_labels: ['__meta_docker_container_id']
+        target_label: '__path__'
+        replacement: '/var/lib/docker/containers/${1}/${1}-json.log'
+
+    # Pipeline stages for Docker logs
+    pipeline_stages:
+      # Parse Docker JSON logs
+      - docker: {}
+
+      # Parse common log formats
+      - regex:
+          expression: '^(?P<timestamp>[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9]{2}:[0-9]{2}:[0-9]{2}[^ ]*) *(?P<level>[A-Z]+)? *(?P<message>.*)$'
+
+      # Label extraction
+      - labels:
+          level:
+          container:
+          compose_project:
+          compose_service:
+
+      # Timestamp parsing
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+          fallback_formats:
+            - RFC3339
+            - Unix
+            - UnixMs
+            - UnixUs
+            - UnixNs
+
+      # Drop debug logs in production
+      - match:
+          selector: '{environment="production",level="DEBUG"}'
+          action: drop
+
+      # Rate limiting per container
+      - limit:
+          rate: ${PROMTAIL_RATE_LIMIT:-100}
+          burst: ${PROMTAIL_BURST_LIMIT:-1000}
+          by_label_name: "container"
+          drop: false
+
+  # ------------------------------------------------------------
+  # System Logs (syslog)
+  # ------------------------------------------------------------
+  - job_name: syslog
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: syslog
+          __path__: /var/log/syslog
+
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\w+ +\d+ \d+:\d+:\d+) (?P<hostname>\S+) (?P<program>\S+?)(\[(?P<pid>\d+)\])?: (?P<message>.*)$'
+
+      - labels:
+          hostname:
+          program:
+
+      - timestamp:
+          source: timestamp
+          format: 'Jan 2 15:04:05'
+          location: ${TZ:-UTC}
+
+  # ------------------------------------------------------------
+  # Traefik Access Logs
+  # ------------------------------------------------------------
+  - job_name: traefik
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: traefik
+          service: traefik
+          __path__: /logs/traefik/access.log
+
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: time
+            method: RequestMethod
+            path: RequestPath
+            protocol: RequestProtocol
+            status: OriginStatus
+            duration: Duration
+            client_ip: ClientHost
+            user_agent: request_User-Agent
+
+      - labels:
+          method:
+          status:
+
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+
+      # Filter out health checks
+      - match:
+          selector: '{path="/ping"}'
+          action: drop
+
+  # ------------------------------------------------------------
+  # Application Logs (custom paths)
+  # ------------------------------------------------------------
+  - job_name: applications
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: applications
+          __path__: /logs/**/*.log
+
+    pipeline_stages:
+      - multiline:
+          firstline: '^\d{4}-\d{2}-\d{2}'
+          max_wait_time: 3s
+          max_lines: 128
+
+      - regex:
+          expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[^ ]*) *\[?(?P<level>[A-Z]+)\]? *(?P<message>.*)$'
+
+      - labels:
+          level:
+
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+          fallback_formats:
+            - '2006-01-02 15:04:05'
+            - '2006-01-02T15:04:05'
+
+  # ------------------------------------------------------------
+  # Prometheus & Grafana Logs
+  # ------------------------------------------------------------
+  - job_name: monitoring
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: monitoring
+          __path__: /logs/monitoring/*.log
+
+    relabel_configs:
+      - source_labels: ['__path__']
+        regex: '.*/([^/]+)\.log'
+        target_label: 'service'
+        replacement: '${1}'
+
+    pipeline_stages:
+      - regex:
+          expression: '^level=(?P<level>\w+) ts=(?P<timestamp>[^ ]+) (?P<message>.*)$'
+
+      - labels:
+          level:
+
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+
+  # ------------------------------------------------------------
+  # Security Logs (CrowdSec)
+  # ------------------------------------------------------------
+  - job_name: security
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: security
+          service: crowdsec
+          __path__: /logs/crowdsec/*.log
+
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: time
+            level: level
+            message: msg
+            module: module
+
+      - labels:
+          level:
+          module:
+
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+
+      # Alert on security events
+      - metrics:
+          security_events_total:
+            type: Counter
+            description: "Total number of security events"
+            source: level
+            config:
+              value: warn
+              action: inc
+
+# ====================================================================
+# TARGET CONFIGURATION
+# ====================================================================
+target_config:
+  sync_period: 10s

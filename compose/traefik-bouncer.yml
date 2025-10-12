@@ -28,4 +28,3 @@ services:
       - "homepage.group=Middleware"
       - "homepage.name=Crowdsec Bouncer"
       - "homepage.description=Crowdsec Traefik Bouncer"
-

@@ -13,7 +13,7 @@ services:
     security_opt:
       - no-new-privileges:true
       # Additional security options for production
-      - apparmor:unconfined  # Or specify custom AppArmor profile
+      - apparmor:unconfined # Or specify custom AppArmor profile
 
     # User/Group mapping for proper file permissions
     user: "${PUID:-1000}:${PGID:-1000}"
@@ -27,10 +27,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'  # Increased for better performance under load
-          memory: 1024M  # Increased for caching and connection handling
+          cpus: "2.0" # Increased for better performance under load
+          memory: 1024M # Increased for caching and connection handling
         reservations:
-          cpus: '0.5'  # Ensure minimum resources
+          cpus: "0.5" # Ensure minimum resources
           memory: 256M
 
     # Process tuning
@@ -192,8 +192,8 @@ services:
       TRAEFIK_ACCESSLOG_FIELDS_DEFAULTMODE: ${TRAEFIK_ACCESS_LOG_MODE:-keep}
 
       # Performance tuning
-      GOGC: 100  # Go garbage collection tuning
-      GOMEMLIMIT: 900MiB  # Go memory limit (less than container limit)
+      GOGC: 100 # Go garbage collection tuning
+      GOMEMLIMIT: 900MiB # Go memory limit (less than container limit)
 
       # Optional: Enable debug mode
       # TRAEFIK_API_DEBUG: ${TRAEFIK_DEBUG:-false}
@@ -216,7 +216,7 @@ services:
       # ============================================================
       - "traefik.http.routers.traefik-rtr.entrypoints=websecure"
       - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.${PUBLIC_FQDN}`)"
-      - "traefik.http.routers.traefik-rtr.priority=100"  # High priority for dashboard
+      - "traefik.http.routers.traefik-rtr.priority=100" # High priority for dashboard
 
       # TLS Configuration
       - "traefik.http.routers.traefik-rtr.tls=true"
@@ -254,7 +254,7 @@ services:
       - "homepage.icon=traefik.svg"
       - "homepage.href=https://traefik.${PUBLIC_FQDN}"
       - "homepage.description=Reverse Proxy & Load Balancer"
-      - "homepage.weight=100"  # Display priority
+      - "homepage.weight=100" # Display priority
       - "homepage.widget.type=traefik"
       - "homepage.widget.url=http://traefik:8080"
       - "homepage.widget.username="
@@ -263,8 +263,8 @@ services:
       # ============================================================
       # SERVICE DISCOVERY METADATA
       # ============================================================
-      - "com.centurylinklabs.watchtower.enable=false"  # Don't auto-update Traefik
-      - "diun.enable=true"  # Enable update notifications
+      - "com.centurylinklabs.watchtower.enable=false" # Don't auto-update Traefik
+      - "diun.enable=true" # Enable update notifications
       - "diun.watch_repo=true"
       - "diun.max_tags=3"
 
