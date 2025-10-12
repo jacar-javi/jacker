@@ -36,15 +36,12 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
       GF_AUTH_DISABLE_LOGIN_FORM: true
       GF_AUTH_OAUTH_AUTO_LOGIN: true
-      
+
     labels:
       - "traefik.enable=true"
       # HTTP Routers
       - "traefik.http.routers.grafana-rtr.entrypoints=websecure"
       - "traefik.http.routers.grafana-rtr.rule=Host(`grafana.$PUBLIC_FQDN`)"
-      # TLS Configuration
-      - "traefik.http.routers.grafana-rtr.tls=true"
-      - "traefik.http.routers.grafana-rtr.tls.certresolver=http"
       # Middlewares
       - "traefik.http.routers.grafana-rtr.middlewares=chain-oauth-no-crowdsec@file"
       # HTTP Services

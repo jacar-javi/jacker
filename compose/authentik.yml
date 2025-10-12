@@ -84,8 +84,6 @@ services:
       # HTTP Router
       - "traefik.http.routers.authentik-rtr.entrypoints=websecure"
       - "traefik.http.routers.authentik-rtr.rule=Host(`auth.${DOMAINNAME}`) || HostRegexp(`{subdomain:[a-z0-9-]+}.${DOMAINNAME}`) && PathPrefix(`/outpost.goauthentik.io/`)"
-      - "traefik.http.routers.authentik-rtr.tls=true"
-      - "traefik.http.routers.authentik-rtr.tls.certresolver=letsencrypt"
       - "traefik.http.routers.authentik-rtr.tls.options=tls-opts@file"
 
       # Middlewares

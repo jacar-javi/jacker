@@ -40,7 +40,7 @@ entryPoints:
     http:
       tls:
         options: tls-opts@file
-        certresolver: http
+        certResolver: http
     http3:
       advertisedPort: 443
 
