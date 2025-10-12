@@ -59,18 +59,29 @@ services:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
 
     # ====================================================================
+    # SECRETS
+    # ====================================================================
+    secrets:
+      - postgres_password
+
+    # ====================================================================
+    # CONFIGS
+    # ====================================================================
+    configs:
+      - source: postgres_conf
+        target: /etc/postgresql/postgresql.conf
+      - source: postgres_hba
+        target: /etc/postgresql/pg_hba.conf
+      - source: postgres_init
+        target: /docker-entrypoint-initdb.d/00-create-databases.sh
+        mode: 0755
+
+    # ====================================================================
     # VOLUME MOUNTS
     # ====================================================================
     volumes:
       # Data directory
       - ${DATADIR}/postgres/data:/var/lib/postgresql/data:rw
-
-      # Custom configuration
-      - ${DATADIR}/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ${DATADIR}/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-
-      # Init scripts
-      - ${DATADIR}/postgres/init:/docker-entrypoint-initdb.d:ro
 
       # Backup directory
       - ${DATADIR}/postgres/backups:/backups:rw
@@ -106,7 +117,7 @@ services:
       # Basic Configuration
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       PGDATA: /var/lib/postgresql/data/pgdata
       TZ: ${TZ}
 
@@ -215,8 +226,13 @@ services:
     ports:
       - "127.0.0.1:9187:9187"
 
+    secrets:
+      - postgres_password
+
     environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      DATA_SOURCE_URI: "postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      DATA_SOURCE_USER: ${POSTGRES_USER}
+      DATA_SOURCE_PASS_FILE: /run/secrets/postgres_password
       PG_EXPORTER_WEB_LISTEN_ADDRESS: ":9187"
       PG_EXPORTER_WEB_TELEMETRY_PATH: "/metrics"
       PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"

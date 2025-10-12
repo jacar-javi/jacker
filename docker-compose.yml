@@ -30,8 +30,43 @@ networks:
     driver: bridge
 
 secrets:
+  # OAuth secrets
+  oauth_client_secret:
+    file: ${DOCKERDIR}/secrets/oauth_client_secret
+  oauth_cookie_secret:
+    file: ${DOCKERDIR}/secrets/oauth_cookie_secret
   traefik_forward_oauth:
     file: ${DOCKERDIR}/secrets/traefik_forward_oauth
+
+  # Database secrets
+  postgres_password:
+    file: ${DOCKERDIR}/secrets/postgres_password
+  redis_password:
+    file: ${DOCKERDIR}/secrets/redis_password
+
+  # CrowdSec secrets
+  crowdsec_lapi_key:
+    file: ${DOCKERDIR}/secrets/crowdsec_lapi_key
+  crowdsec_bouncer_key:
+    file: ${DOCKERDIR}/secrets/crowdsec_bouncer_key
+
+  # Monitoring secrets
+  grafana_admin_password:
+    file: ${DOCKERDIR}/secrets/grafana_admin_password
+  alertmanager_gmail_password:
+    file: ${DOCKERDIR}/secrets/alertmanager_gmail_password
+
+  # Authentik secrets (optional)
+  authentik_secret_key:
+    file: ${DOCKERDIR}/secrets/authentik_secret_key
+  authentik_postgres_password:
+    file: ${DOCKERDIR}/secrets/authentik_postgres_password
+  authentik_api_token:
+    file: ${DOCKERDIR}/secrets/authentik_api_token
+
+  # Service secrets
+  portainer_secret:
+    file: ${DOCKERDIR}/secrets/portainer_secret
 
 configs:
   # Traefik configs

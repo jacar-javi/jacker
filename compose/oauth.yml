@@ -25,13 +25,23 @@ services:
       redis:
         condition: service_healthy
 
+    configs:
+      - source: oauth2_proxy_cfg
+        target: /etc/oauth2-proxy/oauth2-proxy.cfg
+        mode: 0444
+
+    secrets:
+      - oauth_client_secret
+      - oauth_cookie_secret
+
     volumes:
-      # Configuration file
-      - ${DATADIR}/oauth2-proxy/oauth2-proxy.cfg:/etc/oauth2-proxy/oauth2-proxy.cfg:ro
       # Custom templates (optional)
       - ${DATADIR}/oauth2-proxy/templates:/templates:ro
 
     environment:
+      # Read secrets from files
+      - OAUTH2_PROXY_CLIENT_SECRET_FILE=/run/secrets/oauth_client_secret
+      - OAUTH2_PROXY_COOKIE_SECRET_FILE=/run/secrets/oauth_cookie_secret
       # These can override config file settings
       - OAUTH2_PROXY_COOKIE_DOMAIN=${PUBLIC_FQDN}
       - OAUTH2_PROXY_COOKIE_SECURE=true

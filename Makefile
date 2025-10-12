@@ -165,6 +165,15 @@ ufw-status: ## Show firewall status
 rotate-secrets: ## Rotate all secrets
 	@./assets/lib/rotate-secrets.sh
 
+secrets-verify: ## Verify Docker secrets
+	@bash -c 'source ./assets/lib/secrets.sh && verify_secrets'
+
+secrets-generate: ## Generate missing secrets
+	@bash -c 'source ./assets/lib/secrets.sh && generate_all_secrets'
+
+secrets-migrate: ## Migrate secrets from .env to files
+	@bash -c 'source ./assets/lib/secrets.sh && migrate_env_to_secrets'
+
 # =============================================================================
 ##@ Stack Management
 # =============================================================================

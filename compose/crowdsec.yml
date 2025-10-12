@@ -74,6 +74,23 @@ services:
       - "127.0.0.1:${CROWDSEC_METRICS_PORT:-6060}:6060"
 
     # ====================================================================
+    # SECRETS
+    # ====================================================================
+    secrets:
+      - postgres_password
+      - crowdsec_lapi_key
+      - crowdsec_bouncer_key
+
+    # ====================================================================
+    # CONFIGS
+    # ====================================================================
+    configs:
+      - source: crowdsec_config
+        target: /etc/crowdsec/config.yaml.local
+      - source: crowdsec_acquis
+        target: /etc/crowdsec/acquis.d/docker-logs.yaml
+
+    # ====================================================================
     # VOLUME MOUNTS
     # ====================================================================
     volumes:
@@ -125,7 +142,7 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_CROWDSEC_DB:-crowdsec_db}
       POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
 
       # Redis Cache Configuration
       REDIS_HOST: redis
@@ -147,9 +164,8 @@ services:
       BOUNCERS_ALLOWED_OU: ${CROWDSEC_BOUNCERS_OU:-bouncer_ou}
 
       # Bouncer Registration (Auto-registration)
-      BOUNCER_KEY_traefik: ${CROWDSEC_TRAEFIK_BOUNCER_API_KEY}
-      BOUNCER_KEY_firewall: ${CROWDSEC_FIREWALL_BOUNCER_API_KEY}
-      BOUNCER_KEY_cloudflare: ${CROWDSEC_CLOUDFLARE_BOUNCER_API_KEY}
+      BOUNCER_KEY_TRAEFIK_FILE: /run/secrets/crowdsec_bouncer_key
+      BOUNCER_KEY_FIREWALL_FILE: /run/secrets/crowdsec_bouncer_key
 
       # Agent Configuration
       AGENT_USERNAME: ${CROWDSEC_AGENT_USERNAME:-crowdsec_agent}

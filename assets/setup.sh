@@ -16,6 +16,8 @@ source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/system.sh"
 # shellcheck source=assets/lib/services.sh
 source "$SCRIPT_DIR/lib/services.sh"
+# shellcheck source=assets/lib/secrets.sh
+source "$SCRIPT_DIR/lib/secrets.sh"
 
 # ============================================================================
 # Configuration Setup
@@ -180,6 +182,9 @@ setup_configuration() {
 
     # Create configuration
     create_configuration
+
+    # Generate Docker secrets
+    generate_all_secrets
 }
 
 # ============================================================================
@@ -231,17 +236,22 @@ create_env_file() {
         sed -i "s|^SOCKET_PROXY_SUBNET=.*|SOCKET_PROXY_SUBNET=$SOCKET_PROXY_SUBNET|" "$env_file"
         sed -i "s|^TRAEFIK_PROXY_SUBNET=.*|TRAEFIK_PROXY_SUBNET=$TRAEFIK_PROXY_SUBNET|" "$env_file"
         sed -i "s|^OAUTH_CLIENT_ID=.*|OAUTH_CLIENT_ID=$OAUTH_CLIENT_ID|" "$env_file"
-        sed -i "s|^OAUTH_CLIENT_SECRET=.*|OAUTH_CLIENT_SECRET=$OAUTH_CLIENT_SECRET|" "$env_file"
-        sed -i "s|^OAUTH_SECRET=.*|OAUTH_SECRET=$OAUTH_SECRET|" "$env_file"
         sed -i "s|^OAUTH_WHITELIST=.*|OAUTH_WHITELIST=$OAUTH_WHITELIST|" "$env_file"
         sed -i "s|^LETSENCRYPT_EMAIL=.*|LETSENCRYPT_EMAIL=$LETSENCRYPT_EMAIL|" "$env_file"
         sed -i "s|^POSTGRES_DB=.*|POSTGRES_DB=$POSTGRES_DB|" "$env_file"
         sed -i "s|^POSTGRES_USER=.*|POSTGRES_USER=$POSTGRES_USER|" "$env_file"
-        sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$POSTGRES_PASSWORD|" "$env_file"
         sed -i "s|^CROWDSEC_API_PORT=.*|CROWDSEC_API_PORT=$CROWDSEC_API_PORT|" "$env_file"
-        sed -i "s|^CROWDSEC_TRAEFIK_BOUNCER_API_KEY=.*|CROWDSEC_TRAEFIK_BOUNCER_API_KEY=$CROWDSEC_TRAEFIK_BOUNCER_API_KEY|" "$env_file"
-        sed -i "s|^CROWDSEC_IPTABLES_BOUNCER_API_KEY=.*|CROWDSEC_IPTABLES_BOUNCER_API_KEY=$CROWDSEC_IPTABLES_BOUNCER_API_KEY|" "$env_file"
-        sed -i "s|^CROWDSEC_API_LOCAL_PASSWORD=.*|CROWDSEC_API_LOCAL_PASSWORD=$CROWDSEC_API_LOCAL_PASSWORD|" "$env_file"
+
+        # Remove any existing password/secret variables (now managed via Docker secrets)
+        sed -i '/^OAUTH_CLIENT_SECRET=/d' "$env_file"
+        sed -i '/^OAUTH_SECRET=/d' "$env_file"
+        sed -i '/^OAUTH_COOKIE_SECRET=/d' "$env_file"
+        sed -i '/^POSTGRES_PASSWORD=/d' "$env_file"
+        sed -i '/^REDIS_PASSWORD=/d' "$env_file"
+        sed -i '/^CROWDSEC_TRAEFIK_BOUNCER_API_KEY=/d' "$env_file"
+        sed -i '/^CROWDSEC_IPTABLES_BOUNCER_API_KEY=/d' "$env_file"
+        sed -i '/^CROWDSEC_API_LOCAL_PASSWORD=/d' "$env_file"
+        sed -i '/^GRAFANA_ADMIN_PASSWORD=/d' "$env_file"
         
         success ".env file created from defaults with user overrides"
     else
