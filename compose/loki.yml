@@ -58,10 +58,7 @@ services:
     # VOLUME MOUNTS
     # ====================================================================
     volumes:
-      # Configuration (read-only)
-      - ${DATADIR}/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
-
-      # Data storage (read-write)
+      # Data storage (read-write - cannot use configs for runtime data)
       - ${DATADIR}/loki/data:/loki:rw
       - ${DATADIR}/loki/wal:/wal:rw
       - ${DATADIR}/loki/rules:/rules:rw
@@ -74,6 +71,13 @@ services:
       # Timezone
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
+
+    # ====================================================================
+    # DOCKER CONFIGS (Immutable configuration files)
+    # ====================================================================
+    configs:
+      - source: loki_config
+        target: /etc/loki/local-config.yaml
 
     # Temporary filesystem for processing
     tmpfs:

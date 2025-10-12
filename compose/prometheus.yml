@@ -63,14 +63,13 @@ services:
     # VOLUME MOUNTS
     # ====================================================================
     volumes:
-      # Configuration files (read-only)
-      - ${DATADIR}/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Data storage (read-write - cannot use configs for runtime data)
+      - ${DATADIR}/prometheus/data:/prometheus:rw
+
+      # Additional rule files and targets (if needed for dynamic updates)
       - ${DATADIR}/prometheus/config/rules:/etc/prometheus/rules:ro
       - ${DATADIR}/prometheus/config/targets.d:/etc/prometheus/targets.d:ro
       - ${DATADIR}/prometheus/config/file_sd:/etc/prometheus/file_sd:ro
-
-      # Data storage (read-write)
-      - ${DATADIR}/prometheus/data:/prometheus:rw
 
       # Console libraries (read-only)
       - ${DATADIR}/prometheus/console_libraries:/usr/share/prometheus/console_libraries:ro
@@ -82,6 +81,13 @@ services:
       # Timezone
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
+
+    # ====================================================================
+    # DOCKER CONFIGS (Immutable configuration files)
+    # ====================================================================
+    configs:
+      - source: prometheus_yml
+        target: /etc/prometheus/prometheus.yml
 
     # Temporary filesystem for scratch space
     tmpfs:

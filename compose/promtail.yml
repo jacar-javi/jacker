@@ -56,10 +56,7 @@ services:
     # VOLUME MOUNTS
     # ====================================================================
     volumes:
-      # Configuration (read-only)
-      - ${DATADIR}/loki/promtail-config.yml:/etc/promtail/config.yml:ro
-
-      # Position file storage
+      # Position file storage (runtime data - cannot use configs)
       - ${DATADIR}/promtail/positions:/positions:rw
 
       # Log sources (read-only)
@@ -79,6 +76,13 @@ services:
       # Timezone
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
+
+    # ====================================================================
+    # DOCKER CONFIGS (Immutable configuration files)
+    # ====================================================================
+    configs:
+      - source: promtail_config
+        target: /etc/promtail/config.yml
 
     # Temporary filesystem for processing
     tmpfs:
