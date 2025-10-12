@@ -296,6 +296,18 @@ This directory contains all scripts, libraries, and templates for the Jacker pla
   - data/loki/data/rules
   - data/loki/data/compactor
 
+### 🔒 fix-traefik-acme.sh
+**Fix Traefik ACME Certificate File**
+
+- **Purpose:** Ensure ACME certificate file exists with correct permissions
+- **Description:** Creates and fixes the acme.json file used by Traefik to store Let's Encrypt certificates. The file must exist with 600 permissions (owner read/write only) for Traefik to accept it. This script creates the file if missing, initializes with empty JSON if empty, and sets correct permissions. Also verifies Traefik container can access the file.
+- **Fixes:**
+  - Creates data/traefik/acme.json if missing
+  - Initializes empty file with `{}`
+  - Sets permissions to 600 (required by Traefik)
+  - Verifies volume mounting
+  - Checks certificate count
+
 ### 🏷️ fix-promtail-labels.sh
 **Fix Promtail Label Cardinality**
 

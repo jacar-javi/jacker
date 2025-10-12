@@ -188,12 +188,32 @@ setup_traefik() {
     # Create directories
     ensure_dir "$(get_data_dir)/traefik"
 
-    # Create acme.json with proper JSON structure for Let's Encrypt
+    # Create acme.json with proper permissions for Let's Encrypt certificates
     local acme_file="$(get_data_dir)/traefik/acme.json"
-    if [ ! -f "$acme_file" ] || [ ! -s "$acme_file" ]; then
+    subsection "Setting up ACME certificate storage"
+    
+    # Check if acme.json exists and create if needed
+    if [ ! -f "$acme_file" ]; then
+        info "Creating acme.json file for Let's Encrypt certificates"
         echo '{}' > "$acme_file"
+        success "Created acme.json"
+    elif [ ! -s "$acme_file" ]; then
+        # File exists but is empty
+        warning "acme.json exists but is empty, initializing with empty JSON"
+        echo '{}' > "$acme_file"
+    else
+        info "acme.json already exists with content"
     fi
-    chmod 600 "$acme_file"
+    
+    # Set proper permissions (must be 600 for Traefik to accept it)
+    local current_perms=$(stat -c '%a' "$acme_file" 2>/dev/null || stat -f '%A' "$acme_file" 2>/dev/null || echo "unknown")
+    if [ "$current_perms" != "600" ]; then
+        info "Setting permissions on acme.json (current: $current_perms, required: 600)"
+        chmod 600 "$acme_file"
+        success "Set acme.json permissions to 600"
+    else
+        success "acme.json permissions are correct (600)"
+    fi
 
     # Generate default self-signed certificate for TLS store
     subsection "Generating default TLS certificate"
