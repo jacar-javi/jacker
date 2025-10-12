@@ -42,7 +42,6 @@ services:
       # HTTP Routers
       - "traefik.http.routers.grafana-rtr.entrypoints=websecure"
       - "traefik.http.routers.grafana-rtr.rule=Host(`grafana.$PUBLIC_FQDN`)"
-      - "traefik.http.routers.grafana-rtr.tls.certResolver=http"
       # Middlewares
       - "traefik.http.routers.grafana-rtr.middlewares=chain-oauth-no-crowdsec@file"
       # HTTP Services
