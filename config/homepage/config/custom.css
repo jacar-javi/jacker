@@ -15,3 +15,12 @@
   width: 48px !important;
   height: 48px !important;
 }
+
+/* Center system widgets in top bar */
+.information-widgets,
+.information-widget-resources,
+[class*="information-widget"] {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
