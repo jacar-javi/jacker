@@ -57,10 +57,81 @@ detect_system_config() {
 # Environment Setup
 #########################################
 
+load_existing_config() {
+    # Load existing configuration values if .env exists
+    if [[ -f "${JACKER_DIR}/.env" ]]; then
+        log_info "Loading existing configuration..."
+
+        # Source the existing .env file to get current values
+        set -a
+        source "${JACKER_DIR}/.env"
+        set +a
+
+        # Store existing values in variables with EXISTING_ prefix
+        # Core configuration
+        EXISTING_DOMAINNAME="${DOMAINNAME:-}"
+        EXISTING_HOSTNAME="${HOSTNAME:-}"
+        EXISTING_PUBLIC_FQDN="${PUBLIC_FQDN:-}"
+        EXISTING_LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
+        EXISTING_TZ="${TZ:-}"
+        
+        # OAuth configuration
+        EXISTING_OAUTH_PROVIDER="${OAUTH_PROVIDER:-}"
+        EXISTING_OAUTH_CLIENT_ID="${OAUTH_CLIENT_ID:-}"
+        EXISTING_OAUTH_CLIENT_SECRET="${OAUTH_CLIENT_SECRET:-}"
+        EXISTING_OAUTH_WHITELIST="${OAUTH_WHITELIST:-}"
+        EXISTING_OAUTH_SECRET="${OAUTH_SECRET:-}"
+        EXISTING_OAUTH_COOKIE_SECRET="${OAUTH_COOKIE_SECRET:-}"
+        EXISTING_OAUTH_SIGNATURE_KEY="${OAUTH_SIGNATURE_KEY:-}"
+        
+        # Email/SMTP configuration
+        EXISTING_SMTP_HOST="${SMTP_HOST:-}"
+        EXISTING_SMTP_PORT="${SMTP_PORT:-}"
+        EXISTING_SMTP_USERNAME="${SMTP_USERNAME:-}"
+        EXISTING_SMTP_PASSWORD="${SMTP_PASSWORD:-}"
+        EXISTING_ALERT_EMAIL_TO="${ALERT_EMAIL_TO:-}"
+        
+        # Network configuration
+        EXISTING_DOCKER_DEFAULT_SUBNET="${DOCKER_DEFAULT_SUBNET:-}"
+        EXISTING_SOCKET_PROXY_SUBNET="${SOCKET_PROXY_SUBNET:-}"
+        EXISTING_TRAEFIK_PROXY_SUBNET="${TRAEFIK_PROXY_SUBNET:-}"
+        
+        # Database passwords
+        EXISTING_POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}"
+        EXISTING_REDIS_PASSWORD="${REDIS_PASSWORD:-}"
+        
+        # CrowdSec API keys
+        EXISTING_CROWDSEC_TRAEFIK_BOUNCER_API_KEY="${CROWDSEC_TRAEFIK_BOUNCER_API_KEY:-}"
+        EXISTING_CROWDSEC_IPTABLES_BOUNCER_API_KEY="${CROWDSEC_IPTABLES_BOUNCER_API_KEY:-}"
+        EXISTING_CROWDSEC_API_LOCAL_PASSWORD="${CROWDSEC_API_LOCAL_PASSWORD:-}"
+        EXISTING_CROWDSEC_AGENT_PASSWORD="${CROWDSEC_AGENT_PASSWORD:-}"
+        
+        # Authentik configuration
+        EXISTING_AUTHENTIK_SECRET_KEY="${AUTHENTIK_SECRET_KEY:-}"
+        EXISTING_AUTHENTIK_POSTGRES_PASSWORD="${AUTHENTIK_POSTGRES_PASSWORD:-}"
+        
+        # Grafana configuration
+        EXISTING_GF_SECURITY_ADMIN_PASSWORD="${GF_SECURITY_ADMIN_PASSWORD:-}"
+        
+        # Service-specific passwords
+        EXISTING_PORTAINER_ADMIN_PASSWORD="${PORTAINER_ADMIN_PASSWORD:-}"
+        EXISTING_CODE_PASSWORD="${CODE_PASSWORD:-}"
+        EXISTING_CODE_SUDO_PASSWORD="${CODE_SUDO_PASSWORD:-}"
+
+        log_success "Existing configuration loaded"
+    fi
+}
+
 create_env_file() {
     local quick_mode="${1:-false}"
+    local preserve_existing="${2:-false}"
 
     log_info "Creating .env configuration..."
+
+    # Load existing configuration if preserving
+    if [[ "$preserve_existing" == "true" ]]; then
+        load_existing_config
+    fi
 
     # Start with defaults
     cp "${JACKER_DIR}/.env.defaults" "${JACKER_DIR}/.env.tmp"
@@ -76,14 +147,14 @@ create_env_file() {
 
     if [[ "$quick_mode" == "false" ]]; then
         # Interactive configuration
-        configure_interactive
+        configure_interactive "$preserve_existing"
     else
         # Quick mode - use minimal required inputs
-        configure_quick
+        configure_quick "$preserve_existing"
     fi
 
     # Generate secrets
-    generate_all_secrets
+    generate_all_secrets "$preserve_existing"
 
     # Move tmp to final
     mv "${JACKER_DIR}/.env.tmp" "${JACKER_DIR}/.env"
@@ -93,25 +164,53 @@ create_env_file() {
 }
 
 configure_quick() {
+    local preserve_existing="${1:-false}"
     log_info "Quick configuration mode"
 
     # Domain configuration
-    read -rp "Enter your domain name (e.g., example.com): " domain
-    read -rp "Enter your hostname (e.g., myserver): " hostname
+    local default_domain="${EXISTING_DOMAINNAME:-example.com}"
+    local default_hostname="${EXISTING_HOSTNAME:-myserver}"
+    
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_DOMAINNAME}" ]]; then
+        read -rp "Enter your domain name [${default_domain}]: " domain
+        domain="${domain:-${default_domain}}"
+        read -rp "Enter your hostname [${default_hostname}]: " hostname_input
+        hostname_input="${hostname_input:-${default_hostname}}"
+    else
+        read -rp "Enter your domain name (e.g., example.com): " domain
+        read -rp "Enter your hostname (e.g., myserver): " hostname_input
+    fi
 
     sed -i "s|^DOMAINNAME=.*|DOMAINNAME=${domain}|" "${JACKER_DIR}/.env.tmp"
-    sed -i "s|^PUBLIC_FQDN=.*|PUBLIC_FQDN=${hostname}.${domain}|" "${JACKER_DIR}/.env.tmp"
+    sed -i "s|^HOSTNAME=.*|HOSTNAME=${hostname_input}|" "${JACKER_DIR}/.env.tmp"
+    sed -i "s|^PUBLIC_FQDN=.*|PUBLIC_FQDN=${hostname_input}.${domain}|" "${JACKER_DIR}/.env.tmp"
 
     # Let's Encrypt
-    read -rp "Enter email for Let's Encrypt certificates: " le_email
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_LETSENCRYPT_EMAIL}" ]]; then
+        read -rp "Enter email for Let's Encrypt certificates [${EXISTING_LETSENCRYPT_EMAIL}]: " le_email
+        le_email="${le_email:-${EXISTING_LETSENCRYPT_EMAIL}}"
+    else
+        read -rp "Enter email for Let's Encrypt certificates: " le_email
+    fi
     sed -i "s|^LETSENCRYPT_EMAIL=.*|LETSENCRYPT_EMAIL=${le_email}|" "${JACKER_DIR}/.env.tmp"
 
     # OAuth (optional)
     echo
     echo "OAuth configuration (press Enter to skip for now):"
-    read -rp "Google OAuth Client ID: " oauth_id
-    read -rp "Google OAuth Client Secret: " oauth_secret
-    read -rp "Allowed emails (comma-separated): " oauth_emails
+    
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_OAUTH_CLIENT_ID}" ]]; then
+        read -rp "Google OAuth Client ID [${EXISTING_OAUTH_CLIENT_ID}]: " oauth_id
+        oauth_id="${oauth_id:-${EXISTING_OAUTH_CLIENT_ID}}"
+        read -rsp "Google OAuth Client Secret [****] (press Enter to keep): " oauth_secret
+        echo
+        oauth_secret="${oauth_secret:-${EXISTING_OAUTH_CLIENT_SECRET}}"
+        read -rp "Allowed emails (comma-separated) [${EXISTING_OAUTH_WHITELIST}]: " oauth_emails
+        oauth_emails="${oauth_emails:-${EXISTING_OAUTH_WHITELIST}}"
+    else
+        read -rp "Google OAuth Client ID: " oauth_id
+        read -rp "Google OAuth Client Secret: " oauth_secret
+        read -rp "Allowed emails (comma-separated): " oauth_emails
+    fi
 
     if [[ -n "$oauth_id" ]]; then
         sed -i "s|^OAUTH_CLIENT_ID=.*|OAUTH_CLIENT_ID=${oauth_id}|" "${JACKER_DIR}/.env.tmp"
@@ -121,46 +220,71 @@ configure_quick() {
 }
 
 configure_interactive() {
+    local preserve_existing="${1:-false}"
     log_info "Interactive configuration mode"
 
     # Full interactive configuration
     # Domain and networking
-    read -rp "Domain name [${DETECTED_DOMAIN:-example.com}]: " domain
-    domain="${domain:-${DETECTED_DOMAIN:-example.com}}"
+    local default_domain="${EXISTING_DOMAINNAME:-${DETECTED_DOMAIN:-example.com}}"
+    read -rp "Domain name [${default_domain}]: " domain
+    domain="${domain:-${default_domain}}"
 
-    read -rp "Hostname [${HOSTNAME}]: " hostname_input
-    hostname_input="${hostname_input:-${HOSTNAME}}"
+    local default_hostname="${EXISTING_HOSTNAME:-${HOSTNAME}}"
+    read -rp "Hostname [${default_hostname}]: " hostname_input
+    hostname_input="${hostname_input:-${default_hostname}}"
 
     sed -i "s|^DOMAINNAME=.*|DOMAINNAME=${domain}|" "${JACKER_DIR}/.env.tmp"
     sed -i "s|^HOSTNAME=.*|HOSTNAME=${hostname_input}|" "${JACKER_DIR}/.env.tmp"
     sed -i "s|^PUBLIC_FQDN=.*|PUBLIC_FQDN=${hostname_input}.${domain}|" "${JACKER_DIR}/.env.tmp"
 
     # Let's Encrypt
-    read -rp "Let's Encrypt email address: " le_email
+    local default_le_email="${EXISTING_LETSENCRYPT_EMAIL:-}"
+    if [[ -n "$default_le_email" ]]; then
+        read -rp "Let's Encrypt email address [${default_le_email}]: " le_email
+        le_email="${le_email:-${default_le_email}}"
+    else
+        read -rp "Let's Encrypt email address: " le_email
+    fi
     sed -i "s|^LETSENCRYPT_EMAIL=.*|LETSENCRYPT_EMAIL=${le_email}|" "${JACKER_DIR}/.env.tmp"
 
     # OAuth configuration
     echo
     echo "Authentication Configuration:"
+
+    # Determine current auth method if reconfiguring
+    local default_auth_choice="1"
+    if [[ "$preserve_existing" == "true" ]]; then
+        if [[ -n "${EXISTING_AUTHENTIK_SECRET_KEY}" ]]; then
+            default_auth_choice="2"
+            echo "(Currently using: Authentik)"
+        elif [[ -n "${EXISTING_OAUTH_CLIENT_ID}" ]]; then
+            default_auth_choice="1"
+            echo "(Currently using: Google OAuth)"
+        else
+            default_auth_choice="3"
+            echo "(Currently using: No authentication)"
+        fi
+    fi
+
     echo "1. Google OAuth (recommended)"
     echo "2. Authentik (self-hosted)"
     echo "3. Skip authentication (not recommended for production)"
-    read -rp "Choose authentication method [1]: " auth_choice
-    auth_choice="${auth_choice:-1}"
+    read -rp "Choose authentication method [${default_auth_choice}]: " auth_choice
+    auth_choice="${auth_choice:-${default_auth_choice}}"
 
     case "$auth_choice" in
         1)
-            configure_google_oauth
+            configure_google_oauth "$preserve_existing"
             ;;
         2)
-            configure_authentik
+            configure_authentik "$preserve_existing"
             ;;
         3)
             log_warn "Skipping authentication - services will be publicly accessible!"
             ;;
         *)
-            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
-            return 1 2>/dev/null || exit 1
+            log_error "Invalid option: $auth_choice"
+            return 1
             ;;
     esac
 
@@ -168,18 +292,40 @@ configure_interactive() {
     echo
     read -rp "Configure advanced options? (y/N): " advanced
     if [[ "${advanced,,}" == "y" ]]; then
-        configure_advanced_options
+        configure_advanced_options "$preserve_existing"
     fi
 }
 
 configure_google_oauth() {
+    local preserve_existing="${1:-false}"
     echo
     echo "Google OAuth Configuration"
     echo "See: https://console.cloud.google.com/apis/credentials"
 
-    read -rp "OAuth Client ID: " oauth_id
-    read -rp "OAuth Client Secret: " oauth_secret
-    read -rp "Allowed email addresses (comma-separated): " oauth_emails
+    # OAuth Client ID
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_OAUTH_CLIENT_ID}" ]]; then
+        read -rp "OAuth Client ID [${EXISTING_OAUTH_CLIENT_ID}]: " oauth_id
+        oauth_id="${oauth_id:-${EXISTING_OAUTH_CLIENT_ID}}"
+    else
+        read -rp "OAuth Client ID: " oauth_id
+    fi
+
+    # OAuth Client Secret
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_OAUTH_CLIENT_SECRET}" ]]; then
+        read -rsp "OAuth Client Secret [****] (press Enter to keep existing): " oauth_secret
+        echo
+        oauth_secret="${oauth_secret:-${EXISTING_OAUTH_CLIENT_SECRET}}"
+    else
+        read -rp "OAuth Client Secret: " oauth_secret
+    fi
+
+    # Allowed emails
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_OAUTH_WHITELIST}" ]]; then
+        read -rp "Allowed email addresses (comma-separated) [${EXISTING_OAUTH_WHITELIST}]: " oauth_emails
+        oauth_emails="${oauth_emails:-${EXISTING_OAUTH_WHITELIST}}"
+    else
+        read -rp "Allowed email addresses (comma-separated): " oauth_emails
+    fi
 
     sed -i "s|^OAUTH_CLIENT_ID=.*|OAUTH_CLIENT_ID=${oauth_id}|" "${JACKER_DIR}/.env.tmp"
     sed -i "s|^OAUTH_CLIENT_SECRET=.*|OAUTH_CLIENT_SECRET=${oauth_secret}|" "${JACKER_DIR}/.env.tmp"
@@ -188,12 +334,23 @@ configure_google_oauth() {
 }
 
 configure_authentik() {
+    local preserve_existing="${1:-false}"
     echo
     echo "Authentik will be configured automatically"
 
-    # Generate Authentik secrets
-    local secret_key=$(openssl rand -base64 60 | tr -d '\n')
-    local pg_password=$(openssl rand -base64 32 | tr -d '\n')
+    # Use existing secrets if preserving, otherwise generate new ones
+    local secret_key
+    local pg_password
+    
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_AUTHENTIK_SECRET_KEY}" ]]; then
+        echo "Using existing Authentik configuration"
+        secret_key="${EXISTING_AUTHENTIK_SECRET_KEY}"
+        pg_password="${EXISTING_AUTHENTIK_POSTGRES_PASSWORD:-$(openssl rand -base64 32 | tr -d '\n')}"
+    else
+        # Generate new Authentik secrets
+        secret_key=$(openssl rand -base64 60 | tr -d '\n')
+        pg_password=$(openssl rand -base64 32 | tr -d '\n')
+    fi
 
     # Update .env.tmp
     sed -i "/^# AUTHENTIK_VERSION=/s/^# //" "${JACKER_DIR}/.env.tmp"
@@ -208,48 +365,92 @@ configure_authentik() {
     # Enable Authentik in docker-compose.yml
     sed -i '/path: compose\/authentik.yml/s/^#[[:space:]]*//' "${JACKER_DIR}/docker-compose.yml"
 
+    # Get domain from .env.tmp for the log message
+    local domain=$(grep "^DOMAINNAME=" "${JACKER_DIR}/.env.tmp" | cut -d= -f2)
     log_info "Authentik configured - will be available at https://auth.${domain}"
 }
 
 configure_advanced_options() {
+    local preserve_existing="${1:-false}"
     echo
     echo "Advanced Configuration Options:"
 
     # Timezone
-    read -rp "Timezone [Europe/Madrid]: " tz
-    tz="${tz:-Europe/Madrid}"
+    local default_tz="${EXISTING_TZ:-Europe/Madrid}"
+    read -rp "Timezone [${default_tz}]: " tz
+    tz="${tz:-${default_tz}}"
     sed -i "s|^TZ=.*|TZ=${tz}|" "${JACKER_DIR}/.env.tmp"
 
     # Network configuration
-    read -rp "Configure custom Docker networks? (y/N): " custom_net
+    local default_custom_net="N"
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_DOCKER_DEFAULT_SUBNET}" ]]; then
+        default_custom_net="y"
+        echo "(Currently using custom Docker network: ${EXISTING_DOCKER_DEFAULT_SUBNET})"
+    fi
+    read -rp "Configure custom Docker networks? (y/N) [${default_custom_net}]: " custom_net
+    custom_net="${custom_net:-${default_custom_net}}"
+
     if [[ "${custom_net,,}" == "y" ]]; then
-        read -rp "Docker default subnet [192.168.69.0/24]: " docker_subnet
-        docker_subnet="${docker_subnet:-192.168.69.0/24}"
+        local default_subnet="${EXISTING_DOCKER_DEFAULT_SUBNET:-192.168.69.0/24}"
+        read -rp "Docker default subnet [${default_subnet}]: " docker_subnet
+        docker_subnet="${docker_subnet:-${default_subnet}}"
         sed -i "s|^DOCKER_DEFAULT_SUBNET=.*|DOCKER_DEFAULT_SUBNET=${docker_subnet}|" "${JACKER_DIR}/.env.tmp"
     fi
 
     # Alerting
-    read -rp "Configure email alerts? (y/N): " alerts
+    local default_alerts="N"
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_SMTP_HOST}" ]]; then
+        default_alerts="y"
+        echo "(Email alerts currently configured)"
+    fi
+    read -rp "Configure email alerts? (y/N) [${default_alerts}]: " alerts
+    alerts="${alerts:-${default_alerts}}"
+
     if [[ "${alerts,,}" == "y" ]]; then
-        configure_alerting
+        configure_alerting "$preserve_existing"
     fi
 }
 
 configure_alerting() {
+    local preserve_existing="${1:-false}"
     echo
     echo "Email Alert Configuration:"
 
-    read -rp "SMTP Host [smtp.gmail.com]: " smtp_host
-    smtp_host="${smtp_host:-smtp.gmail.com}"
+    # SMTP Host
+    local default_smtp_host="${EXISTING_SMTP_HOST:-smtp.gmail.com}"
+    read -rp "SMTP Host [${default_smtp_host}]: " smtp_host
+    smtp_host="${smtp_host:-${default_smtp_host}}"
 
-    read -rp "SMTP Port [587]: " smtp_port
-    smtp_port="${smtp_port:-587}"
+    # SMTP Port
+    local default_smtp_port="${EXISTING_SMTP_PORT:-587}"
+    read -rp "SMTP Port [${default_smtp_port}]: " smtp_port
+    smtp_port="${smtp_port:-${default_smtp_port}}"
 
-    read -rp "SMTP Username: " smtp_user
-    read -rsp "SMTP Password: " smtp_pass
-    echo
+    # SMTP Username
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_SMTP_USERNAME}" ]]; then
+        read -rp "SMTP Username [${EXISTING_SMTP_USERNAME}]: " smtp_user
+        smtp_user="${smtp_user:-${EXISTING_SMTP_USERNAME}}"
+    else
+        read -rp "SMTP Username: " smtp_user
+    fi
 
-    read -rp "Alert recipient email: " alert_email
+    # SMTP Password
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_SMTP_PASSWORD}" ]]; then
+        read -rsp "SMTP Password [****] (press Enter to keep existing): " smtp_pass
+        echo
+        smtp_pass="${smtp_pass:-${EXISTING_SMTP_PASSWORD}}"
+    else
+        read -rsp "SMTP Password: " smtp_pass
+        echo
+    fi
+
+    # Alert recipient email
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_ALERT_EMAIL_TO}" ]]; then
+        read -rp "Alert recipient email [${EXISTING_ALERT_EMAIL_TO}]: " alert_email
+        alert_email="${alert_email:-${EXISTING_ALERT_EMAIL_TO}}"
+    else
+        read -rp "Alert recipient email: " alert_email
+    fi
 
     sed -i "s|^SMTP_HOST=.*|SMTP_HOST=${smtp_host}|" "${JACKER_DIR}/.env.tmp"
     sed -i "s|^SMTP_PORT=.*|SMTP_PORT=${smtp_port}|" "${JACKER_DIR}/.env.tmp"
@@ -263,42 +464,71 @@ configure_alerting() {
 #########################################
 
 generate_all_secrets() {
+    local preserve_existing="${1:-false}"
     log_info "Generating secrets..."
 
     # OAuth secrets
-    if ! grep -q "^OAUTH_SECRET=.\+" "${JACKER_DIR}/.env.tmp"; then
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_OAUTH_SECRET}" ]]; then
+        sed -i "s|^OAUTH_SECRET=.*|OAUTH_SECRET=${EXISTING_OAUTH_SECRET}|" "${JACKER_DIR}/.env.tmp"
+    elif ! grep -q "^OAUTH_SECRET=.\+" "${JACKER_DIR}/.env.tmp"; then
         local oauth_secret=$(openssl rand -base64 32 | tr -d '\n')
         sed -i "s|^OAUTH_SECRET=.*|OAUTH_SECRET=${oauth_secret}|" "${JACKER_DIR}/.env.tmp"
     fi
 
-    if ! grep -q "^OAUTH_COOKIE_SECRET=.\+" "${JACKER_DIR}/.env.tmp"; then
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_OAUTH_COOKIE_SECRET}" ]]; then
+        sed -i "s|^OAUTH_COOKIE_SECRET=.*|OAUTH_COOKIE_SECRET=${EXISTING_OAUTH_COOKIE_SECRET}|" "${JACKER_DIR}/.env.tmp"
+    elif ! grep -q "^OAUTH_COOKIE_SECRET=.\+" "${JACKER_DIR}/.env.tmp"; then
         local cookie_secret=$(python3 -c 'import os,base64; print(base64.b64encode(os.urandom(32)).decode())')
         sed -i "s|^OAUTH_COOKIE_SECRET=.*|OAUTH_COOKIE_SECRET=${cookie_secret}|" "${JACKER_DIR}/.env.tmp"
     fi
 
     # PostgreSQL password
-    if ! grep -q "^POSTGRES_PASSWORD=.\+" "${JACKER_DIR}/.env.tmp"; then
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_POSTGRES_PASSWORD}" ]]; then
+        sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${EXISTING_POSTGRES_PASSWORD}|" "${JACKER_DIR}/.env.tmp"
+    elif ! grep -q "^POSTGRES_PASSWORD=.\+" "${JACKER_DIR}/.env.tmp"; then
         local pg_password=$(openssl rand -base64 32 | tr -d '\n')
         sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${pg_password}|" "${JACKER_DIR}/.env.tmp"
     fi
 
+    # Redis password
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_REDIS_PASSWORD}" ]]; then
+        sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${EXISTING_REDIS_PASSWORD}|" "${JACKER_DIR}/.env.tmp"
+    elif ! grep -q "^REDIS_PASSWORD=.\+" "${JACKER_DIR}/.env.tmp"; then
+        local redis_password=$(openssl rand -base64 32 | tr -d '\n')
+        sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${redis_password}|" "${JACKER_DIR}/.env.tmp"
+    fi
+
     # CrowdSec API keys
-    if ! grep -q "^CROWDSEC_TRAEFIK_BOUNCER_API_KEY=.\+" "${JACKER_DIR}/.env.tmp"; then
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_CROWDSEC_TRAEFIK_BOUNCER_API_KEY}" ]]; then
+        sed -i "s|^CROWDSEC_TRAEFIK_BOUNCER_API_KEY=.*|CROWDSEC_TRAEFIK_BOUNCER_API_KEY=${EXISTING_CROWDSEC_TRAEFIK_BOUNCER_API_KEY}|" "${JACKER_DIR}/.env.tmp"
+    elif ! grep -q "^CROWDSEC_TRAEFIK_BOUNCER_API_KEY=.\+" "${JACKER_DIR}/.env.tmp"; then
         local cs_traefik_key=$(openssl rand -hex 32)
         sed -i "s|^CROWDSEC_TRAEFIK_BOUNCER_API_KEY=.*|CROWDSEC_TRAEFIK_BOUNCER_API_KEY=${cs_traefik_key}|" "${JACKER_DIR}/.env.tmp"
     fi
 
-    if ! grep -q "^CROWDSEC_IPTABLES_BOUNCER_API_KEY=.\+" "${JACKER_DIR}/.env.tmp"; then
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_CROWDSEC_IPTABLES_BOUNCER_API_KEY}" ]]; then
+        sed -i "s|^CROWDSEC_IPTABLES_BOUNCER_API_KEY=.*|CROWDSEC_IPTABLES_BOUNCER_API_KEY=${EXISTING_CROWDSEC_IPTABLES_BOUNCER_API_KEY}|" "${JACKER_DIR}/.env.tmp"
+    elif ! grep -q "^CROWDSEC_IPTABLES_BOUNCER_API_KEY=.\+" "${JACKER_DIR}/.env.tmp"; then
         local cs_iptables_key=$(openssl rand -hex 32)
         sed -i "s|^CROWDSEC_IPTABLES_BOUNCER_API_KEY=.*|CROWDSEC_IPTABLES_BOUNCER_API_KEY=${cs_iptables_key}|" "${JACKER_DIR}/.env.tmp"
     fi
 
-    if ! grep -q "^CROWDSEC_API_LOCAL_PASSWORD=.\+" "${JACKER_DIR}/.env.tmp"; then
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_CROWDSEC_API_LOCAL_PASSWORD}" ]]; then
+        sed -i "s|^CROWDSEC_API_LOCAL_PASSWORD=.*|CROWDSEC_API_LOCAL_PASSWORD=${EXISTING_CROWDSEC_API_LOCAL_PASSWORD}|" "${JACKER_DIR}/.env.tmp"
+    elif ! grep -q "^CROWDSEC_API_LOCAL_PASSWORD=.\+" "${JACKER_DIR}/.env.tmp"; then
         local cs_api_pass=$(openssl rand -base64 32 | tr -d '\n')
         sed -i "s|^CROWDSEC_API_LOCAL_PASSWORD=.*|CROWDSEC_API_LOCAL_PASSWORD=${cs_api_pass}|" "${JACKER_DIR}/.env.tmp"
     fi
 
-    log_success "Secrets generated"
+    # Grafana admin password
+    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_GF_SECURITY_ADMIN_PASSWORD}" ]]; then
+        sed -i "s|^GF_SECURITY_ADMIN_PASSWORD=.*|GF_SECURITY_ADMIN_PASSWORD=${EXISTING_GF_SECURITY_ADMIN_PASSWORD}|" "${JACKER_DIR}/.env.tmp"
+    elif ! grep -q "^GF_SECURITY_ADMIN_PASSWORD=.\+" "${JACKER_DIR}/.env.tmp"; then
+        local grafana_password=$(openssl rand -base64 16 | tr -d '\n')
+        sed -i "s|^GF_SECURITY_ADMIN_PASSWORD=.*|GF_SECURITY_ADMIN_PASSWORD=${grafana_password}|" "${JACKER_DIR}/.env.tmp"
+    fi
+
+    log_success "Secrets generated/preserved"
 }
 
 #########################################
@@ -906,6 +1136,7 @@ configure_crowdsec() {
 
 setup_jacker() {
     local mode="${1:-interactive}"
+    local preserve_existing=false
 
     log_section "Jacker Setup"
 
@@ -921,10 +1152,12 @@ setup_jacker() {
         case "$install_choice" in
             1)
                 backup_existing_installation
+                preserve_existing=true
                 ;;
             2)
                 backup_existing_installation
                 rm -f "${JACKER_DIR}/.env"
+                preserve_existing=false
                 ;;
             3)
                 log_info "Installation cancelled"
@@ -942,9 +1175,9 @@ setup_jacker() {
 
     # Create environment configuration
     if [[ "$mode" == "quick" ]]; then
-        create_env_file true
+        create_env_file true "$preserve_existing"
     else
-        create_env_file false
+        create_env_file false "$preserve_existing"
     fi
 
     # Create directory structure
