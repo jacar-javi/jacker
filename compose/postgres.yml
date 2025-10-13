@@ -15,8 +15,8 @@ services:
       - apparmor=unconfined # Or custom profile
       - seccomp=unconfined
 
-    # Run as specific user
-    user: "${PUID:-999}:${PGID:-999}" # Default PostgreSQL user
+    # Run as default postgres user (uid 70 in alpine image)
+    # user: "${PUID:-999}:${PGID:-999}" # COMMENTED OUT - PostgreSQL image manages its own user
 
     # Restart policy
     restart: unless-stopped

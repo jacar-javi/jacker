@@ -15,8 +15,8 @@ services:
       - apparmor=unconfined  # Or custom profile
       - seccomp=unconfined
 
-    # Run as specific user
-    user: "${PUID:-999}:${PGID:-999}"
+    # Run as default redis user (uid 999 in alpine image)
+    # user: "${PUID:-999}:${PGID:-999}" # COMMENTED OUT - Redis image manages its own user
 
     # Restart policy
     restart: unless-stopped
