@@ -844,6 +844,11 @@ cmd_config() {
             source "$JACKER_ROOT/assets/lib/config.sh"
             configure_authentik "$@"
             ;;
+        tracing)
+            # shellcheck source=assets/lib/tracing.sh
+            source "$JACKER_ROOT/assets/lib/tracing.sh"
+            configure_tracing "$@"
+            ;;
         help|--help|-h)
             cat << EOF
 ${GREEN}Usage:${NC} jacker config <subcommand> [options]
@@ -858,6 +863,7 @@ ${YELLOW}Subcommands:${NC}
   domain          Configure domain name
   ssl             Configure SSL certificates
   authentik       Configure Authentik (optional)
+  tracing         Configure distributed tracing (Jaeger/OpenTelemetry)
 
 ${GREEN}Examples:${NC}
   jacker config show                    # Show all configuration
@@ -865,6 +871,9 @@ ${GREEN}Examples:${NC}
   jacker config validate                # Validate config
   jacker config oauth --disable         # Disable OAuth
   jacker config domain myserver.com     # Update domain
+  jacker config tracing                 # Configure tracing (interactive)
+  jacker config tracing jaeger          # Enable Jaeger tracing
+  jacker config tracing status          # Show tracing status
 EOF
             ;;
         *)

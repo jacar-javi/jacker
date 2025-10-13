@@ -248,17 +248,14 @@ metrics:
   #   prefix: traefik
 
 # ====================================================================
-# TRACING - OPENTELEMETRY
+# TRACING - OPENTELEMETRY (TO JAEGER)
 # ====================================================================
-# Tracing disabled temporarily - Traefik v3 changed tracing configuration significantly
-# TODO: Reconfigure tracing for Traefik v3 compatibility
-# tracing:
-#   serviceName: traefik
-#   otlp:
-#     http:
-#       endpoint: http://jaeger:4318/v1/traces
-#     grpc:
-#       endpoint: jaeger:4317
+# Traefik v3 uses OpenTelemetry Protocol (OTLP) for tracing
+# Sends traces to Jaeger via OTLP HTTP endpoint (port 4318)
+tracing:
+  otlp:
+    http:
+      endpoint: http://jaeger:4318/v1/traces
 
 # ====================================================================
 # PILOT - TRAEFIK PILOT (OPTIONAL CLOUD FEATURES)
