@@ -99,5 +99,3 @@ services:
       - "homepage.icon=jaeger.svg"
       - "homepage.href=https://jaeger.$PUBLIC_FQDN"
       - "homepage.description=Distributed Tracing"
-      - "homepage.widget.type=jaeger"
-      - "homepage.widget.url=http://jaeger:16686"
