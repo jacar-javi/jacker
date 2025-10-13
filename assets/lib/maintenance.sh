@@ -1012,21 +1012,30 @@ wipe_data() {
     info "Recreating directory structure..."
     recreate_data_directories
     
-    # Fix permissions
+    # Fix permissions - get current user
     info "Setting correct permissions..."
-    sudo chown -R 999:999 "${JACKER_ROOT}/data/postgres" 2>/dev/null || true
-    sudo chown -R 999:999 "${JACKER_ROOT}/data/redis" 2>/dev/null || true
-    sudo chown -R 65534:65534 "${JACKER_ROOT}/data/prometheus" 2>/dev/null || true
-    sudo chown -R 65534:65534 "${JACKER_ROOT}/data/alertmanager" 2>/dev/null || true
-    sudo chown -R 472:472 "${JACKER_ROOT}/data/grafana" 2>/dev/null || true
-    sudo chown -R 10001:10001 "${JACKER_ROOT}/data/loki" 2>/dev/null || true
-    sudo chown -R root:root "${JACKER_ROOT}/data/traefik" 2>/dev/null || true
-    sudo chown -R root:root "${JACKER_ROOT}/data/crowdsec" 2>/dev/null || true
-    
+    local current_user="${SUDO_USER:-$(whoami)}"
+    local current_uid=$(id -u "$current_user")
+    local current_gid=$(id -g "$current_user")
+
+    # First, set parent directories to current user so init can create subdirs
+    sudo chown "${current_uid}:${current_gid}" "${JACKER_ROOT}/data"/* 2>/dev/null || true
+
+    # Then set specific service directory permissions (subdirectories only)
+    sudo chown -R 999:999 "${JACKER_ROOT}/data/postgres/data" 2>/dev/null || true
+    sudo chown -R 999:999 "${JACKER_ROOT}/data/redis/data" 2>/dev/null || true
+    sudo chown -R 65534:65534 "${JACKER_ROOT}/data/prometheus/data" 2>/dev/null || true
+    sudo chown -R 65534:65534 "${JACKER_ROOT}/data/alertmanager/data" 2>/dev/null || true
+    sudo chown -R 472:472 "${JACKER_ROOT}/data/grafana/data" 2>/dev/null || true
+    sudo chown -R 10001:10001 "${JACKER_ROOT}/data/loki/data" 2>/dev/null || true
+    sudo chown -R 10001:10001 "${JACKER_ROOT}/data/loki/wal" 2>/dev/null || true
+    sudo chown -R root:root "${JACKER_ROOT}/data/traefik/acme" 2>/dev/null || true
+    sudo chown -R root:root "${JACKER_ROOT}/data/traefik/logs" 2>/dev/null || true
+
     success "All data wiped successfully"
     success "SSL certificates preserved: ${preserve_ssl}"
     echo ""
-    info "You can now start fresh with: ./jacker start"
+    info "You can now start fresh with: ./jacker start or ./jacker init"
 }
 
 recreate_data_directories() {
