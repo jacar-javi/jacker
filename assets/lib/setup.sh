@@ -677,15 +677,22 @@ create_directory_structure() {
     )
 
     for dir in "${dirs[@]}"; do
-        mkdir -p "${JACKER_DIR}/${dir}"
+        if ! mkdir -p "${JACKER_DIR}/${dir}" 2>/dev/null; then
+            # If mkdir fails due to permissions, try with sudo and fix ownership
+            log_warn "Permission issue with ${dir}, fixing..."
+            sudo mkdir -p "${JACKER_DIR}/${dir}"
+            sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/${dir}"
+        fi
     done
 
     # Set specific permissions
-    touch "${JACKER_DIR}/data/traefik/acme/acme.json"
+    touch "${JACKER_DIR}/data/traefik/acme/acme.json" 2>/dev/null || \
+        { sudo touch "${JACKER_DIR}/data/traefik/acme/acme.json" && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/traefik/acme/acme.json"; }
     chmod 600 "${JACKER_DIR}/data/traefik/acme/acme.json"
 
     # Secrets directory should be restricted
-    chmod 700 "${JACKER_DIR}/secrets"
+    chmod 700 "${JACKER_DIR}/secrets" 2>/dev/null || \
+        { sudo chmod 700 "${JACKER_DIR}/secrets"; }
 
     log_success "Directory structure created"
 }
