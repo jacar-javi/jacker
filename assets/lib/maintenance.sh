@@ -1018,10 +1018,12 @@ wipe_data() {
     local current_uid=$(id -u "$current_user")
     local current_gid=$(id -g "$current_user")
 
-    # First, set parent directories to current user so init can create subdirs
-    sudo chown "${current_uid}:${current_gid}" "${JACKER_ROOT}/data"/* 2>/dev/null || true
+    # First, set all data directories to current user recursively so init can create directories
+    sudo chown -R "${current_uid}:${current_gid}" "${JACKER_ROOT}/data" 2>/dev/null || true
+    sudo chown -R "${current_uid}:${current_gid}" "${JACKER_ROOT}/config" 2>/dev/null || true
 
-    # Then set specific service directory permissions (subdirectories only)
+    # Then set specific service DATA directories (only the actual data dirs, not parents)
+    # This ensures services can write data, but user can still create config subdirectories
     sudo chown -R 999:999 "${JACKER_ROOT}/data/postgres/data" 2>/dev/null || true
     sudo chown -R 999:999 "${JACKER_ROOT}/data/redis/data" 2>/dev/null || true
     sudo chown -R 65534:65534 "${JACKER_ROOT}/data/prometheus/data" 2>/dev/null || true
@@ -1029,8 +1031,9 @@ wipe_data() {
     sudo chown -R 472:472 "${JACKER_ROOT}/data/grafana/data" 2>/dev/null || true
     sudo chown -R 10001:10001 "${JACKER_ROOT}/data/loki/data" 2>/dev/null || true
     sudo chown -R 10001:10001 "${JACKER_ROOT}/data/loki/wal" 2>/dev/null || true
-    sudo chown -R root:root "${JACKER_ROOT}/data/traefik/acme" 2>/dev/null || true
-    sudo chown -R root:root "${JACKER_ROOT}/data/traefik/logs" 2>/dev/null || true
+
+    # Traefik and CrowdSec config directories stay as user-owned for now
+    # They'll be set correctly during start if needed
 
     success "All data wiped successfully"
     success "SSL certificates preserved: ${preserve_ssl}"
