@@ -14,8 +14,6 @@ global:
 serversTransport:
   insecureSkipVerify: false  # Always verify certificates
   maxIdleConnsPerHost: 200  # Connection pool size
-  rootCAs:  # Optional: Custom CA certificates
-    - /certs/ca.crt
   forwardingTimeouts:
     dialTimeout: 30s
     responseHeaderTimeout: 30s
