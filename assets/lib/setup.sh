@@ -948,6 +948,25 @@ install_required_packages() {
 configure_docker() {
     log_info "Configuring Docker..."
 
+    # Create docker group if it doesn't exist
+    if ! getent group docker > /dev/null 2>&1; then
+        log_info "Creating docker group..."
+        sudo groupadd docker
+    fi
+
+    # Add current user to docker group
+    if ! groups "$USER" | grep -q docker; then
+        log_info "Adding $USER to docker group..."
+        sudo usermod -aG docker "$USER"
+        log_warn "You'll need to log out and back in for docker group membership to take effect"
+        
+        # For the current session, we need to use sudo for docker commands
+        # Set a flag so we know to use sudo
+        export NEED_DOCKER_SUDO=true
+    else
+        export NEED_DOCKER_SUDO=false
+    fi
+
     # Create Docker daemon configuration
     sudo tee /etc/docker/daemon.json > /dev/null <<EOF
 {
@@ -967,6 +986,11 @@ EOF
 
     # Restart Docker to apply configuration
     sudo systemctl restart docker
+    
+    # If we need sudo, inform the user
+    if [[ "${NEED_DOCKER_SUDO}" == "true" ]]; then
+        log_info "Docker commands will use 'sudo' until you log out and back in"
+    fi
 }
 
 setup_ufw() {
@@ -1018,9 +1042,15 @@ setup_ufw() {
 initialize_services() {
     log_info "Initializing services..."
 
+    # Determine if we need to use sudo for docker commands
+    local docker_cmd="docker"
+    if [[ "${NEED_DOCKER_SUDO:-false}" == "true" ]]; then
+        docker_cmd="sudo docker"
+    fi
+
     # Start core infrastructure services first
     log_info "Starting core services..."
-    docker compose up -d socket-proxy postgres redis
+    $docker_cmd compose up -d socket-proxy postgres redis
 
     # Wait for PostgreSQL to be ready
     wait_for_postgres
@@ -1030,7 +1060,7 @@ initialize_services() {
 
     # Start remaining services
     log_info "Starting all services..."
-    docker compose up -d
+    $docker_cmd compose up -d
 
     # Wait for services to be healthy
     wait_for_services
@@ -1044,11 +1074,17 @@ initialize_services() {
 wait_for_postgres() {
     log_info "Waiting for PostgreSQL to be ready..."
 
+    # Determine if we need to use sudo for docker commands
+    local docker_cmd="docker"
+    if [[ "${NEED_DOCKER_SUDO:-false}" == "true" ]]; then
+        docker_cmd="sudo docker"
+    fi
+
     local max_attempts=30
     local attempt=0
 
     while [[ $attempt -lt $max_attempts ]]; do
-        if docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-crowdsec}" &>/dev/null; then
+        if $docker_cmd compose exec -T postgres pg_isready -U "${POSTGRES_USER:-crowdsec}" &>/dev/null; then
             log_success "PostgreSQL is ready"
             return 0
         fi
@@ -1064,6 +1100,12 @@ wait_for_postgres() {
 initialize_postgres_databases() {
     log_info "Initializing PostgreSQL databases..."
 
+    # Determine if we need to use sudo for docker commands
+    local docker_cmd="docker"
+    if [[ "${NEED_DOCKER_SUDO:-false}" == "true" ]]; then
+        docker_cmd="sudo docker"
+    fi
+
     # Load environment variables
     set -a
     source "${JACKER_DIR}/.env"
@@ -1076,7 +1118,7 @@ initialize_postgres_databases() {
             db=$(echo "$db" | xargs)  # Trim whitespace
             log_info "Creating database: ${db}"
 
-            docker compose exec -T postgres psql -U "${POSTGRES_USER}" -c "CREATE DATABASE IF NOT EXISTS ${db};" 2>/dev/null || true
+            $docker_cmd compose exec -T postgres psql -U "${POSTGRES_USER}" -c "CREATE DATABASE IF NOT EXISTS ${db};" 2>/dev/null || true
         done
     fi
 
@@ -1085,6 +1127,12 @@ initialize_postgres_databases() {
 
 wait_for_services() {
     log_info "Waiting for services to be ready..."
+
+    # Determine if we need to use sudo for docker commands
+    local docker_cmd="docker"
+    if [[ "${NEED_DOCKER_SUDO:-false}" == "true" ]]; then
+        docker_cmd="sudo docker"
+    fi
 
     local services=(
         "traefik:80"
@@ -1102,7 +1150,7 @@ wait_for_services() {
         local attempt=0
 
         while [[ $attempt -lt $max_attempts ]]; do
-            if docker compose exec -T "${service_name}" wget -q --spider "http://localhost:${service_port}" 2>/dev/null; then
+            if $docker_cmd compose exec -T "${service_name}" wget -q --spider "http://localhost:${service_port}" 2>/dev/null; then
                 log_success "${service_name} is ready"
                 break
             fi
@@ -1116,16 +1164,22 @@ wait_for_services() {
 configure_crowdsec() {
     log_info "Configuring CrowdSec..."
 
+    # Determine if we need to use sudo for docker commands
+    local docker_cmd="docker"
+    if [[ "${NEED_DOCKER_SUDO:-false}" == "true" ]]; then
+        docker_cmd="sudo docker"
+    fi
+
     # Register bouncers
-    docker compose exec -T crowdsec cscli bouncers add traefik-bouncer \
+    $docker_cmd compose exec -T crowdsec cscli bouncers add traefik-bouncer \
         -k "${CROWDSEC_TRAEFIK_BOUNCER_API_KEY}" 2>/dev/null || true
 
     # Install collections
-    docker compose exec -T crowdsec cscli collections install crowdsecurity/traefik 2>/dev/null || true
-    docker compose exec -T crowdsec cscli collections install crowdsecurity/http-cve 2>/dev/null || true
+    $docker_cmd compose exec -T crowdsec cscli collections install crowdsecurity/traefik 2>/dev/null || true
+    $docker_cmd compose exec -T crowdsec cscli collections install crowdsecurity/http-cve 2>/dev/null || true
 
     # Reload CrowdSec
-    docker compose exec -T crowdsec cscli reload 2>/dev/null || true
+    $docker_cmd compose exec -T crowdsec cscli reload 2>/dev/null || true
 
     log_success "CrowdSec configured"
 }
