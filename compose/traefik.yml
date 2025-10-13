@@ -223,8 +223,6 @@ services:
       - "homepage.weight=100" # Display priority
       - "homepage.widget.type=traefik"
       - "homepage.widget.url=http://traefik:8080"
-      - "homepage.widget.username="
-      - "homepage.widget.password="
 
       # ============================================================
       # SERVICE DISCOVERY METADATA

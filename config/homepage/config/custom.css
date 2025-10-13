@@ -1,14 +1,9 @@
 /* Jacker Homepage Custom Styles */
 
-/* Logo width */
-.logo img {
+/* Logo width - information-widget-logo is the correct class */
+.information-widget-logo,
+.information-widget-logo svg {
   width: 200px !important;
   height: auto !important;
-}
-
-/* Alternative selectors if above doesn't work */
-header img[alt*="logo" i],
-header img[src*="logo" i] {
-  width: 200px !important;
-  height: auto !important;
+  max-width: 200px !important;
 }
