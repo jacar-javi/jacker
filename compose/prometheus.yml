@@ -168,7 +168,6 @@ services:
       - "traefik.http.routers.prometheus.entrypoints=websecure"
       - "traefik.http.routers.prometheus.rule=Host(`prometheus.${PUBLIC_FQDN}`)"
       - "traefik.http.routers.prometheus.service=prometheus"
-      # - "traefik.http.routers.prometheus.middlewares=chain-oauth@file"
       - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
 
       # Homepage Integration
@@ -270,7 +269,6 @@ services:
       - "traefik.http.routers.pushgateway.entrypoints=websecure"
       - "traefik.http.routers.pushgateway.rule=Host(`pushgateway.${PUBLIC_FQDN}`)"
       - "traefik.http.routers.pushgateway.service=pushgateway"
-      # - "traefik.http.routers.pushgateway.middlewares=chain-oauth@file"
       - "traefik.http.services.pushgateway.loadbalancer.server.port=9091"
 
       - "prometheus.io/scrape=true"

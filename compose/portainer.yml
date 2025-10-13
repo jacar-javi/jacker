@@ -29,7 +29,6 @@ services:
       - "traefik.http.routers.portainer-rtr.entrypoints=websecure"
       - "traefik.http.routers.portainer-rtr.rule=Host(`portainer.$PUBLIC_FQDN`)"
       # Middlewares
-      # - "traefik.http.routers.portainer-rtr.middlewares=chain-oauth-no-crowdsec@file"
       # HTTP Services
       - "traefik.http.routers.portainer-rtr.service=portainer-svc"
       - "traefik.http.services.portainer-svc.loadbalancer.server.port=9000"
