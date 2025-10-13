@@ -113,6 +113,7 @@ entryPoints:
     # TLS Configuration
     http:
       tls:
+        certResolver: http
         options: tls-opts@file
       middlewares:
         - middlewares-traefik-bouncer@file
