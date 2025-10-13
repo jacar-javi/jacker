@@ -114,7 +114,6 @@ entryPoints:
     http:
       tls:
         options: tls-opts@file
-        certResolver: http
       middlewares:
         - middlewares-traefik-bouncer@file
         - middlewares-secure-headers@file
