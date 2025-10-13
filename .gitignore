@@ -13,27 +13,6 @@
 *.env.backup
 .env.bak.*
 
-# ============================================
-# Data Directories (Runtime Only)
-# ============================================
-# All runtime data should be in data/
-data/*/*
-!data/*/.gitkeep
-!data/*/README.md
-!data/README.md
-
-# Traefik rules are configuration, not data
-!data/traefik/rules/
-data/traefik/rules/*
-!data/traefik/rules/*.yml
-!data/traefik/rules/.gitkeep
-
-# Specific runtime files that should never be tracked
-data/traefik/acme/acme.json
-data/crowdsec/config/config.yaml.local
-data/homepage/custom.css
-data/homepage/custom.js
-data/prometheus/config/alert.rules
 
 # ============================================
 # Secrets & Sensitive Files
@@ -49,13 +28,6 @@ secrets/*
 *.pfx
 acme.json
 
-# ============================================
-# Logs
-# ============================================
-logs/
-*.log
-*.log.*
-assets/logs/
 
 # ============================================
 # Backups & Archives
@@ -74,14 +46,6 @@ restored/
 *~
 *.swp
 *.swo
-
-# ============================================
-# Setup & Installation Markers
-# ============================================
-.FIRST_ROUND
-.SECOND_ROUND
-.setup_complete
-.installed
 
 # ============================================
 # Stacks (User-defined)
