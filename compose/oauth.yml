@@ -74,7 +74,7 @@ services:
 
       # Middlewares - No OAuth required for the OAuth service itself
       # Use rate limiting and security headers only
-      - "traefik.http.routers.oauth.middlewares=middlewares-rate-limit@file,middlewares-secure-headers@file"
+      # - "traefik.http.routers.oauth.middlewares=middlewares-rate-limit@file,middlewares-secure-headers@file"
 
       # ForwardAuth middleware for other services
       - "traefik.http.middlewares.oauth-auth.forwardAuth.address=http://oauth:4180/oauth2/auth"

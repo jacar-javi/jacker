@@ -246,7 +246,7 @@ services:
       - "traefik.http.routers.crowdsec.tls=true"
       - "traefik.http.routers.crowdsec.tls.certresolver=http"
       - "traefik.http.routers.crowdsec.service=crowdsec"
-      - "traefik.http.routers.crowdsec.middlewares=chain-oauth@file"
+      # - "traefik.http.routers.crowdsec.middlewares=chain-oauth@file"
       - "traefik.http.services.crowdsec.loadbalancer.server.port=8080"
 
       # Homepage Integration

@@ -74,8 +74,8 @@ entryPoints:
           to: websecure
           scheme: https
           permanent: true
-      middlewares:
-        - middlewares-compress@file  # Compression only - CrowdSec removed to allow ACME challenges
+      # middlewares:
+      #   - middlewares-compress@file # Compression only - CrowdSec removed to allow ACME challenges
     # Connection limits
     transport:
       lifeCycle:
@@ -112,11 +112,11 @@ entryPoints:
     http:
       tls:
         certresolver: http
-        options: tls-opts@file
-      middlewares:
-        - middlewares-traefik-bouncer@file
-        - middlewares-secure-headers@file
-        - middlewares-compress@file
+        # options: tls-opts@file
+      # middlewares:
+      #   - middlewares-traefik-bouncer@file
+      #   - middlewares-secure-headers@file
+      #   - middlewares-compress@file
     # HTTP/3 Support
     http3:
       advertisedPort: 443

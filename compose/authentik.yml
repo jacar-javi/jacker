@@ -87,7 +87,7 @@ services:
       - "traefik.http.routers.authentik-rtr.tls.options=tls-opts@file"
 
       # Middlewares
-      - "traefik.http.routers.authentik-rtr.middlewares=chain-no-oauth-no-crowdsec@file"
+      # - "traefik.http.routers.authentik-rtr.middlewares=chain-no-oauth-no-crowdsec@file"
 
       # Service
       - "traefik.http.routers.authentik-rtr.service=authentik-svc"

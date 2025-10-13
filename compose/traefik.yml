@@ -169,7 +169,7 @@ services:
       # TRAEFIK_API_DEBUG: ${TRAEFIK_DEBUG:-false}
 
       # Redis for distributed rate limiting
-      TRAEFIK_RATELIMIT_REDIS_ENDPOINT: redis:6379
+      # TRAEFIK_RATELIMIT_REDIS_ENDPOINT: redis:6379
 
       # Optional: OpenTelemetry tracing
       # TRAEFIK_TRACING_ENABLED: ${TRACING_ENABLED:-false}
@@ -186,7 +186,7 @@ services:
       # ============================================================
       - "traefik.http.routers.traefik-rtr.entrypoints=websecure"
       - "traefik.http.routers.traefik-rtr.rule=Host(`traefik.${PUBLIC_FQDN}`)"
-      - "traefik.http.routers.traefik-rtr.priority=100" # High priority for dashboard
+      # - "traefik.http.routers.traefik-rtr.priority=100" # High priority for dashboard
 
       # TLS Configuration
       - "traefik.http.routers.traefik-rtr.tls=true"
@@ -196,7 +196,7 @@ services:
       - "traefik.http.routers.traefik-rtr.service=api@internal"
 
       # Middleware Chain - OAuth protected with no CrowdSec (to prevent lockout)
-      - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth-no-crowdsec@file"
+      # - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth-no-crowdsec@file"
 
       # ============================================================
       # METRICS ENDPOINT (Internal only for Prometheus)
