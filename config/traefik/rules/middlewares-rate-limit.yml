@@ -1,29 +1,53 @@
 http:
   middlewares:
-    # Default rate limit - moderate protection
-    middlewares-rate-limit:
+    # Default rate limit - moderate protection with Redis backend
+    rate-limit-default:
       rateLimit:
         average: 50  # 50 requests per second on average
         burst: 100   # Allow bursts up to 100 requests
         period: 1s
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 0
 
-    # Strict rate limit - for sensitive endpoints
-    middlewares-rate-limit-strict:
+    # Strict rate limit - for sensitive endpoints with Redis backend
+    rate-limit-strict:
       rateLimit:
         average: 10  # 10 requests per second
         burst: 20    # Allow bursts up to 20 requests
         period: 1s
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 0
 
-    # API rate limit - for API endpoints
-    middlewares-rate-limit-api:
+    # API rate limit - for API endpoints with Redis backend
+    rate-limit-api:
       rateLimit:
         average: 100  # 100 requests per minute
         burst: 50     # Allow bursts up to 50 requests
         period: 1m
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 0
 
-    # Login rate limit - prevent brute force
-    middlewares-rate-limit-auth:
+    # Login rate limit - prevent brute force with Redis backend
+    rate-limit-auth:
       rateLimit:
         average: 5   # 5 requests per minute
         burst: 10    # Allow small bursts
         period: 1m
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 0
