@@ -179,9 +179,19 @@ services:
       # Feature toggles
       GF_FEATURE_TOGGLES_ENABLE: ${GF_FEATURE_TOGGLES:-}
 
-      # Remote cache (Redis)
+      # Remote cache (Redis) - for query caching
       GF_REMOTE_CACHE_TYPE: ${GF_REMOTE_CACHE_TYPE:-redis}
       GF_REMOTE_CACHE_CONNSTR: "addr=redis:6379,pool_size=100,db=0,ssl=false"
+
+      # Live HA Engine (Redis) - for real-time updates and session storage
+      GF_LIVE_HA_ENGINE: ${GF_LIVE_HA_ENGINE:-redis}
+      GF_LIVE_HA_ENGINE_ADDRESS: ${GF_LIVE_HA_ENGINE_ADDRESS:-redis:6379}
+      GF_LIVE_MAX_CONNECTIONS: ${GF_LIVE_MAX_CONNECTIONS:-100}
+
+      # Database sessions (Redis) - for user session storage
+      GF_DATABASE_CACHE_TYPE: ${GF_DATABASE_CACHE_TYPE:-redis}
+      GF_DATABASE_CACHE_ADDR: ${GF_DATABASE_CACHE_ADDR:-redis:6379}
+      GF_DATABASE_CACHE_DB: ${GF_DATABASE_CACHE_DB:-1}
 
     # ====================================================================
     # HEALTH CHECK
