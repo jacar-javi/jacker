@@ -641,8 +641,8 @@ create_directory_structure() {
 
     # Create all required directories based on compose services
     local dirs=(
-        "data/traefik/rules"
         "data/traefik/acme"
+        "data/traefik/logs"
         "data/oauth2-proxy"
         "data/crowdsec/config/parsers/s02-enrich"
         "data/crowdsec/data"
@@ -660,7 +660,7 @@ create_directory_structure() {
         "data/vscode"
         "data/node-exporter"
         "data/jaeger"
-        "config/traefik"
+        "config/traefik/rules"
         "config/oauth2-proxy"
         "config/crowdsec"
         "config/postgres"
@@ -686,7 +686,14 @@ create_directory_structure() {
     # Secrets directory should be restricted
     chmod 700 "${JACKER_DIR}/secrets"
 
-    # Set ownership for services that run as non-root users
+    log_success "Directory structure created"
+}
+
+#########################################
+# Set Directory Ownership
+#########################################
+
+set_directory_ownership() {
     log_info "Setting directory ownership for service users..."
 
     # Load PUID/PGID from .env if it exists (for PostgreSQL)
@@ -739,7 +746,7 @@ create_directory_structure() {
         sudo chown -R 10001:10001 "${JACKER_DIR}/data/jaeger"
     fi
 
-    log_success "Directory structure created with proper ownership"
+    log_success "Directory ownership configured"
 }
 
 #########################################
@@ -760,17 +767,17 @@ create_configuration_files() {
     if [[ -d "$templates_dir" ]]; then
         # Traefik configuration
         if [[ -f "$templates_dir/traefik.yml.template" ]]; then
-            envsubst < "$templates_dir/traefik.yml.template" > "${JACKER_DIR}/data/traefik/traefik.yml"
+            envsubst < "$templates_dir/traefik.yml.template" > "${JACKER_DIR}/config/traefik/traefik.yml"
         fi
 
         # Loki configuration
         if [[ -f "$templates_dir/loki-config.yml.template" ]]; then
-            envsubst < "$templates_dir/loki-config.yml.template" > "${JACKER_DIR}/data/loki/loki-config.yml"
+            envsubst < "$templates_dir/loki-config.yml.template" > "${JACKER_DIR}/config/loki/loki-config.yml"
         fi
 
         # Promtail configuration
         if [[ -f "$templates_dir/promtail-config.yml.template" ]]; then
-            envsubst < "$templates_dir/promtail-config.yml.template" > "${JACKER_DIR}/data/loki/promtail-config.yml"
+            envsubst < "$templates_dir/promtail-config.yml.template" > "${JACKER_DIR}/config/loki/promtail-config.yml"
         fi
 
         # CrowdSec configuration
@@ -824,7 +831,7 @@ create_configuration_files() {
 }
 
 create_traefik_middlewares() {
-    local rules_dir="${JACKER_DIR}/data/traefik/rules"
+    local rules_dir="${JACKER_DIR}/config/traefik/rules"
 
     # OAuth middleware
     cat > "${rules_dir}/middlewares-oauth.yml" <<EOF
@@ -1554,6 +1561,9 @@ setup_jacker() {
 
     # Create configuration files
     create_configuration_files
+
+    # Set directory ownership (AFTER configs are written)
+    set_directory_ownership
 
     # Prepare system
     prepare_system
