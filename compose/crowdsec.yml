@@ -58,11 +58,11 @@ services:
     # NETWORK CONFIGURATION
     # ====================================================================
     networks:
-      traefik_proxy:
-      socket_proxy:
-      database:
-      cache:
-      monitoring:
+      - traefik_proxy
+      - socket_proxy
+      - database
+      - cache
+      - monitoring
 
     # Port exposure for API
     ports:

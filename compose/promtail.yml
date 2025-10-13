@@ -46,9 +46,9 @@ services:
     # NETWORK CONFIGURATION
     # ====================================================================
     networks:
-      monitoring:
-      socket_proxy:
-      traefik_proxy:
+      - monitoring
+      - socket_proxy
+      - traefik_proxy
 
     # ====================================================================
     # VOLUME MOUNTS

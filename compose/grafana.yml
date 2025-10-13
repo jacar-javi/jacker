@@ -48,10 +48,10 @@ services:
     # NETWORK CONFIGURATION
     # ====================================================================
     networks:
-      monitoring:
-      traefik_proxy:
-      database:
-      cache:
+      - monitoring
+      - traefik_proxy
+      - database
+      - cache
 
     # Port exposure (only bind to localhost for security)
     ports:

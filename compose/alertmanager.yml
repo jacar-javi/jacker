@@ -47,8 +47,8 @@ services:
     # NETWORK CONFIGURATION
     # ====================================================================
     networks:
-      monitoring:
-      traefik_proxy:
+      - monitoring
+      - traefik_proxy
 
     # Port exposure (only bind to localhost for security)
     ports:

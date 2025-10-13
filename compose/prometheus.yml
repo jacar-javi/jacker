@@ -47,11 +47,11 @@ services:
     # NETWORK CONFIGURATION
     # ====================================================================
     networks:
-      monitoring:
-      traefik_proxy:
-      database:
-      cache:
-      socket_proxy:
+      - monitoring
+      - traefik_proxy
+      - database
+      - cache
+      - socket_proxy
 
     # Port exposure (only bind to localhost for security)
     ports:

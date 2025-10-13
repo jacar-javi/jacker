@@ -47,9 +47,9 @@ services:
     # NETWORK CONFIGURATION
     # ====================================================================
     networks:
-      database:
-      monitoring:
-      backup:
+      - database
+      - monitoring
+      - backup
 
     # Port exposure (only bind to localhost for security)
     ports:

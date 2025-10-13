@@ -69,8 +69,8 @@ services:
     networks:
       traefik_proxy:
         ipv4_address: ${TRAEFIK_PROXY_IP}
-      socket_proxy:
-      monitoring:
+      socket_proxy: {}
+      monitoring: {}
 
     # Extra hosts for internal resolution
     extra_hosts:
