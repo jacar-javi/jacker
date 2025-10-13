@@ -2,6 +2,8 @@
 # For configuration options and examples, please see:
 # https://gethomepage.dev/latest/configs/service-widgets
 
+- logo:
+    icon: /images/yo_y_jacar.png
 - resources:
     label: Processor
     cpu: true
@@ -23,5 +25,5 @@
     text_size: 4xl
     locale: es
     format:
-        dateStyle: short
-        timeStyle: short
+      dateStyle: short
+      timeStyle: short
