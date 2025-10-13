@@ -96,7 +96,6 @@ services:
       --timeout ${REDIS_TIMEOUT:-0}
       --databases ${REDIS_DATABASES:-16}
       --loglevel ${REDIS_LOGLEVEL:-notice}
-      --logfile /logs/redis.log
       --requirepass ${REDIS_PASSWORD:-}
       --bind 0.0.0.0
       --protected-mode ${REDIS_PROTECTED_MODE:-yes}
@@ -141,11 +140,11 @@ services:
     # HEALTH CHECK
     # ====================================================================
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a $$REDIS_PASSWORD ping | grep PONG"]
+      test: ["CMD-SHELL", "if [ -n \"$$REDIS_PASSWORD\" ]; then redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep PONG; else redis-cli ping | grep PONG; fi"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 30s
 
     # ====================================================================
     # LABELS
