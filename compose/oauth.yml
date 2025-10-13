@@ -83,7 +83,7 @@ services:
       - "homepage.group=Security"
       - "homepage.name=OAuth2 Proxy"
       - "homepage.description=Modern OAuth 2.0 Authentication"
-      - "homepage.icon=oauth.svg"
+      - "homepage.icon=mdi-lock"
       - "homepage.href=https://oauth.${PUBLIC_FQDN}"
 
     # Healthcheck disabled - OAuth2-Proxy uses distroless image with no shell/wget/curl

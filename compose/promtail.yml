@@ -166,7 +166,7 @@ services:
       # Homepage Integration
       - "homepage.group=Monitoring"
       - "homepage.name=Promtail"
-      - "homepage.icon=promtail.svg"
+      - "homepage.icon=mdi-file-document-multiple"
       - "homepage.description=Log Shipper for Loki"
       - "homepage.weight=410"
 

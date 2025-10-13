@@ -194,7 +194,7 @@ services:
       # Homepage Integration
       - "homepage.group=Monitoring"
       - "homepage.name=Node Exporter"
-      - "homepage.icon=node-exporter.svg"
+      - "homepage.icon=mdi-chart-line"
       - "homepage.description=System Metrics Exporter"
       - "homepage.href=https://grafana.${PUBLIC_FQDN}/d/rYdddlPWk/node-exporter-full"
       - "homepage.weight=420"
