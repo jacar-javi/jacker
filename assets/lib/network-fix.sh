@@ -9,12 +9,15 @@ if [[ -z "${JACKER_DIR:-}" ]]; then
     export JACKER_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 fi
 
+# Also set JACKER_ROOT for compatibility
+export JACKER_ROOT="${JACKER_DIR}"
+
 # Source common functions
 source "${JACKER_DIR}/assets/lib/common.sh"
 
 # Fix PostgreSQL multiple network issue
 fix_postgres_networks() {
-    log_info "Fixing PostgreSQL network configuration..."
+    info "Fixing PostgreSQL network configuration..."
 
     # Determine if we need to use sudo for docker commands
     local docker_cmd="docker"
@@ -24,16 +27,16 @@ fix_postgres_networks() {
 
     # Stop and remove postgres container if it exists
     if $docker_cmd ps -a | grep -q postgres; then
-        log_info "Stopping PostgreSQL container..."
+        info "Stopping PostgreSQL container..."
         $docker_cmd stop postgres 2>/dev/null || true
         $docker_cmd rm postgres 2>/dev/null || true
     fi
 
     # Ensure all required networks exist
-    log_info "Ensuring networks exist..."
+    info "Ensuring networks exist..."
     for network in database monitoring backup; do
         if ! $docker_cmd network ls | grep -q "$network"; then
-            log_info "Creating network: $network"
+            info "Creating network: $network"
             $docker_cmd network create "$network" 2>/dev/null || true
         fi
     done
@@ -47,17 +50,17 @@ services:
 EOF
 
     # Start postgres with single network
-    log_info "Starting PostgreSQL with single network..."
+    info "Starting PostgreSQL with single network..."
     $docker_cmd compose up -d postgres
 
     # Wait a moment for container to be created
     sleep 2
 
     # Connect to additional networks
-    log_info "Connecting PostgreSQL to additional networks..."
+    info "Connecting PostgreSQL to additional networks..."
     for network in monitoring backup; do
         $docker_cmd network connect "$network" postgres 2>/dev/null || {
-            log_warn "Failed to connect to network: $network"
+            warning "Failed to connect to network: $network"
         }
     done
 
@@ -65,15 +68,15 @@ EOF
     rm -f "${JACKER_DIR}/docker-compose.override.yml"
 
     # Restart postgres to apply all configurations
-    log_info "Restarting PostgreSQL to apply configuration..."
+    info "Restarting PostgreSQL to apply configuration..."
     $docker_cmd compose restart postgres
 
-    log_success "PostgreSQL network configuration fixed!"
+    success "PostgreSQL network configuration fixed!"
 }
 
 # Fix all network-related issues
 fix_all_networks() {
-    log_section "Fixing Network Issues"
+    section "Fixing Network Issues"
 
     # Fix PostgreSQL
     fix_postgres_networks
@@ -85,7 +88,7 @@ fix_all_networks() {
     fi
 
     # Ensure all services are connected to their networks
-    log_info "Verifying all service network connections..."
+    info "Verifying all service network connections..."
 
     # Get list of running containers
     local containers=$($docker_cmd ps --format "{{.Names}}")
@@ -105,13 +108,13 @@ fix_all_networks() {
         # Connect missing networks
         for network in $expected_networks; do
             if ! echo "$actual_networks" | grep -q "$network"; then
-                log_info "Connecting $container to network: $network"
+                info "Connecting $container to network: $network"
                 $docker_cmd network connect "$network" "$container" 2>/dev/null || true
             fi
         done
     done
 
-    log_success "All network issues fixed!"
+    success "All network issues fixed!"
 }
 
 # Main function
