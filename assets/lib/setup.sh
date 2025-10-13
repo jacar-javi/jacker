@@ -62,10 +62,25 @@ load_existing_config() {
     if [[ -f "${JACKER_DIR}/.env" ]]; then
         log_info "Loading existing configuration..."
 
+        # First, fix any known problematic unquoted values
+        if grep -q '^HOMEPAGE_VAR_TITLE=Jacker Dashboard$' "${JACKER_DIR}/.env"; then
+            sed -i 's/^HOMEPAGE_VAR_TITLE=Jacker Dashboard$/HOMEPAGE_VAR_TITLE="Jacker Dashboard"/' "${JACKER_DIR}/.env"
+        fi
+
         # Source the existing .env file to get current values
-        set -a
-        source "${JACKER_DIR}/.env"
-        set +a
+        # Use a safer approach to avoid command execution from unquoted values
+        while IFS='=' read -r key value; do
+            # Skip comments and empty lines
+            [[ "$key" =~ ^#.*$ ]] && continue
+            [[ -z "$key" ]] && continue
+            
+            # Remove leading/trailing whitespace
+            key="${key%%[[:space:]]}"
+            value="${value#[[:space:]]}"
+            
+            # Export the variable
+            export "$key=$value"
+        done < "${JACKER_DIR}/.env"
 
         # Store existing values in variables with EXISTING_ prefix
         # Core configuration
@@ -90,6 +105,13 @@ load_existing_config() {
         EXISTING_SMTP_USERNAME="${SMTP_USERNAME:-}"
         EXISTING_SMTP_PASSWORD="${SMTP_PASSWORD:-}"
         EXISTING_ALERT_EMAIL_TO="${ALERT_EMAIL_TO:-}"
+        
+        # Telegram configuration
+        EXISTING_TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
+        EXISTING_TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
+        
+        # Slack configuration
+        EXISTING_SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
         
         # Network configuration
         EXISTING_DOCKER_DEFAULT_SUBNET="${DOCKER_DEFAULT_SUBNET:-}"
@@ -414,49 +436,128 @@ configure_advanced_options() {
 configure_alerting() {
     local preserve_existing="${1:-false}"
     echo
-    echo "Email Alert Configuration:"
-
-    # SMTP Host
-    local default_smtp_host="${EXISTING_SMTP_HOST:-smtp.gmail.com}"
-    read -rp "SMTP Host [${default_smtp_host}]: " smtp_host
-    smtp_host="${smtp_host:-${default_smtp_host}}"
-
-    # SMTP Port
-    local default_smtp_port="${EXISTING_SMTP_PORT:-587}"
-    read -rp "SMTP Port [${default_smtp_port}]: " smtp_port
-    smtp_port="${smtp_port:-${default_smtp_port}}"
-
-    # SMTP Username
-    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_SMTP_USERNAME}" ]]; then
-        read -rp "SMTP Username [${EXISTING_SMTP_USERNAME}]: " smtp_user
-        smtp_user="${smtp_user:-${EXISTING_SMTP_USERNAME}}"
-    else
-        read -rp "SMTP Username: " smtp_user
+    echo "Alert Configuration:"
+    echo "1. Email alerts only"
+    echo "2. Telegram alerts only" 
+    echo "3. Both Email and Telegram alerts"
+    echo "4. Skip alert configuration"
+    
+    local default_alert_choice="1"
+    if [[ "$preserve_existing" == "true" ]]; then
+        if [[ -n "${EXISTING_TELEGRAM_BOT_TOKEN}" ]] && [[ -n "${EXISTING_SMTP_HOST}" ]]; then
+            default_alert_choice="3"
+        elif [[ -n "${EXISTING_TELEGRAM_BOT_TOKEN}" ]]; then
+            default_alert_choice="2"
+        elif [[ -n "${EXISTING_SMTP_HOST}" ]]; then
+            default_alert_choice="1"
+        else
+            default_alert_choice="4"
+        fi
     fi
-
-    # SMTP Password
-    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_SMTP_PASSWORD}" ]]; then
-        read -rsp "SMTP Password [****] (press Enter to keep existing): " smtp_pass
-        echo
-        smtp_pass="${smtp_pass:-${EXISTING_SMTP_PASSWORD}}"
-    else
-        read -rsp "SMTP Password: " smtp_pass
-        echo
-    fi
-
-    # Alert recipient email
-    if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_ALERT_EMAIL_TO}" ]]; then
-        read -rp "Alert recipient email [${EXISTING_ALERT_EMAIL_TO}]: " alert_email
-        alert_email="${alert_email:-${EXISTING_ALERT_EMAIL_TO}}"
-    else
-        read -rp "Alert recipient email: " alert_email
-    fi
-
-    sed -i "s|^SMTP_HOST=.*|SMTP_HOST=${smtp_host}|" "${JACKER_DIR}/.env.tmp"
-    sed -i "s|^SMTP_PORT=.*|SMTP_PORT=${smtp_port}|" "${JACKER_DIR}/.env.tmp"
-    sed -i "s|^SMTP_USERNAME=.*|SMTP_USERNAME=${smtp_user}|" "${JACKER_DIR}/.env.tmp"
-    sed -i "s|^SMTP_PASSWORD=.*|SMTP_PASSWORD=${smtp_pass}|" "${JACKER_DIR}/.env.tmp"
-    sed -i "s|^ALERT_EMAIL_TO=.*|ALERT_EMAIL_TO=${alert_email}|" "${JACKER_DIR}/.env.tmp"
+    
+    read -rp "Choose alert configuration [${default_alert_choice}]: " alert_choice
+    alert_choice="${alert_choice:-${default_alert_choice}}"
+    
+    case "$alert_choice" in
+        1|3)
+            echo
+            echo "Email Alert Configuration:"
+            
+            # SMTP Host
+            local default_smtp_host="${EXISTING_SMTP_HOST:-smtp.gmail.com}"
+            read -rp "SMTP Host [${default_smtp_host}]: " smtp_host
+            smtp_host="${smtp_host:-${default_smtp_host}}"
+            
+            # SMTP Port
+            local default_smtp_port="${EXISTING_SMTP_PORT:-587}"
+            read -rp "SMTP Port [${default_smtp_port}]: " smtp_port
+            smtp_port="${smtp_port:-${default_smtp_port}}"
+            
+            # SMTP Username
+            if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_SMTP_USERNAME}" ]]; then
+                read -rp "SMTP Username [${EXISTING_SMTP_USERNAME}]: " smtp_user
+                smtp_user="${smtp_user:-${EXISTING_SMTP_USERNAME}}"
+            else
+                read -rp "SMTP Username: " smtp_user
+            fi
+            
+            # SMTP Password
+            if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_SMTP_PASSWORD}" ]]; then
+                read -rsp "SMTP Password [****] (press Enter to keep existing): " smtp_pass
+                echo
+                smtp_pass="${smtp_pass:-${EXISTING_SMTP_PASSWORD}}"
+            else
+                read -rsp "SMTP Password: " smtp_pass
+                echo
+            fi
+            
+            # Alert recipient email
+            if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_ALERT_EMAIL_TO}" ]]; then
+                read -rp "Alert recipient email [${EXISTING_ALERT_EMAIL_TO}]: " alert_email
+                alert_email="${alert_email:-${EXISTING_ALERT_EMAIL_TO}}"
+            else
+                read -rp "Alert recipient email: " alert_email
+            fi
+            
+            sed -i "s|^SMTP_HOST=.*|SMTP_HOST=${smtp_host}|" "${JACKER_DIR}/.env.tmp"
+            sed -i "s|^SMTP_PORT=.*|SMTP_PORT=${smtp_port}|" "${JACKER_DIR}/.env.tmp"
+            sed -i "s|^SMTP_USERNAME=.*|SMTP_USERNAME=${smtp_user}|" "${JACKER_DIR}/.env.tmp"
+            sed -i "s|^SMTP_PASSWORD=.*|SMTP_PASSWORD=${smtp_pass}|" "${JACKER_DIR}/.env.tmp"
+            sed -i "s|^ALERT_EMAIL_TO=.*|ALERT_EMAIL_TO=${alert_email}|" "${JACKER_DIR}/.env.tmp"
+            ;;
+    esac
+    
+    case "$alert_choice" in
+        2|3)
+            echo
+            echo "Telegram Alert Configuration:"
+            echo "To set up Telegram alerts:"
+            echo "1. Create a bot with @BotFather on Telegram"
+            echo "2. Get your bot token from @BotFather"
+            echo "3. Add the bot to a group/channel or message it directly"
+            echo "4. Get the chat ID (you can use @userinfobot or @RawDataBot)"
+            echo
+            
+            # Telegram Bot Token
+            if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_TELEGRAM_BOT_TOKEN}" ]]; then
+                read -rp "Telegram Bot Token [${EXISTING_TELEGRAM_BOT_TOKEN:0:10}...] (Enter to keep): " telegram_token
+                telegram_token="${telegram_token:-${EXISTING_TELEGRAM_BOT_TOKEN}}"
+            else
+                read -rp "Telegram Bot Token: " telegram_token
+            fi
+            
+            # Telegram Chat ID
+            if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_TELEGRAM_CHAT_ID}" ]]; then
+                read -rp "Telegram Chat ID [${EXISTING_TELEGRAM_CHAT_ID}]: " telegram_chat_id
+                telegram_chat_id="${telegram_chat_id:-${EXISTING_TELEGRAM_CHAT_ID}}"
+            else
+                read -rp "Telegram Chat ID (can be negative for groups): " telegram_chat_id
+            fi
+            
+            sed -i "s|^TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=${telegram_token}|" "${JACKER_DIR}/.env.tmp"
+            sed -i "s|^TELEGRAM_CHAT_ID=.*|TELEGRAM_CHAT_ID=${telegram_chat_id}|" "${JACKER_DIR}/.env.tmp"
+            
+            # Test Telegram connection if token and chat ID are provided
+            if [[ -n "$telegram_token" ]] && [[ -n "$telegram_chat_id" ]]; then
+                echo
+                read -rp "Send a test message to Telegram? (y/N): " test_telegram
+                if [[ "${test_telegram,,}" == "y" ]]; then
+                    local test_message="🚀 Jacker Alert System Test - Configuration successful!"
+                    if curl -s -X POST "https://api.telegram.org/bot${telegram_token}/sendMessage" \
+                        -d "chat_id=${telegram_chat_id}" \
+                        -d "text=${test_message}" \
+                        -d "parse_mode=Markdown" > /dev/null 2>&1; then
+                        log_success "Test message sent to Telegram successfully!"
+                    else
+                        log_warn "Failed to send test message. Please verify your bot token and chat ID."
+                    fi
+                fi
+            fi
+            ;;
+        4)
+            log_info "Skipping alert configuration"
+            ;;
+    esac
 }
 
 #########################################
@@ -639,6 +740,25 @@ create_configuration_files() {
         if [[ -f "$templates_dir/homepage-custom.js.template" ]]; then
             cp "$templates_dir/homepage-custom.js.template" "${JACKER_DIR}/data/homepage/custom.js"
         fi
+        
+        # Alertmanager configuration
+        if [[ -n "${TELEGRAM_BOT_TOKEN}" ]] || [[ -n "${SMTP_HOST}" ]] || [[ -n "${SLACK_WEBHOOK_URL}" ]]; then
+            log_info "Configuring Alertmanager with notification channels..."
+            if [[ -f "$templates_dir/alertmanager-with-telegram.yml.template" ]]; then
+                envsubst < "$templates_dir/alertmanager-with-telegram.yml.template" > "${JACKER_DIR}/config/alertmanager/alertmanager.yml"
+            fi
+        elif [[ -f "$templates_dir/alertmanager.yml.template" ]]; then
+            envsubst < "$templates_dir/alertmanager.yml.template" > "${JACKER_DIR}/config/alertmanager/alertmanager.yml"
+        fi
+        
+        # Telegram webhook template
+        if [[ -n "${TELEGRAM_BOT_TOKEN}" ]] && [[ -n "${TELEGRAM_CHAT_ID}" ]]; then
+            log_info "Setting up Telegram webhook templates..."
+            mkdir -p "${JACKER_DIR}/data/telegram-webhook/templates"
+            if [[ -f "${JACKER_DIR}/assets/configs/telegram/telegram.tmpl" ]]; then
+                cp "${JACKER_DIR}/assets/configs/telegram/telegram.tmpl" "${JACKER_DIR}/data/telegram-webhook/templates/"
+            fi
+        fi
     fi
 
     # Create Traefik middleware files
@@ -646,6 +766,9 @@ create_configuration_files() {
 
     # Create secrets files
     create_secrets_files
+    
+    # Configure alert integrations
+    configure_alert_integrations
 
     log_success "Configuration files created"
 }
@@ -827,6 +950,106 @@ create_secrets_files() {
 !.gitignore
 !README.md
 EOF
+}
+
+# Configure alert integrations (Telegram, Slack, Email)
+# Configure alert integrations (Telegram, Slack, Email)
+configure_alert_integrations() {
+    log_info "Configuring alert integrations..."
+    
+    # Configure Alertmanager if any notification method is set
+    if [[ -n "${TELEGRAM_BOT_TOKEN}" ]] || [[ -n "${SMTP_HOST}" ]] || [[ -n "${SLACK_WEBHOOK_URL}" ]]; then
+        log_info "Setting up Alertmanager configuration..."
+        
+        # Create Alertmanager config directory if it doesn't exist
+        mkdir -p "${JACKER_DIR}/config/alertmanager"
+        
+        # Note about Telegram configuration
+        if [[ -n "${TELEGRAM_BOT_TOKEN}" ]] && [[ -n "${TELEGRAM_CHAT_ID}" ]]; then
+            log_info "Telegram credentials configured"
+            log_warn "Note: To receive Telegram alerts, you'll need to add alertmanager-bot service"
+            log_info "See docs/TELEGRAM_ALERTS.md for setup instructions"
+        fi
+        
+        log_success "Alert integrations configured"
+    fi
+    
+    # Configure Grafana alerting
+    if [[ -n "${TELEGRAM_BOT_TOKEN}" ]] || [[ -n "${SMTP_HOST}" ]] || [[ -n "${SLACK_WEBHOOK_URL}" ]]; then
+        configure_grafana_alerting
+    fi
+}
+
+# Configure Grafana alerting channels
+configure_grafana_alerting() {
+    log_info "Configuring Grafana notification channels..."
+    
+    # Create Grafana provisioning directory for notifiers
+    mkdir -p "${JACKER_DIR}/data/grafana/provisioning/notifiers"
+    
+    # Create notification channels configuration
+    cat > "${JACKER_DIR}/data/grafana/provisioning/notifiers/telegram.yaml" <<EOF
+apiVersion: 1
+
+notifiers:
+EOF
+    
+    # Add Telegram notifier if configured
+    if [[ -n "${TELEGRAM_BOT_TOKEN}" ]] && [[ -n "${TELEGRAM_CHAT_ID}" ]]; then
+        cat >> "${JACKER_DIR}/data/grafana/provisioning/notifiers/telegram.yaml" <<EOF
+  - name: Telegram
+    type: telegram
+    uid: telegram-notifier
+    org_id: 1
+    is_default: true
+    send_reminder: true
+    frequency: 5m
+    disable_resolve_message: false
+    settings:
+      chatid: "${TELEGRAM_CHAT_ID}"
+      bottoken: "${TELEGRAM_BOT_TOKEN}"
+      uploadImage: true
+EOF
+    fi
+    
+    # Add Email notifier if configured
+    if [[ -n "${SMTP_HOST}" ]]; then
+        cat >> "${JACKER_DIR}/data/grafana/provisioning/notifiers/telegram.yaml" <<EOF
+  - name: Email
+    type: email
+    uid: email-notifier
+    org_id: 1
+    is_default: false
+    send_reminder: true
+    frequency: 1h
+    disable_resolve_message: false
+    settings:
+      addresses: "${ALERT_EMAIL_TO}"
+      singleEmail: false
+EOF
+    fi
+    
+    # Add Slack notifier if configured
+    if [[ -n "${SLACK_WEBHOOK_URL}" ]]; then
+        cat >> "${JACKER_DIR}/data/grafana/provisioning/notifiers/telegram.yaml" <<EOF
+  - name: Slack
+    type: slack
+    uid: slack-notifier
+    org_id: 1
+    is_default: false
+    send_reminder: true
+    frequency: 30m
+    disable_resolve_message: false
+    settings:
+      url: "${SLACK_WEBHOOK_URL}"
+      channel: "${SLACK_CHANNEL_INFO:-#monitoring}"
+      username: "Jacker Monitoring"
+      icon_emoji: ":rocket:"
+      uploadImage: true
+EOF
+    fi
+    
+    log_success "Grafana notification channels configured"
 }
 
 #########################################

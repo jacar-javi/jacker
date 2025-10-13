@@ -51,6 +51,7 @@ ${YELLOW}Configuration Commands:${NC}
   config          Manage configuration
   secrets         Manage secrets
   security        Security operations
+  alerts          Manage and test alerts
 
 ${YELLOW}Information Commands:${NC}
   info            Show system information
@@ -930,6 +931,75 @@ EOF
 }
 
 # ============================================================================
+# Command: alerts
+# ============================================================================
+cmd_alerts() {
+    local subcommand="${1:-test}"
+    shift || true
+
+    # Load environment
+    cd_jacker_root
+    if [[ -f "$JACKER_ROOT/.env" ]]; then
+        set -a
+        source "$JACKER_ROOT/.env"
+        set +a
+    fi
+
+    case "$subcommand" in
+        test)
+            # shellcheck source=assets/lib/alerts.sh
+            source "$JACKER_ROOT/assets/lib/alerts.sh"
+            test_all_alerts "$@"
+            ;;
+        telegram)
+            # shellcheck source=assets/lib/alerts.sh
+            source "$JACKER_ROOT/assets/lib/alerts.sh"
+            test_telegram_alerts "$@"
+            ;;
+        email)
+            # shellcheck source=assets/lib/alerts.sh
+            source "$JACKER_ROOT/assets/lib/alerts.sh"
+            test_email_alerts "$@"
+            ;;
+        slack)
+            # shellcheck source=assets/lib/alerts.sh
+            source "$JACKER_ROOT/assets/lib/alerts.sh"
+            test_slack_alerts "$@"
+            ;;
+        config)
+            # shellcheck source=assets/lib/alerts.sh
+            source "$JACKER_ROOT/assets/lib/alerts.sh"
+            show_alert_config "$@"
+            ;;
+        help|--help|-h)
+            cat << EOF
+${GREEN}Usage:${NC} jacker alerts <subcommand> [options]
+
+Manage and test alert notifications.
+
+${YELLOW}Subcommands:${NC}
+  test            Test all configured alert channels
+  telegram        Test Telegram alerts only
+  email           Test email alerts only
+  slack           Test Slack alerts only
+  config          Show alert configuration
+
+${GREEN}Examples:${NC}
+  jacker alerts test           # Test all channels
+  jacker alerts telegram       # Test Telegram only
+  jacker alerts email          # Test email only
+  jacker alerts config         # Show configuration
+EOF
+            ;;
+        *)
+            error "Unknown subcommand: $subcommand"
+            cmd_alerts help
+            return 1
+            ;;
+    esac
+}
+
+# ============================================================================
 # Command: security
 # ============================================================================
 cmd_security() {
@@ -1277,6 +1347,11 @@ main() {
             ;;
         security|sec)
             cmd_security "$@"
+            ;;
+
+        # Alert commands
+        alerts|alert)
+            cmd_alerts "$@"
             ;;
 
         # Information commands

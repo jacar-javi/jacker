@@ -1,11 +1,11 @@
 global:
   resolve_timeout: 5m
-  # SMTP configuration - uncomment and configure to enable email alerts
-  # smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
-  # smtp_from: '${SMTP_FROM}'
-  # smtp_auth_username: '${SMTP_USERNAME}'
-  # smtp_auth_password: '${SMTP_PASSWORD}'
-  # smtp_require_tls: true
+  # SMTP configuration for email alerts
+  smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
+  smtp_from: '${SMTP_FROM:-alerts@${DOMAINNAME}}'
+  smtp_auth_username: '${SMTP_USERNAME}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
 
 # Templates for custom alert formatting
 templates:
@@ -20,28 +20,32 @@ route:
   repeat_interval: 12h
 
   routes:
-    # Critical alerts go to both email and telegram immediately
+    # Critical alerts - immediate notification, frequent repeats
     - receiver: 'critical-alerts'
       matchers:
         - severity = critical
       group_wait: 0s
+      group_interval: 2m
       repeat_interval: 5m
+      continue: true
 
-    # Warning alerts go to email only
+    # Warning alerts - short delay, moderate repeat interval
     - receiver: 'warning-alerts'
       matchers:
         - severity = warning
       group_wait: 30s
+      group_interval: 5m
       repeat_interval: 1h
 
-    # Info alerts are logged only
+    # Info alerts - longer delay, less frequent repeats
     - receiver: 'info-alerts'
       matchers:
         - severity = info
       group_wait: 1m
+      group_interval: 10m
       repeat_interval: 4h
 
-# Inhibition rules allow to mute a set of alerts given that another alert is firing
+# Inhibition rules to prevent alert flooding
 inhibit_rules:
   # Inhibit warning if critical is firing for the same alertname
   - source_matchers:
@@ -50,16 +54,37 @@ inhibit_rules:
       - severity = warning
     equal: ['alertname', 'instance']
 
+  # Inhibit info if warning or critical is firing
+  - source_matchers:
+      - severity =~ "warning|critical"
+    target_matchers:
+      - severity = info
+    equal: ['alertname', 'instance']
+
 receivers:
-  # Default receiver - null receiver (no notifications)
-  # Email/Telegram can be configured via Alertmanager UI or by editing this file
+  # Default receiver
   - name: 'default-receiver'
 
-  # Critical alerts - null receiver by default
+  # Critical alerts - all notification channels
   - name: 'critical-alerts'
+    email_configs:
+      - to: '${ALERT_EMAIL_CRITICAL:-${ALERT_EMAIL_TO}}'
+        send_resolved: true
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }} - IMMEDIATE ACTION REQUIRED'
 
-  # Warning alerts - null receiver by default
+  # Warning alerts
   - name: 'warning-alerts'
+    email_configs:
+      - to: '${ALERT_EMAIL_WARNING:-${ALERT_EMAIL_TO}}'
+        send_resolved: true
+        headers:
+          Subject: '[WARNING] {{ .GroupLabels.alertname }}'
 
-  # Info alerts - null receiver by default
+  # Info alerts - email only for resolved
   - name: 'info-alerts'
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        send_resolved: true
+        headers:
+          Subject: '[INFO] {{ .GroupLabels.alertname }}'
