@@ -32,120 +32,120 @@ networks:
 secrets:
   # OAuth secrets
   oauth_client_secret:
-    file: ${DOCKERDIR}/secrets/oauth_client_secret
+    file: ${SECRETSDIR}/oauth_client_secret
   oauth_cookie_secret:
-    file: ${DOCKERDIR}/secrets/oauth_cookie_secret
+    file: ${SECRETSDIR}/oauth_cookie_secret
   traefik_forward_oauth:
-    file: ${DOCKERDIR}/secrets/traefik_forward_oauth
+    file: ${SECRETSDIR}/traefik_forward_oauth
 
   # Database secrets
   postgres_password:
-    file: ${DOCKERDIR}/secrets/postgres_password
+    file: ${SECRETSDIR}/postgres_password
   redis_password:
-    file: ${DOCKERDIR}/secrets/redis_password
+    file: ${SECRETSDIR}/redis_password
 
   # CrowdSec secrets
   crowdsec_lapi_key:
-    file: ${DOCKERDIR}/secrets/crowdsec_lapi_key
+    file: ${SECRETSDIR}/crowdsec_lapi_key
   crowdsec_bouncer_key:
-    file: ${DOCKERDIR}/secrets/crowdsec_bouncer_key
+    file: ${SECRETSDIR}/crowdsec_bouncer_key
 
   # Monitoring secrets
   grafana_admin_password:
-    file: ${DOCKERDIR}/secrets/grafana_admin_password
+    file: ${SECRETSDIR}/grafana_admin_password
   alertmanager_gmail_password:
-    file: ${DOCKERDIR}/secrets/alertmanager_gmail_password
+    file: ${SECRETSDIR}/alertmanager_gmail_password
 
   # Authentik secrets (optional)
   authentik_secret_key:
-    file: ${DOCKERDIR}/secrets/authentik_secret_key
+    file: ${SECRETSDIR}/authentik_secret_key
   authentik_postgres_password:
-    file: ${DOCKERDIR}/secrets/authentik_postgres_password
+    file: ${SECRETSDIR}/authentik_postgres_password
   authentik_api_token:
-    file: ${DOCKERDIR}/secrets/authentik_api_token
+    file: ${SECRETSDIR}/authentik_api_token
 
   # Service secrets
   portainer_secret:
-    file: ${DOCKERDIR}/secrets/portainer_secret
+    file: ${SECRETSDIR}/portainer_secret
 
 configs:
   # Traefik configs
   traefik_yml:
-    file: ${DOCKERDIR}/config/traefik/traefik.yml
+    file: ${CONFIGDIR}/traefik/traefik.yml
   traefik_middlewares_oauth:
-    file: ${DOCKERDIR}/config/traefik/rules/middlewares-oauth.yml
+    file: ${CONFIGDIR}/traefik/rules/middlewares-oauth.yml
   traefik_middlewares_cache:
-    file: ${DOCKERDIR}/config/traefik/rules/middlewares-cache.yml
+    file: ${CONFIGDIR}/traefik/rules/middlewares-cache.yml
   traefik_middlewares_compress:
-    file: ${DOCKERDIR}/config/traefik/rules/middlewares-compress.yml
+    file: ${CONFIGDIR}/traefik/rules/middlewares-compress.yml
   traefik_middlewares_cors:
-    file: ${DOCKERDIR}/config/traefik/rules/middlewares-cors.yml
+    file: ${CONFIGDIR}/traefik/rules/middlewares-cors.yml
   traefik_middlewares_rate_limit:
-    file: ${DOCKERDIR}/config/traefik/rules/middlewares-rate-limit.yml
+    file: ${CONFIGDIR}/traefik/rules/middlewares-rate-limit.yml
   traefik_middlewares_secure_headers:
-    file: ${DOCKERDIR}/config/traefik/rules/middlewares-secure-headers.yml
+    file: ${CONFIGDIR}/traefik/rules/middlewares-secure-headers.yml
   traefik_chain_api:
-    file: ${DOCKERDIR}/config/traefik/rules/chain-api.yml
+    file: ${CONFIGDIR}/traefik/rules/chain-api.yml
   traefik_chain_oauth:
-    file: ${DOCKERDIR}/config/traefik/rules/chain-oauth.yml
+    file: ${CONFIGDIR}/traefik/rules/chain-oauth.yml
   traefik_chain_no_oauth:
-    file: ${DOCKERDIR}/config/traefik/rules/chain-no-oauth.yml
+    file: ${CONFIGDIR}/traefik/rules/chain-no-oauth.yml
   traefik_chain_public:
-    file: ${DOCKERDIR}/config/traefik/rules/chain-public.yml
+    file: ${CONFIGDIR}/traefik/rules/chain-public.yml
   traefik_chain_strict:
-    file: ${DOCKERDIR}/config/traefik/rules/chain-strict.yml
+    file: ${CONFIGDIR}/traefik/rules/chain-strict.yml
   traefik_tls_opts:
-    file: ${DOCKERDIR}/config/traefik/rules/tls-opts.yml
+    file: ${CONFIGDIR}/traefik/rules/tls-opts.yml
 
   # Prometheus configs
   prometheus_yml:
-    file: ${DOCKERDIR}/config/prometheus/config/prometheus.yml
+    file: ${CONFIGDIR}/prometheus/config/prometheus.yml
 
   # Loki configs
   loki_config:
-    file: ${DOCKERDIR}/config/loki/loki-config.yml
+    file: ${CONFIGDIR}/loki/loki-config.yml
 
   # Promtail configs
   promtail_config:
-    file: ${DOCKERDIR}/config/loki/promtail-config.yml
+    file: ${CONFIGDIR}/loki/promtail-config.yml
 
   # Grafana configs
   grafana_ini:
-    file: ${DOCKERDIR}/config/grafana/grafana.ini
+    file: ${CONFIGDIR}/grafana/grafana.ini
   grafana_datasources:
-    file: ${DOCKERDIR}/config/grafana/provisioning/datasources/all.yml
+    file: ${CONFIGDIR}/grafana/provisioning/datasources/all.yml
   grafana_dashboards:
-    file: ${DOCKERDIR}/config/grafana/provisioning/dashboards/default.yml
+    file: ${CONFIGDIR}/grafana/provisioning/dashboards/default.yml
 
   # AlertManager configs
   alertmanager_yml:
-    file: ${DOCKERDIR}/config/alertmanager/alertmanager.yml
+    file: ${CONFIGDIR}/alertmanager/alertmanager.yml
   alertmanager_template:
-    file: ${DOCKERDIR}/config/alertmanager/templates/default.tmpl
+    file: ${CONFIGDIR}/alertmanager/templates/default.tmpl
 
   # CrowdSec configs
   crowdsec_config:
-    file: ${DOCKERDIR}/config/crowdsec/config/config.yaml.local
+    file: ${CONFIGDIR}/crowdsec/config/config.yaml.local
   crowdsec_acquis:
-    file: ${DOCKERDIR}/config/crowdsec/acquis.d/docker-logs.yaml
+    file: ${CONFIGDIR}/crowdsec/acquis.d/docker-logs.yaml
 
   # PostgreSQL configs
   postgres_conf:
-    file: ${DOCKERDIR}/config/postgres/postgresql.conf
+    file: ${CONFIGDIR}/postgres/postgresql.conf
   postgres_hba:
-    file: ${DOCKERDIR}/config/postgres/pg_hba.conf
+    file: ${CONFIGDIR}/postgres/pg_hba.conf
   postgres_init:
-    file: ${DOCKERDIR}/config/postgres/init/00-create-databases.sh
+    file: ${CONFIGDIR}/postgres/init/00-create-databases.sh
 
   # Redis configs
   redis_conf:
-    file: ${DOCKERDIR}/config/redis/redis.conf
+    file: ${CONFIGDIR}/redis/redis.conf
   redis_acl:
-    file: ${DOCKERDIR}/config/redis/users.acl
+    file: ${CONFIGDIR}/redis/users.acl
 
   # OAuth2-Proxy configs
   oauth2_proxy_cfg:
-    file: ${DOCKERDIR}/config/oauth2-proxy/oauth2-proxy.cfg
+    file: ${CONFIGDIR}/oauth2-proxy/oauth2-proxy.cfg
 
 include:
   # CORE
@@ -155,7 +155,7 @@ include:
   - compose/redis.yml
 
   # SECURITY & AUTHENTICATION
-  - compose/oauth.yml            # Default: Google OAuth
+  - compose/oauth.yml # Default: Google OAuth
   # - compose/authentik.yml      # Alternative: Self-hosted Authentik
   - compose/crowdsec.yml
   - compose/traefik-bouncer.yml

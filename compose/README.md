@@ -282,7 +282,7 @@ Services use Docker configs for immutable configuration management:
 ```yaml
 configs:
   traefik_yml:
-    file: ${DOCKERDIR}/config/traefik/traefik.yml
+    file: ${CONFIGDIR}/traefik/traefik.yml
   # ... more configs
 ```
 
@@ -325,7 +325,7 @@ Sensitive data is managed through Docker secrets for enhanced security:
 ./jacker secrets rotate
 ```
 
-Secrets are stored in `${DOCKERDIR}/secrets/` with restrictive permissions (600).
+Secrets are stored in `${SECRETSDIR}/` with restrictive permissions (600).
 
 ## Environment Variables
 
