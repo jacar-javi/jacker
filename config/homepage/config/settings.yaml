@@ -1,29 +1,66 @@
 ---
-# For configuration options and examples, please see:
+# Jacker Homepage Settings - Clean Design
 # https://gethomepage.dev/latest/configs/settings
 
-title: Jacker
-headerStyle: clean
+title: Jacker Platform
+favicon: /images/yo_y_jacar.png
+headerStyle: boxed
 language: es
 
+# Theme configuration
+theme: dark
+color: slate
+
+# Quick launch configuration
 quicklaunch:
   searchDescriptions: true
-  hideInternetSearch: true
-  hideVisitURL: true
+  hideInternetSearch: false
+  hideVisitURL: false
 
+# Simplified layout - 4 functional groups
 layout:
   Frontend Apps:
     style: row
-    columns: 5
+    columns: 3
+    icon: mdi-web
 
-  Reverse Proxy:
+  Security:
     style: row
-    columns: 5
+    columns: 3
+    icon: mdi-shield-check
 
-  Middleware:
+  Monitoring:
     style: row
-    columns: 5
+    columns: 3
+    icon: mdi-chart-line
 
-  Backend:
+  Infrastructure:
     style: row
-    columns: 5
+    columns: 3
+    icon: mdi-database
+
+  Tools:
+    style: row
+    columns: 3
+    icon: mdi-tools
+
+# Status style
+statusStyle: dot
+
+# Show stats in footer
+showStats: true
+
+# Hide errors
+hideErrors: false
+
+# Disable service collapse
+disableCollapse: false
+
+# Date format
+dateFormat:
+  dateStyle: short
+  timeStyle: short
+  hour12: false
+
+# Favicon configuration
+faviconStyle: color

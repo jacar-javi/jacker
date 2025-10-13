@@ -79,6 +79,8 @@ services:
     volumes:
       # Persistent storage for traces
       - $DATADIR/jaeger/badger:/badger
+      # Temporary files
+      - $DATADIR/jaeger/tmp:/tmp
       # Sampling configuration
       - $CONFIGDIR/jaeger/sampling_strategies.json:/etc/jaeger/sampling_strategies.json:ro
 

@@ -198,6 +198,9 @@ services:
       - "homepage.description=System Metrics Exporter"
       - "homepage.href=https://grafana.${PUBLIC_FQDN}/d/rYdddlPWk/node-exporter-full"
       - "homepage.weight=420"
+      - "homepage.widget.type=generic"
+      - "homepage.widget.url=http://node-exporter:9100/metrics"
+      - "homepage.widget.label=Metrics"
 
       # Service Discovery
       - "com.centurylinklabs.watchtower.enable=false" # Don't auto-update monitoring

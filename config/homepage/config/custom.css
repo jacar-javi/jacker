@@ -1,14 +1,20 @@
-/* Jacker Homepage Custom Styles */
+/* ========================================
+   Jacker Homepage - Minimal Custom Styles
+   ======================================== */
 
-/* Logo width - ONLY target the header/top logo, not service icons */
-/* The header logo is in the .information-widget-logo container at the top */
+/* ========================================
+   LOGO & BRANDING
+   ======================================== */
+
+/* Header logo - 300px width with dark blue border and rounded corners */
 .information-widget-logo img[alt="logo"] {
-  width: 200px !important;
+  width: 300px !important;
   height: auto !important;
-  min-width: 200px !important;
-  max-width: 200px !important;
-  border: 2px solid #ffffff !important;
+  min-width: 300px !important;
+  max-width: 300px !important;
+  border: 2px solid #1e3a8a !important;
   border-radius: 8px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
 }
 
 /* Ensure service icons remain normal size */
@@ -18,11 +24,24 @@
   height: 48px !important;
 }
 
-/* Center system widgets in top bar */
-.information-widgets,
-.information-widget-resources,
-[class*="information-widget"] {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
+/* ========================================
+   RESPONSIVE ADJUSTMENTS FOR LOGO
+   ======================================== */
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .information-widget-logo img[alt="logo"] {
+    width: 150px !important;
+    min-width: 150px !important;
+    max-width: 150px !important;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .information-widget-logo img[alt="logo"] {
+    width: 225px !important;
+    min-width: 225px !important;
+    max-width: 225px !important;
+  }
 }

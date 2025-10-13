@@ -169,6 +169,9 @@ services:
       - "homepage.icon=mdi-file-document-multiple"
       - "homepage.description=Log Shipper for Loki"
       - "homepage.weight=410"
+      - "homepage.widget.type=generic"
+      - "homepage.widget.url=http://promtail:9080/ready"
+      - "homepage.widget.label=Status"
 
       # Service Discovery
       - "com.centurylinklabs.watchtower.enable=false" # Don't auto-update monitoring

@@ -1,4 +1,28 @@
 ---
-# For configuration options and examples, please see:
+# Jacker Homepage Bookmarks - Clean Design
 # https://gethomepage.dev/latest/configs/bookmarks
 
+# Essential links only
+- Development:
+    - GitHub Repository:
+        - abbr: GH
+          icon: mdi-github
+          href: https://github.com/yourusername/jacker
+    - Documentation:
+        - abbr: DOCS
+          icon: mdi-book-open-variant
+          href: https://jacker.jacar.es
+
+- Monitoring:
+    - Grafana:
+        - abbr: GRAF
+          icon: si-grafana
+          href: https://grafana.${PUBLIC_FQDN}
+    - Traefik:
+        - abbr: TRF
+          icon: si-traefikproxy
+          href: https://traefik.${PUBLIC_FQDN}/dashboard/
+    - Jaeger:
+        - abbr: JAG
+          icon: jaeger
+          href: https://jaeger.${PUBLIC_FQDN}

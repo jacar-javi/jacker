@@ -85,6 +85,9 @@ services:
       - "homepage.description=Modern OAuth 2.0 Authentication"
       - "homepage.icon=mdi-lock"
       - "homepage.href=https://oauth.${PUBLIC_FQDN}"
+      - "homepage.widget.type=generic"
+      - "homepage.widget.url=http://oauth:4180/ping"
+      - "homepage.widget.label=Status"
 
     # Healthcheck disabled - OAuth2-Proxy uses distroless image with no shell/wget/curl
     # Traefik loadbalancer healthcheck is used instead (see labels above)

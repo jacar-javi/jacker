@@ -1702,6 +1702,9 @@ setup_jacker() {
     # Initialize services
     initialize_services
 
+    # Install bash completion
+    install_bash_completion
+
     # Show completion message
     show_completion_message
 }
@@ -1726,6 +1729,53 @@ backup_existing_installation() {
     fi
 
     log_success "Backup created at: $backup_dir"
+}
+
+#########################################
+# Bash Completion Installation
+#########################################
+
+install_bash_completion() {
+    log_info "Installing bash completion for jacker command..."
+
+    local completion_file="${JACKER_DIR}/assets/jacker-completion.bash"
+    local install_path=""
+
+    # Determine installation path based on system
+    if [[ -d /etc/bash_completion.d ]]; then
+        install_path="/etc/bash_completion.d/jacker"
+    elif [[ -d /usr/local/etc/bash_completion.d ]]; then
+        install_path="/usr/local/etc/bash_completion.d/jacker"
+    elif [[ -d /usr/share/bash-completion/completions ]]; then
+        install_path="/usr/share/bash-completion/completions/jacker"
+    else
+        # Fallback: add to user's .bashrc
+        log_info "No system-wide completion directory found, installing to ~/.bashrc"
+        if ! grep -q "source.*jacker-completion.bash" ~/.bashrc 2>/dev/null; then
+            echo "" >> ~/.bashrc
+            echo "# Jacker CLI completion" >> ~/.bashrc
+            echo "source ${completion_file}" >> ~/.bashrc
+            log_success "Bash completion added to ~/.bashrc"
+            log_info "Run 'source ~/.bashrc' or restart your shell to enable completion"
+        else
+            log_info "Bash completion already configured in ~/.bashrc"
+        fi
+        return 0
+    fi
+
+    # Install to system-wide location
+    if [[ -f "$completion_file" ]]; then
+        if sudo cp "$completion_file" "$install_path" 2>/dev/null; then
+            sudo chmod 644 "$install_path"
+            log_success "Bash completion installed to $install_path"
+            log_info "Completion will be available in new shell sessions"
+        else
+            log_warn "Could not install bash completion to system directory"
+            log_info "You can manually source it: source ${completion_file}"
+        fi
+    else
+        log_warn "Completion file not found at $completion_file"
+    fi
 }
 
 show_completion_message() {
