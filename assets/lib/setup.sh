@@ -1042,8 +1042,10 @@ configure_alert_integrations() {
 configure_grafana_alerting() {
     log_info "Configuring Grafana notification channels..."
 
-    # Create Grafana provisioning directory for notifiers
-    mkdir -p "${JACKER_DIR}/config/grafana/provisioning/notifiers"
+    # Ensure directory exists with correct ownership
+    # Use sudo to create and set ownership to avoid permission issues
+    sudo mkdir -p "${JACKER_DIR}/config/grafana/provisioning/notifiers"
+    sudo chown -R "$(id -u):$(id -g)" "${JACKER_DIR}/config/grafana"
 
     # Create notification channels configuration
     cat > "${JACKER_DIR}/config/grafana/provisioning/notifiers/telegram.yaml" <<EOF
