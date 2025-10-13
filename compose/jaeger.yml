@@ -77,7 +77,7 @@ services:
       # Persistent storage for traces
       - $DATADIR/jaeger/badger:/badger
       # Sampling configuration
-      - $DATADIR/jaeger/sampling_strategies.json:/etc/jaeger/sampling_strategies.json:ro
+      - $CONFIGDIR/jaeger/sampling_strategies.json:/etc/jaeger/sampling_strategies.json:ro
 
     labels:
       - "traefik.enable=true"
