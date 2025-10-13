@@ -47,10 +47,8 @@ services:
     # ====================================================================
     networks:
       monitoring:
-        aliases:
-          - promtail-agent
-      socket_proxy: # For Docker discovery
-      traefik_proxy: # For service connectivity
+      socket_proxy:
+      traefik_proxy:
 
     # ====================================================================
     # VOLUME MOUNTS

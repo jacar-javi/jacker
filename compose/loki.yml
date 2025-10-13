@@ -44,10 +44,8 @@ services:
     # ====================================================================
     networks:
       monitoring:
-        aliases:
-          - loki-server
       traefik_proxy:
-      cache: # For potential Redis cache
+      cache:
 
     # Port exposure (only bind to localhost for security)
     ports:

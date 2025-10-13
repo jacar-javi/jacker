@@ -70,10 +70,7 @@ services:
       traefik_proxy:
         ipv4_address: ${TRAEFIK_PROXY_IP}
       socket_proxy:
-      # Optional: monitoring network for Prometheus
       monitoring:
-        aliases:
-          - traefik-metrics
 
     # Extra hosts for internal resolution
     extra_hosts:

@@ -59,8 +59,6 @@ services:
     # ====================================================================
     networks:
       traefik_proxy:
-        aliases:
-          - crowdsec-api
       socket_proxy:
       database:
       cache:

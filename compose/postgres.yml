@@ -48,9 +48,6 @@ services:
     # ====================================================================
     networks:
       database:
-        aliases:
-          - postgres-db
-          - postgresql
       monitoring:
       backup:
 

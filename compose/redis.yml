@@ -47,12 +47,9 @@ services:
     # ====================================================================
     networks:
       cache:
-        aliases:
-          - redis-cache
-          - redis-server
-      database:  # For services that use Redis as a database
-      monitoring:  # For metrics collection
-      traefik_proxy:  # For potential web interface
+      database:
+      monitoring:
+      traefik_proxy:
 
     # Port exposure (only bind to localhost for security)
     ports:

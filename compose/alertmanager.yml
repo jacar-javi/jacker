@@ -48,8 +48,6 @@ services:
     # ====================================================================
     networks:
       monitoring:
-        aliases:
-          - alertmanager-server
       traefik_proxy:
 
     # Port exposure (only bind to localhost for security)

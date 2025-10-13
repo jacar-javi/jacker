@@ -48,12 +48,10 @@ services:
     # ====================================================================
     networks:
       monitoring:
-        aliases:
-          - prometheus-server
       traefik_proxy:
-      database: # To scrape database exporters
-      cache: # To scrape Redis exporter
-      socket_proxy: # To scrape Docker metrics
+      database:
+      cache:
+      socket_proxy:
 
     # Port exposure (only bind to localhost for security)
     ports:

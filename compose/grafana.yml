@@ -49,11 +49,9 @@ services:
     # ====================================================================
     networks:
       monitoring:
-        aliases:
-          - grafana-server
       traefik_proxy:
-      database: # To connect to data sources
-      cache: # For Redis session storage
+      database:
+      cache:
 
     # Port exposure (only bind to localhost for security)
     ports:
