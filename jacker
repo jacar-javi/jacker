@@ -46,6 +46,7 @@ ${YELLOW}Management Commands:${NC}
   restore         Restore from backup
   update          Update Jacker and services
   clean           Clean up containers and data
+  wipe-data       Wipe all data (preserves SSL certs)
 
 ${YELLOW}Configuration Commands:${NC}
   config          Manage configuration
@@ -1131,6 +1132,57 @@ EOF
 }
 
 # ============================================================================
+# Command: wipe-data
+# ============================================================================
+cmd_wipe_data() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker wipe-data [options]
+
+Wipe all service data directories while preserving SSL certificates.
+
+${YELLOW}Description:${NC}
+This command permanently deletes all service data including:
+  - PostgreSQL databases
+  - Redis cache
+  - Prometheus metrics
+  - Grafana dashboards
+  - Loki logs
+  - CrowdSec data
+  - All other service data
+
+By default, SSL certificates (acme.json) are preserved to avoid
+Let's Encrypt rate limits.
+
+${YELLOW}Options:${NC}
+  --help, -h      Show this help message
+
+${GREEN}Examples:${NC}
+  jacker wipe-data            # Wipe all data (interactive)
+
+${YELLOW}Warning:${NC}
+This operation is IRREVERSIBLE. You will be prompted for confirmation.
+EOF
+                return 0
+                ;;
+            *)
+                error "Unknown option: $1"
+                return 1
+                ;;
+        esac
+    done
+
+    cd_jacker_root
+    check_env_exists
+
+    # shellcheck source=assets/lib/maintenance.sh
+    source "$JACKER_ROOT/assets/lib/maintenance.sh"
+    wipe_data
+}
+
+# ============================================================================
 # Command: info
 # ============================================================================
 cmd_info() {
@@ -1336,6 +1388,9 @@ main() {
             ;;
         clean|cleanup)
             cmd_clean "$@"
+            ;;
+        wipe-data)
+            cmd_wipe_data "$@"
             ;;
 
         # Configuration commands

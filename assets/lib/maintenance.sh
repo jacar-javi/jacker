@@ -925,6 +925,138 @@ deep_clean() {
 }
 
 #########################################
+# Data Wipe Functions
+#########################################
+
+wipe_data() {
+    section "Wipe All Data"
+    
+    warning "This will PERMANENTLY delete all service data!"
+    warning "SSL certificates (acme.json) will be preserved by default."
+    echo ""
+    info "Services that will be affected:"
+    echo "  - PostgreSQL databases"
+    echo "  - Redis cache"
+    echo "  - Prometheus metrics"
+    echo "  - Grafana dashboards"
+    echo "  - Loki logs"
+    echo "  - CrowdSec data"
+    echo "  - All other service data"
+    echo ""
+    
+    read -rp "Are you sure you want to wipe all data? (type 'WIPE' to confirm): " confirm
+    
+    if [[ "$confirm" != "WIPE" ]]; then
+        info "Data wipe cancelled"
+        return 0
+    fi
+    
+    read -rp "Preserve SSL certificates (acme.json)? (Y/n): " preserve_ssl
+    preserve_ssl="${preserve_ssl:-Y}"
+    
+    # Stop all services
+    info "Stopping all services..."
+    docker compose down
+    
+    # Backup acme.json if preserving SSL
+    local acme_backup=""
+    if [[ "${preserve_ssl,,}" != "n" ]] && [[ -f "${JACKER_ROOT}/data/traefik/acme/acme.json" ]]; then
+        acme_backup="/tmp/jacker_acme_backup_$$.json"
+        info "Backing up SSL certificates..."
+        cp "${JACKER_ROOT}/data/traefik/acme/acme.json" "$acme_backup"
+        chmod 600 "$acme_backup"
+    fi
+    
+    # Wipe all data directories
+    info "Wiping data directories..."
+    
+    local data_dirs=(
+        "data/postgres"
+        "data/redis"
+        "data/prometheus"
+        "data/alertmanager"
+        "data/grafana"
+        "data/loki"
+        "data/promtail"
+        "data/crowdsec"
+        "data/traefik/acme"
+        "data/traefik/logs"
+        "data/portainer"
+        "data/homepage"
+        "data/pushgateway"
+        "data/jaeger"
+        "data/vscode"
+        "data/authentik"
+    )
+    
+    for dir in "${data_dirs[@]}"; do
+        local full_path="${JACKER_ROOT}/$dir"
+        if [[ -d "$full_path" ]]; then
+            info "Wiping $dir..."
+            sudo rm -rf "$full_path"/*
+        fi
+    done
+    
+    # Restore acme.json if it was backed up
+    if [[ -f "$acme_backup" ]]; then
+        info "Restoring SSL certificates..."
+        mkdir -p "${JACKER_ROOT}/data/traefik/acme"
+        sudo cp "$acme_backup" "${JACKER_ROOT}/data/traefik/acme/acme.json"
+        sudo chmod 600 "${JACKER_ROOT}/data/traefik/acme/acme.json"
+        sudo chown root:root "${JACKER_ROOT}/data/traefik/acme/acme.json"
+        rm "$acme_backup"
+        success "SSL certificates preserved"
+    fi
+    
+    # Recreate empty directories with correct ownership
+    info "Recreating directory structure..."
+    recreate_data_directories
+    
+    # Fix permissions
+    info "Setting correct permissions..."
+    sudo chown -R 999:999 "${JACKER_ROOT}/data/postgres" 2>/dev/null || true
+    sudo chown -R 999:999 "${JACKER_ROOT}/data/redis" 2>/dev/null || true
+    sudo chown -R 65534:65534 "${JACKER_ROOT}/data/prometheus" 2>/dev/null || true
+    sudo chown -R 65534:65534 "${JACKER_ROOT}/data/alertmanager" 2>/dev/null || true
+    sudo chown -R 472:472 "${JACKER_ROOT}/data/grafana" 2>/dev/null || true
+    sudo chown -R 10001:10001 "${JACKER_ROOT}/data/loki" 2>/dev/null || true
+    sudo chown -R root:root "${JACKER_ROOT}/data/traefik" 2>/dev/null || true
+    sudo chown -R root:root "${JACKER_ROOT}/data/crowdsec" 2>/dev/null || true
+    
+    success "All data wiped successfully"
+    success "SSL certificates preserved: ${preserve_ssl}"
+    echo ""
+    info "You can now start fresh with: ./jacker start"
+}
+
+recreate_data_directories() {
+    local dirs=(
+        "data/postgres/data"
+        "data/postgres/backups"
+        "data/postgres/archive"
+        "data/postgres/run"
+        "data/redis/data"
+        "data/redis/certs"
+        "data/prometheus/data"
+        "data/alertmanager/data"
+        "data/grafana/data"
+        "data/loki/data"
+        "data/loki/wal"
+        "data/promtail"
+        "data/crowdsec/data"
+        "data/crowdsec/config"
+        "data/traefik/acme"
+        "data/traefik/logs"
+        "data/portainer"
+        "data/homepage"
+    )
+    
+    for dir in "${dirs[@]}"; do
+        mkdir -p "${JACKER_ROOT}/$dir"
+    done
+}
+
+#########################################
 # Migration Functions
 #########################################
 
@@ -1107,3 +1239,4 @@ export -f update_jacker
 export -f cleanup_jacker
 export -f migrate_jacker
 export -f list_backups
+export -f wipe_data
