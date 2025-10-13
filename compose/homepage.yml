@@ -30,7 +30,7 @@ services:
       - socket_proxy
     volumes:
       - ${CONFIGDIR}/homepage/config:/app/config
-      - ${CONFIGDIR}/homepage/images:/public/images
+      - ${CONFIGDIR}/homepage/images:/app/public/images
     environment:
       TZ: $TZ
       PUID: $PUID
