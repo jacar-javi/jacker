@@ -148,6 +148,8 @@ services:
         target: /rules/middlewares-rate-limit.yml
       - source: traefik_middlewares_secure_headers
         target: /rules/middlewares-secure-headers.yml
+      - source: traefik_middlewares_crowdsec_bouncer
+        target: /rules/middlewares-traefik-bouncer.yml
 
       # Chain configurations
       - source: traefik_chain_api

@@ -84,6 +84,8 @@ configs:
     file: ${CONFIGDIR}/traefik/rules/middlewares-rate-limit.yml
   traefik_middlewares_secure_headers:
     file: ${CONFIGDIR}/traefik/rules/middlewares-secure-headers.yml
+  traefik_middlewares_crowdsec_bouncer:
+    file: ${CONFIGDIR}/traefik/rules/middlewares-traefik-bouncer.yml
   traefik_chain_api:
     file: ${CONFIGDIR}/traefik/rules/chain-api.yml
   traefik_chain_oauth:
