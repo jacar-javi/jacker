@@ -125,10 +125,10 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "loki-uid"
           },
           "editorMode": "code",
-          "expr": "sum by (container_name) (count_over_time({job=\"docker\"} | json [1m]))",
+          "expr": "sum by (container_name) (count_over_time({container_name=~\".+\"} | json [1m]))",
           "legendFormat": "{{container_name}}",
           "queryType": "range",
           "refId": "A"
@@ -163,10 +163,10 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "loki-uid"
           },
           "editorMode": "code",
-          "expr": "{job=\"docker\", container_name=~\"$container\"} |~ \"$search\"",
+          "expr": "{container_name=~\"$container\"} |~ \"$search\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -200,10 +200,10 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "loki-uid"
           },
           "editorMode": "code",
-          "expr": "{job=\"docker\"} |~ \"(?i)(error|fail|fatal|exception)\"",
+          "expr": "{container_name=~\".+\"} |~ \"(?i)(error|fail|fatal|exception)\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -237,10 +237,10 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "loki-uid"
           },
           "editorMode": "code",
-          "expr": "{job=\"docker\"} |~ \"(?i)(warn|warning)\"",
+          "expr": "{container_name=~\".+\"} |~ \"(?i)(warn|warning)\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -274,10 +274,10 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "loki-uid"
           },
           "editorMode": "code",
-          "expr": "{job=\"docker\", container_name=\"traefik\"}",
+          "expr": "{container_name=\"traefik\"}",
           "queryType": "range",
           "refId": "A"
         }
@@ -311,10 +311,10 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "loki-uid"
           },
           "editorMode": "code",
-          "expr": "{job=\"docker\", container_name=\"crowdsec\"}",
+          "expr": "{container_name=\"crowdsec\"}",
           "queryType": "range",
           "refId": "A"
         }
@@ -348,10 +348,10 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "loki-uid"
           },
           "editorMode": "code",
-          "expr": "{job=\"docker\", container_name=\"postgres\"}",
+          "expr": "{container_name=\"postgres\"}",
           "queryType": "range",
           "refId": "A"
         }
@@ -385,10 +385,10 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "loki-uid"
           },
           "editorMode": "code",
-          "expr": "{job=\"docker\", container_name=\"redis\"}",
+          "expr": "{container_name=\"redis\"}",
           "queryType": "range",
           "refId": "A"
         }

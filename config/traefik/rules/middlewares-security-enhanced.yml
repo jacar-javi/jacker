@@ -287,7 +287,8 @@ http:
       retry:
         attempts: 4
         initialInterval: 100ms
-        maxInterval: 10s
+        # Traefik v3: maxInterval removed, use timeout instead
+        # maxInterval: 10s
         multiplier: 2
         # Retry on 5xx errors and network issues
         retryOn: 502,503,504,599
