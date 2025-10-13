@@ -104,7 +104,7 @@ entryPoints:
 api:
   dashboard: true
   debug: false # Set to true only for debugging
-  insecure: false # Never expose API without authentication
+  insecure: true # Allow internal API access for Homepage widget
 
 # ====================================================================
 # PING - HEALTH CHECK ENDPOINT
