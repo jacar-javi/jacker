@@ -4,10 +4,11 @@
 
 - logo:
     icon: /images/yo_y_jacar.png
+
 - resources:
     label: Processor
     cpu: true
-    cputemp: true
+    cputemp: false
 
 - resources:
     label: Uptime
