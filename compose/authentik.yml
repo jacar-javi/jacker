@@ -9,7 +9,7 @@ services:
       - traefik_proxy
 
     security_opt:
-      - no-new-privileges:true
+      - no-new-privileges=true
 
     volumes:
       - $DATADIR/authentik/postgres:/var/lib/postgresql/data
@@ -45,7 +45,7 @@ services:
       - traefik_proxy
 
     security_opt:
-      - no-new-privileges:true
+      - no-new-privileges=true
 
     depends_on:
       - authentik-postgres
@@ -117,7 +117,7 @@ services:
       - socket_proxy
 
     security_opt:
-      - no-new-privileges:true
+      - no-new-privileges=true
 
     depends_on:
       - authentik-postgres

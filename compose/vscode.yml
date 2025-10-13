@@ -5,7 +5,7 @@ services:
     container_name: vscode
 
     security_opt:
-      - no-new-privileges:true
+      - no-new-privileges=true
 
     restart: unless-stopped
 

@@ -11,9 +11,9 @@ services:
     # SECURITY CONFIGURATION
     # ====================================================================
     security_opt:
-      - no-new-privileges:true
-      - apparmor:unconfined # Or custom profile
-      - seccomp:unconfined
+      - no-new-privileges=true
+      - apparmor=unconfined # Or custom profile
+      - seccomp=unconfined
 
     # Run as specific user
     user: "${PUID:-999}:${PGID:-999}" # Default PostgreSQL user
@@ -209,7 +209,7 @@ services:
     container_name: postgres-exporter
 
     security_opt:
-      - no-new-privileges:true
+      - no-new-privileges=true
 
     restart: unless-stopped
 
@@ -255,7 +255,7 @@ services:
   #   container_name: pgbackrest
   #
   #   security_opt:
-  #     - no-new-privileges:true
+  #     - no-new-privileges=true
   #
   #   restart: unless-stopped
   #

@@ -11,9 +11,9 @@ services:
     # SECURITY CONFIGURATION
     # ====================================================================
     security_opt:
-      - no-new-privileges:true
-      - apparmor:unconfined # Or custom profile
-      - seccomp:unconfined
+      - no-new-privileges=true
+      - apparmor=unconfined # Or custom profile
+      - seccomp=unconfined
 
     # Run as loki user (UID 10001)
     user: "10001:10001"

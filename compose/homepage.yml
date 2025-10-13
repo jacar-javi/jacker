@@ -7,7 +7,7 @@ services:
       socket-proxy:
         condition: service_healthy
     security_opt:
-      - no-new-privileges:true
+      - no-new-privileges=true
     restart: unless-stopped
 
     healthcheck:

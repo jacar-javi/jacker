@@ -8,7 +8,7 @@ services:
 
     # Security options
     security_opt:
-      - no-new-privileges:true
+      - no-new-privileges=true
 
     restart: unless-stopped
 

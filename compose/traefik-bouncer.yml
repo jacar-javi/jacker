@@ -10,7 +10,7 @@ services:
     container_name: traefik-bouncer
 
     security_opt:
-      - no-new-privileges:true
+      - no-new-privileges=true
 
     restart: unless-stopped
 

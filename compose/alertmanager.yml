@@ -11,9 +11,9 @@ services:
     # SECURITY CONFIGURATION
     # ====================================================================
     security_opt:
-      - no-new-privileges:true
-      - apparmor:unconfined # Or custom profile
-      - seccomp:unconfined
+      - no-new-privileges=true
+      - apparmor=unconfined # Or custom profile
+      - seccomp=unconfined
 
     # Run as specific user
     user: "${PUID:-65534}:${PGID:-65534}" # nobody:nobody
@@ -215,7 +215,7 @@ services:
       - ha # Only deployed when HA profile is active
 
     security_opt:
-      - no-new-privileges:true
+      - no-new-privileges=true
 
     user: "${PUID:-65534}:${PGID:-65534}"
     read_only: true

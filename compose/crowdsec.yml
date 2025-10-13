@@ -11,9 +11,9 @@ services:
     # SECURITY CONFIGURATION
     # ====================================================================
     security_opt:
-      - no-new-privileges:true
-      - apparmor:unconfined # Or custom AppArmor profile
-      - seccomp:unconfined # Required for certain security operations
+      - no-new-privileges=true
+      - apparmor=unconfined # Or custom AppArmor profile
+      - seccomp=unconfined # Required for certain security operations
 
     # Run as non-root user when possible
     user: "${PUID:-1000}:${PGID:-1000}"

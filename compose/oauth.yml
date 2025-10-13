@@ -8,7 +8,7 @@ services:
       - --config=/etc/oauth2-proxy/oauth2-proxy.cfg
 
     security_opt:
-      - no-new-privileges:true
+      - no-new-privileges=true
 
     restart: unless-stopped
 

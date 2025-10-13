@@ -230,6 +230,8 @@ configure_docker() {
       "Soft": 65535
     }
   },
+  "dns": ["1.1.1.1", "1.0.0.1", "8.8.8.8", "8.8.4.4"],
+  "dns-opts": ["ndots:0"],
   "live-restore": true,
   "userland-proxy": false,
   "experimental": false,

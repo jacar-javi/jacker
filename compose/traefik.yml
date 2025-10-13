@@ -5,15 +5,15 @@ services:
     container_name: traefik
 
     # Use specific version for production stability
-    image: traefik:v3.2
+    image: traefik:v3.5.2
 
     # ====================================================================
     # SECURITY CONFIGURATION
     # ====================================================================
     security_opt:
-      - no-new-privileges:true
+      - no-new-privileges=true
       # Additional security options for production
-      - apparmor:unconfined # Or specify custom AppArmor profile
+      - apparmor=unconfined # Or specify custom AppArmor profile
 
     # User/Group mapping for proper file permissions
     user: "${PUID:-1000}:${PGID:-1000}"
