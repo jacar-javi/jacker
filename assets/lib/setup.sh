@@ -73,11 +73,11 @@ load_existing_config() {
             # Skip comments and empty lines
             [[ "$key" =~ ^#.*$ ]] && continue
             [[ -z "$key" ]] && continue
-            
+
             # Remove leading/trailing whitespace
             key="${key%%[[:space:]]}"
             value="${value#[[:space:]]}"
-            
+
             # Export the variable
             export "$key=$value"
         done < "${JACKER_DIR}/.env"
@@ -89,7 +89,7 @@ load_existing_config() {
         EXISTING_PUBLIC_FQDN="${PUBLIC_FQDN:-}"
         EXISTING_LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-}"
         EXISTING_TZ="${TZ:-}"
-        
+
         # OAuth configuration
         EXISTING_OAUTH_PROVIDER="${OAUTH_PROVIDER:-}"
         EXISTING_OAUTH_CLIENT_ID="${OAUTH_CLIENT_ID:-}"
@@ -98,43 +98,43 @@ load_existing_config() {
         EXISTING_OAUTH_SECRET="${OAUTH_SECRET:-}"
         EXISTING_OAUTH_COOKIE_SECRET="${OAUTH_COOKIE_SECRET:-}"
         EXISTING_OAUTH_SIGNATURE_KEY="${OAUTH_SIGNATURE_KEY:-}"
-        
+
         # Email/SMTP configuration
         EXISTING_SMTP_HOST="${SMTP_HOST:-}"
         EXISTING_SMTP_PORT="${SMTP_PORT:-}"
         EXISTING_SMTP_USERNAME="${SMTP_USERNAME:-}"
         EXISTING_SMTP_PASSWORD="${SMTP_PASSWORD:-}"
         EXISTING_ALERT_EMAIL_TO="${ALERT_EMAIL_TO:-}"
-        
+
         # Telegram configuration
         EXISTING_TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
         EXISTING_TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-}"
-        
+
         # Slack configuration
         EXISTING_SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
-        
+
         # Network configuration
         EXISTING_DOCKER_DEFAULT_SUBNET="${DOCKER_DEFAULT_SUBNET:-}"
         EXISTING_SOCKET_PROXY_SUBNET="${SOCKET_PROXY_SUBNET:-}"
         EXISTING_TRAEFIK_PROXY_SUBNET="${TRAEFIK_PROXY_SUBNET:-}"
-        
+
         # Database passwords
         EXISTING_POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}"
         EXISTING_REDIS_PASSWORD="${REDIS_PASSWORD:-}"
-        
+
         # CrowdSec API keys
         EXISTING_CROWDSEC_TRAEFIK_BOUNCER_API_KEY="${CROWDSEC_TRAEFIK_BOUNCER_API_KEY:-}"
         EXISTING_CROWDSEC_IPTABLES_BOUNCER_API_KEY="${CROWDSEC_IPTABLES_BOUNCER_API_KEY:-}"
         EXISTING_CROWDSEC_API_LOCAL_PASSWORD="${CROWDSEC_API_LOCAL_PASSWORD:-}"
         EXISTING_CROWDSEC_AGENT_PASSWORD="${CROWDSEC_AGENT_PASSWORD:-}"
-        
+
         # Authentik configuration
         EXISTING_AUTHENTIK_SECRET_KEY="${AUTHENTIK_SECRET_KEY:-}"
         EXISTING_AUTHENTIK_POSTGRES_PASSWORD="${AUTHENTIK_POSTGRES_PASSWORD:-}"
-        
+
         # Grafana configuration
         EXISTING_GF_SECURITY_ADMIN_PASSWORD="${GF_SECURITY_ADMIN_PASSWORD:-}"
-        
+
         # Service-specific passwords
         EXISTING_PORTAINER_ADMIN_PASSWORD="${PORTAINER_ADMIN_PASSWORD:-}"
         EXISTING_CODE_PASSWORD="${CODE_PASSWORD:-}"
@@ -192,7 +192,7 @@ configure_quick() {
     # Domain configuration
     local default_domain="${EXISTING_DOMAINNAME:-example.com}"
     local default_hostname="${EXISTING_HOSTNAME:-myserver}"
-    
+
     if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_DOMAINNAME}" ]]; then
         read -rp "Enter your domain name [${default_domain}]: " domain
         domain="${domain:-${default_domain}}"
@@ -219,7 +219,7 @@ configure_quick() {
     # OAuth (optional)
     echo
     echo "OAuth configuration (press Enter to skip for now):"
-    
+
     if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_OAUTH_CLIENT_ID}" ]]; then
         read -rp "Google OAuth Client ID [${EXISTING_OAUTH_CLIENT_ID}]: " oauth_id
         oauth_id="${oauth_id:-${EXISTING_OAUTH_CLIENT_ID}}"
@@ -363,7 +363,7 @@ configure_authentik() {
     # Use existing secrets if preserving, otherwise generate new ones
     local secret_key
     local pg_password
-    
+
     if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_AUTHENTIK_SECRET_KEY}" ]]; then
         echo "Using existing Authentik configuration"
         secret_key="${EXISTING_AUTHENTIK_SECRET_KEY}"
@@ -438,10 +438,10 @@ configure_alerting() {
     echo
     echo "Alert Configuration:"
     echo "1. Email alerts only"
-    echo "2. Telegram alerts only" 
+    echo "2. Telegram alerts only"
     echo "3. Both Email and Telegram alerts"
     echo "4. Skip alert configuration"
-    
+
     local default_alert_choice="1"
     if [[ "$preserve_existing" == "true" ]]; then
         if [[ -n "${EXISTING_TELEGRAM_BOT_TOKEN}" ]] && [[ -n "${EXISTING_SMTP_HOST}" ]]; then
@@ -454,25 +454,25 @@ configure_alerting() {
             default_alert_choice="4"
         fi
     fi
-    
+
     read -rp "Choose alert configuration [${default_alert_choice}]: " alert_choice
     alert_choice="${alert_choice:-${default_alert_choice}}"
-    
+
     case "$alert_choice" in
         1|3)
             echo
             echo "Email Alert Configuration:"
-            
+
             # SMTP Host
             local default_smtp_host="${EXISTING_SMTP_HOST:-smtp.gmail.com}"
             read -rp "SMTP Host [${default_smtp_host}]: " smtp_host
             smtp_host="${smtp_host:-${default_smtp_host}}"
-            
+
             # SMTP Port
             local default_smtp_port="${EXISTING_SMTP_PORT:-587}"
             read -rp "SMTP Port [${default_smtp_port}]: " smtp_port
             smtp_port="${smtp_port:-${default_smtp_port}}"
-            
+
             # SMTP Username
             if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_SMTP_USERNAME}" ]]; then
                 read -rp "SMTP Username [${EXISTING_SMTP_USERNAME}]: " smtp_user
@@ -480,7 +480,7 @@ configure_alerting() {
             else
                 read -rp "SMTP Username: " smtp_user
             fi
-            
+
             # SMTP Password
             if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_SMTP_PASSWORD}" ]]; then
                 read -rsp "SMTP Password [****] (press Enter to keep existing): " smtp_pass
@@ -490,7 +490,7 @@ configure_alerting() {
                 read -rsp "SMTP Password: " smtp_pass
                 echo
             fi
-            
+
             # Alert recipient email
             if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_ALERT_EMAIL_TO}" ]]; then
                 read -rp "Alert recipient email [${EXISTING_ALERT_EMAIL_TO}]: " alert_email
@@ -498,7 +498,7 @@ configure_alerting() {
             else
                 read -rp "Alert recipient email: " alert_email
             fi
-            
+
             sed -i "s|^SMTP_HOST=.*|SMTP_HOST=${smtp_host}|" "${JACKER_DIR}/.env.tmp"
             sed -i "s|^SMTP_PORT=.*|SMTP_PORT=${smtp_port}|" "${JACKER_DIR}/.env.tmp"
             sed -i "s|^SMTP_USERNAME=.*|SMTP_USERNAME=${smtp_user}|" "${JACKER_DIR}/.env.tmp"
@@ -506,7 +506,7 @@ configure_alerting() {
             sed -i "s|^ALERT_EMAIL_TO=.*|ALERT_EMAIL_TO=${alert_email}|" "${JACKER_DIR}/.env.tmp"
             ;;
     esac
-    
+
     case "$alert_choice" in
         2|3)
             echo
@@ -517,7 +517,7 @@ configure_alerting() {
             echo "3. Add the bot to a group/channel or message it directly"
             echo "4. Get the chat ID (you can use @userinfobot or @RawDataBot)"
             echo
-            
+
             # Telegram Bot Token
             if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_TELEGRAM_BOT_TOKEN}" ]]; then
                 read -rp "Telegram Bot Token [${EXISTING_TELEGRAM_BOT_TOKEN:0:10}...] (Enter to keep): " telegram_token
@@ -525,7 +525,7 @@ configure_alerting() {
             else
                 read -rp "Telegram Bot Token: " telegram_token
             fi
-            
+
             # Telegram Chat ID
             if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_TELEGRAM_CHAT_ID}" ]]; then
                 read -rp "Telegram Chat ID [${EXISTING_TELEGRAM_CHAT_ID}]: " telegram_chat_id
@@ -533,10 +533,10 @@ configure_alerting() {
             else
                 read -rp "Telegram Chat ID (can be negative for groups): " telegram_chat_id
             fi
-            
+
             sed -i "s|^TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=${telegram_token}|" "${JACKER_DIR}/.env.tmp"
             sed -i "s|^TELEGRAM_CHAT_ID=.*|TELEGRAM_CHAT_ID=${telegram_chat_id}|" "${JACKER_DIR}/.env.tmp"
-            
+
             # Test Telegram connection if token and chat ID are provided
             if [[ -n "$telegram_token" ]] && [[ -n "$telegram_chat_id" ]]; then
                 echo
@@ -638,58 +638,6 @@ generate_all_secrets() {
 #########################################
 
 create_directory_structure() {
-    log_info "Creating directory structure..."
-
-    # Create all required directories based on compose services
-    local dirs=(
-        "data/traefik/acme"
-        "data/traefik/logs"
-        "data/oauth2-proxy"
-        # CrowdSec: Only create config/parsers and data directories
-        # Hub, scenarios, and patterns are managed dynamically by CrowdSec
-        "data/crowdsec/config/parsers/s02-enrich"
-        "data/crowdsec/data"
-        "data/postgres"
-        "data/redis"
-        "data/loki/data/rules"
-        "data/loki/data/chunks"
-        "data/loki/data/compactor"
-        "data/promtail"
-        "data/grafana/data"
-        "data/prometheus"
-        "data/alertmanager/data"
-        "data/alertmanager/certs"
-        "data/alertmanager/templates"
-        "data/homepage"
-        "data/portainer"
-        "data/vscode"
-        "data/node-exporter"
-        "data/jaeger"
-        "config/traefik/rules"
-        "config/oauth2-proxy"
-        "config/crowdsec"
-        "config/postgres"
-        "config/redis"
-        "config/loki"
-        "config/grafana/provisioning/dashboards"
-        "config/grafana/provisioning/datasources"
-        "config/grafana/provisioning/notifiers"
-        "config/prometheus"
-        "config/alertmanager"
-        "config/homepage"
-        "config/jaeger"
-        "secrets"
-    )
-
-    for dir in "${dirs[@]}"; do
-        if ! mkdir -p "${JACKER_DIR}/${dir}" 2>/dev/null; then
-            # If mkdir fails due to permissions, try with sudo and fix ownership
-            log_warn "Permission issue with ${dir}, fixing..."
-            sudo mkdir -p "${JACKER_DIR}/${dir}"
-            sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/${dir}"
-        fi
-    done
-
     # Set specific permissions
     touch "${JACKER_DIR}/data/traefik/acme/acme.json" 2>/dev/null || \
         { sudo touch "${JACKER_DIR}/data/traefik/acme/acme.json" && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/traefik/acme/acme.json"; }
@@ -698,108 +646,6 @@ create_directory_structure() {
     # Secrets directory should be restricted
     chmod 700 "${JACKER_DIR}/secrets" 2>/dev/null || \
         { sudo chmod 700 "${JACKER_DIR}/secrets"; }
-
-    log_success "Directory structure created"
-}
-
-#########################################
-# Set Directory Ownership
-#########################################
-
-set_directory_ownership() {
-    log_info "Setting directory ownership for service users..."
-
-    # Load PUID/PGID from .env if it exists (for PostgreSQL)
-    local puid=1000
-    local pgid=1000
-    if [[ -f "${JACKER_DIR}/.env" ]]; then
-        puid=$(grep "^PUID=" "${JACKER_DIR}/.env" | cut -d= -f2)
-        pgid=$(grep "^PGID=" "${JACKER_DIR}/.env" | cut -d= -f2)
-    fi
-
-    # PostgreSQL (uses PUID:PGID from .env)
-    if [[ -d "${JACKER_DIR}/data/postgres" ]]; then
-        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/postgres" 2>/dev/null || \
-        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/postgres"
-    fi
-
-    # Redis (uses PUID:PGID from .env, same as PostgreSQL)
-    if [[ -d "${JACKER_DIR}/data/redis" ]]; then
-        # Ensure group write permission for redis data subdirectory
-        chmod -R 775 "${JACKER_DIR}/data/redis/data" 2>/dev/null || \
-        sudo chmod -R 775 "${JACKER_DIR}/data/redis/data"
-
-        # Set ownership to match PUID:PGID from .env
-        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/redis" 2>/dev/null || \
-        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/redis"
-    fi
-
-    # Loki (UID:GID 10001:10001)
-    if [[ -d "${JACKER_DIR}/data/loki" ]]; then
-        chown -R 10001:10001 "${JACKER_DIR}/data/loki" 2>/dev/null || \
-        sudo chown -R 10001:10001 "${JACKER_DIR}/data/loki"
-    fi
-
-    # Grafana (uses PUID:PGID from .env)
-    if [[ -d "${JACKER_DIR}/data/grafana" ]]; then
-        # Ensure group write permission
-        chmod -R 775 "${JACKER_DIR}/data/grafana" 2>/dev/null || \
-        sudo chmod -R 775 "${JACKER_DIR}/data/grafana"
-
-        # Set ownership to match PUID:PGID from .env
-        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/grafana" 2>/dev/null || \
-        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/grafana"
-    fi
-
-    # Prometheus (uses PUID:PGID from .env)
-    if [[ -d "${JACKER_DIR}/data/prometheus" ]]; then
-        # Ensure group write permission
-        chmod -R 775 "${JACKER_DIR}/data/prometheus" 2>/dev/null || \
-        sudo chmod -R 775 "${JACKER_DIR}/data/prometheus"
-
-        # Set ownership to match PUID:PGID from .env
-        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/prometheus" 2>/dev/null || \
-        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/prometheus"
-    fi
-
-    # Alertmanager (uses PUID:PGID from .env)
-    if [[ -d "${JACKER_DIR}/data/alertmanager" ]]; then
-        # Ensure group write permission
-        chmod -R 775 "${JACKER_DIR}/data/alertmanager" 2>/dev/null || \
-        sudo chmod -R 775 "${JACKER_DIR}/data/alertmanager"
-
-        # Set ownership to match PUID:PGID from .env
-        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/alertmanager" 2>/dev/null || \
-        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/alertmanager"
-    fi
-
-    # CrowdSec (uses PUID:PGID from .env)
-    if [[ -d "${JACKER_DIR}/data/crowdsec" ]]; then
-        # Ensure group write permission
-        chmod -R 775 "${JACKER_DIR}/data/crowdsec" 2>/dev/null || \
-        sudo chmod -R 775 "${JACKER_DIR}/data/crowdsec"
-
-        # Set ownership to match PUID:PGID from .env
-        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/crowdsec" 2>/dev/null || \
-        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/crowdsec"
-    fi
-
-    # Jaeger (uses PUID:PGID from .env)
-    if [[ -d "${JACKER_DIR}/data/jaeger" ]]; then
-        # Create badger subdirectory if it doesn't exist
-        mkdir -p "${JACKER_DIR}/data/jaeger/badger" 2>/dev/null || \
-        sudo mkdir -p "${JACKER_DIR}/data/jaeger/badger"
-
-        # Ensure group write permission
-        chmod -R 775 "${JACKER_DIR}/data/jaeger" 2>/dev/null || \
-        sudo chmod -R 775 "${JACKER_DIR}/data/jaeger"
-
-        # Set ownership to match PUID:PGID from .env (not hardcoded UID)
-        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/jaeger" 2>/dev/null || \
-        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/jaeger"
-    fi
-
-    log_success "Directory ownership configured"
 }
 
 #########################################
@@ -944,7 +790,7 @@ create_configuration_files() {
 
     # Create secrets files
     create_secrets_files
-    
+
     # Configure alert integrations
     configure_alert_integrations
 
@@ -1143,24 +989,24 @@ EOF
 # Configure alert integrations (Telegram, Slack, Email)
 configure_alert_integrations() {
     log_info "Configuring alert integrations..."
-    
+
     # Configure Alertmanager if any notification method is set
     if [[ -n "${TELEGRAM_BOT_TOKEN}" ]] || [[ -n "${SMTP_HOST}" ]] || [[ -n "${SLACK_WEBHOOK_URL}" ]]; then
         log_info "Setting up Alertmanager configuration..."
-        
+
         # Create Alertmanager config directory if it doesn't exist
         mkdir -p "${JACKER_DIR}/config/alertmanager"
-        
+
         # Note about Telegram configuration
         if [[ -n "${TELEGRAM_BOT_TOKEN}" ]] && [[ -n "${TELEGRAM_CHAT_ID}" ]]; then
             log_info "Telegram credentials configured"
             log_warn "Note: To receive Telegram alerts, you'll need to add alertmanager-bot service"
             log_info "See docs/TELEGRAM_ALERTS.md for setup instructions"
         fi
-        
+
         log_success "Alert integrations configured"
     fi
-    
+
     # Configure Grafana alerting
     if [[ -n "${TELEGRAM_BOT_TOKEN}" ]] || [[ -n "${SMTP_HOST}" ]] || [[ -n "${SLACK_WEBHOOK_URL}" ]]; then
         configure_grafana_alerting
@@ -1182,7 +1028,7 @@ apiVersion: 1
 
 notifiers:
 EOF
-    
+
     # Add Telegram notifier if configured
     if [[ -n "${TELEGRAM_BOT_TOKEN}" ]] && [[ -n "${TELEGRAM_CHAT_ID}" ]]; then
         cat >> "${JACKER_DIR}/config/grafana/provisioning/notifiers/telegram.yaml" <<EOF
@@ -1200,7 +1046,7 @@ EOF
       uploadImage: true
 EOF
     fi
-    
+
     # Add Email notifier if configured
     if [[ -n "${SMTP_HOST}" ]]; then
         cat >> "${JACKER_DIR}/config/grafana/provisioning/notifiers/telegram.yaml" <<EOF
@@ -1217,7 +1063,7 @@ EOF
       singleEmail: false
 EOF
     fi
-    
+
     # Add Slack notifier if configured
     if [[ -n "${SLACK_WEBHOOK_URL}" ]]; then
         cat >> "${JACKER_DIR}/config/grafana/provisioning/notifiers/telegram.yaml" <<EOF
@@ -1237,7 +1083,7 @@ EOF
       uploadImage: true
 EOF
     fi
-    
+
     log_success "Grafana notification channels configured"
 }
 
@@ -1371,7 +1217,7 @@ configure_docker() {
         log_info "Adding $USER to docker group..."
         sudo usermod -aG docker "$USER"
         log_warn "You'll need to log out and back in for docker group membership to take effect"
-        
+
         # For the current session, we need to use sudo for docker commands
         # Set a flag so we know to use sudo
         export NEED_DOCKER_SUDO=true
@@ -1398,7 +1244,7 @@ EOF
 
     # Restart Docker to apply configuration
     sudo systemctl restart docker
-    
+
     # If we need sudo, inform the user
     if [[ "${NEED_DOCKER_SUDO}" == "true" ]]; then
         log_info "Docker commands will use 'sudo' until you log out and back in"
@@ -1462,7 +1308,7 @@ initialize_services() {
 
     # Start core infrastructure services first
     log_info "Starting core services..."
-    
+
     # Start socket-proxy and redis first (they don't have network conflicts)
     $docker_cmd compose up -d socket-proxy redis || {
         log_warn "Initial service start failed, trying alternate approach..."
@@ -1470,7 +1316,7 @@ initialize_services() {
         $docker_cmd compose up -d socket-proxy 2>/dev/null || true
         $docker_cmd compose up -d redis 2>/dev/null || true
     }
-    
+
     # Start postgres separately to handle network issues
     log_info "Starting PostgreSQL..."
     $docker_cmd compose up -d postgres || {
@@ -1481,12 +1327,12 @@ initialize_services() {
             # Remove the existing container
             $docker_cmd rm -f postgres 2>/dev/null || true
         fi
-        
+
         # Try starting postgres again
         $docker_cmd compose up -d postgres 2>/dev/null || {
             log_error "Failed to start PostgreSQL. This may be due to network configuration."
             log_info "Attempting to fix PostgreSQL network configuration..."
-            
+
             # Create a temporary compose override to start postgres with single network
             cat > "${JACKER_DIR}/docker-compose.override.yml" <<EOF
 services:
@@ -1496,10 +1342,10 @@ services:
 EOF
             # Start with single network
             $docker_cmd compose up -d postgres
-            
+
             # Remove override file
             rm -f "${JACKER_DIR}/docker-compose.override.yml"
-            
+
             # Now connect to additional networks
             $docker_cmd network connect monitoring postgres 2>/dev/null || true
             $docker_cmd network connect backup postgres 2>/dev/null || true
@@ -1693,8 +1539,6 @@ setup_jacker() {
     # Create configuration files
     create_configuration_files
 
-    # Set directory ownership (AFTER configs are written)
-    set_directory_ownership
 
     # Prepare system
     prepare_system
