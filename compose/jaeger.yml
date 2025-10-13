@@ -9,6 +9,9 @@ services:
     security_opt:
       - no-new-privileges=true
 
+    # Run as specific user to match data directory ownership
+    user: "${PUID:-1000}:${PGID:-1000}"
+
     restart: unless-stopped
 
     healthcheck:
