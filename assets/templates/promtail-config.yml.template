@@ -159,7 +159,7 @@ scrape_configs:
           rate: ${PROMTAIL_RATE_LIMIT:-100}
           burst: ${PROMTAIL_BURST_LIMIT:-1000}
           by_label_name: "container"
-          drop: false
+          drop: true
 
   # ------------------------------------------------------------
   # System Logs (syslog)
@@ -187,40 +187,42 @@ scrape_configs:
 
   # ------------------------------------------------------------
   # Traefik Access Logs
+  # NOTE: Disabled due to JMES expression issues with hyphenated field names
+  # TODO: Re-enable after testing actual Traefik JSON log format
   # ------------------------------------------------------------
-  - job_name: traefik
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: traefik
-          service: traefik
-          __path__: /logs/traefik/access.log
-
-    pipeline_stages:
-      - json:
-          expressions:
-            timestamp: time
-            method: RequestMethod
-            path: RequestPath
-            protocol: RequestProtocol
-            status: OriginStatus
-            duration: Duration
-            client_ip: ClientHost
-            user_agent: request_User-Agent
-
-      - labels:
-          method:
-          status:
-
-      - timestamp:
-          source: timestamp
-          format: RFC3339
-
-      # Filter out health checks
-      - match:
-          selector: '{path="/ping"}'
-          action: drop
+  # - job_name: traefik
+  #   static_configs:
+  #     - targets:
+  #         - localhost
+  #       labels:
+  #         job: traefik
+  #         service: traefik
+  #         __path__: /logs/traefik/access.log
+  #
+  #   pipeline_stages:
+  #     - json:
+  #         expressions:
+  #           timestamp: time
+  #           method: RequestMethod
+  #           path: RequestPath
+  #           protocol: RequestProtocol
+  #           status: OriginStatus
+  #           duration: Duration
+  #           client_ip: ClientHost
+  #           user_agent: request_User-Agent
+  #
+  #     - labels:
+  #         method:
+  #         status:
+  #
+  #     - timestamp:
+  #         source: timestamp
+  #         format: RFC3339
+  #
+  #     # Filter out health checks
+  #     - match:
+  #         selector: '{path="/ping"}'
+  #         action: drop
 
   # ------------------------------------------------------------
   # Application Logs (custom paths)

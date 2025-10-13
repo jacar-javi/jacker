@@ -718,10 +718,15 @@ set_directory_ownership() {
         sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/postgres"
     fi
 
-    # Redis (UID:GID 999:999)
+    # Redis (uses PUID:PGID from .env, same as PostgreSQL)
     if [[ -d "${JACKER_DIR}/data/redis" ]]; then
-        chown -R 999:999 "${JACKER_DIR}/data/redis" 2>/dev/null || \
-        sudo chown -R 999:999 "${JACKER_DIR}/data/redis"
+        # Ensure group write permission for redis data subdirectory
+        chmod -R 775 "${JACKER_DIR}/data/redis/data" 2>/dev/null || \
+        sudo chmod -R 775 "${JACKER_DIR}/data/redis/data"
+
+        # Set ownership to match PUID:PGID from .env
+        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/redis" 2>/dev/null || \
+        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/redis"
     fi
 
     # Loki (UID:GID 10001:10001)
@@ -730,26 +735,61 @@ set_directory_ownership() {
         sudo chown -R 10001:10001 "${JACKER_DIR}/data/loki"
     fi
 
-    # Grafana (UID:GID 472:472)
+    # Grafana (uses PUID:PGID from .env)
     if [[ -d "${JACKER_DIR}/data/grafana" ]]; then
-        chown -R 472:472 "${JACKER_DIR}/data/grafana" 2>/dev/null || \
-        sudo chown -R 472:472 "${JACKER_DIR}/data/grafana"
+        # Ensure group write permission
+        chmod -R 775 "${JACKER_DIR}/data/grafana" 2>/dev/null || \
+        sudo chmod -R 775 "${JACKER_DIR}/data/grafana"
+
+        # Set ownership to match PUID:PGID from .env
+        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/grafana" 2>/dev/null || \
+        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/grafana"
     fi
 
-    # Prometheus (UID:GID 65534:65534 - nobody:nobody)
+    # Prometheus (uses PUID:PGID from .env)
     if [[ -d "${JACKER_DIR}/data/prometheus" ]]; then
-        chown -R 65534:65534 "${JACKER_DIR}/data/prometheus" 2>/dev/null || \
-        sudo chown -R 65534:65534 "${JACKER_DIR}/data/prometheus"
+        # Ensure group write permission
+        chmod -R 775 "${JACKER_DIR}/data/prometheus" 2>/dev/null || \
+        sudo chmod -R 775 "${JACKER_DIR}/data/prometheus"
+
+        # Set ownership to match PUID:PGID from .env
+        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/prometheus" 2>/dev/null || \
+        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/prometheus"
     fi
 
-    # Alertmanager (UID:GID 65534:65534 - nobody:nobody)
+    # Alertmanager (uses PUID:PGID from .env)
     if [[ -d "${JACKER_DIR}/data/alertmanager" ]]; then
-        chown -R 65534:65534 "${JACKER_DIR}/data/alertmanager" 2>/dev/null || \
-        sudo chown -R 65534:65534 "${JACKER_DIR}/data/alertmanager"
+        # Ensure group write permission
+        chmod -R 775 "${JACKER_DIR}/data/alertmanager" 2>/dev/null || \
+        sudo chmod -R 775 "${JACKER_DIR}/data/alertmanager"
+
+        # Set ownership to match PUID:PGID from .env
+        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/alertmanager" 2>/dev/null || \
+        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/alertmanager"
+    fi
+
+    # CrowdSec (uses PUID:PGID from .env)
+    if [[ -d "${JACKER_DIR}/data/crowdsec" ]]; then
+        # Ensure group write permission
+        chmod -R 775 "${JACKER_DIR}/data/crowdsec" 2>/dev/null || \
+        sudo chmod -R 775 "${JACKER_DIR}/data/crowdsec"
+
+        # Set ownership to match PUID:PGID from .env
+        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/crowdsec" 2>/dev/null || \
+        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/crowdsec"
     fi
 
     # Jaeger (UID:GID 10001:10001)
     if [[ -d "${JACKER_DIR}/data/jaeger" ]]; then
+        # Create badger subdirectory if it doesn't exist
+        mkdir -p "${JACKER_DIR}/data/jaeger/badger" 2>/dev/null || \
+        sudo mkdir -p "${JACKER_DIR}/data/jaeger/badger"
+
+        # Ensure group write permission
+        chmod -R 775 "${JACKER_DIR}/data/jaeger" 2>/dev/null || \
+        sudo chmod -R 775 "${JACKER_DIR}/data/jaeger"
+
+        # Set ownership to match Jaeger container UID
         chown -R 10001:10001 "${JACKER_DIR}/data/jaeger" 2>/dev/null || \
         sudo chown -R 10001:10001 "${JACKER_DIR}/data/jaeger"
     fi
@@ -794,11 +834,53 @@ create_configuration_files() {
                   sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/config/loki/promtail-config.yml"; }
         fi
 
+        # OAuth2 Proxy configuration
+        if [[ -f "$templates_dir/oauth2-proxy.cfg.template" ]]; then
+            log_info "Generating OAuth2 Proxy configuration from template..."
+            envsubst < "$templates_dir/oauth2-proxy.cfg.template" > "${JACKER_DIR}/config/oauth2-proxy/oauth2-proxy.cfg" 2>/dev/null || \
+                { sudo bash -c "envsubst < '$templates_dir/oauth2-proxy.cfg.template' > '${JACKER_DIR}/config/oauth2-proxy/oauth2-proxy.cfg'" && \
+                  sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/config/oauth2-proxy/oauth2-proxy.cfg"; }
+        fi
+
         # CrowdSec configuration
         if [[ -f "$templates_dir/config.yaml.local.template" ]]; then
             envsubst < "$templates_dir/config.yaml.local.template" > "${JACKER_DIR}/data/crowdsec/config/config.yaml.local" 2>/dev/null || \
                 { sudo bash -c "envsubst < '$templates_dir/config.yaml.local.template' > '${JACKER_DIR}/data/crowdsec/config/config.yaml.local'" && \
                   sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/crowdsec/config/config.yaml.local"; }
+        fi
+
+        # CrowdSec hub pre-installation (read-only filesystem compatibility)
+        log_info "Pre-installing CrowdSec hub collections..."
+
+        # Create hub directory structure
+        mkdir -p "${JACKER_DIR}/data/crowdsec/hub" 2>/dev/null || \
+            { sudo mkdir -p "${JACKER_DIR}/data/crowdsec/hub" && \
+              sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/crowdsec/hub"; }
+
+        # Pre-install hub collections using temporary container
+        log_info "Starting temporary CrowdSec container for hub setup..."
+        docker run --rm \
+            --name crowdsec-init \
+            -v "${JACKER_DIR}/data/crowdsec/config:/etc/crowdsec:rw" \
+            -v "${JACKER_DIR}/data/crowdsec/hub:/var/lib/crowdsec/data:rw" \
+            crowdsecurity/crowdsec:v1.7.0 \
+            sh -c "cscli hub update && \
+                   cscli collections install crowdsecurity/linux && \
+                   cscli collections install crowdsecurity/traefik && \
+                   cscli parsers install crowdsecurity/whitelists && \
+                   echo 'Hub collections pre-installed successfully'" 2>&1 || {
+                log_warn "CrowdSec hub pre-installation failed, will retry during service initialization"
+            }
+
+        # Set proper ownership on hub directory
+        chown -R "$(id -u):$(id -g)" "${JACKER_DIR}/data/crowdsec/hub" 2>/dev/null || \
+            sudo chown -R "$(id -u):$(id -g)" "${JACKER_DIR}/data/crowdsec/hub"
+
+        # Verify hub installation
+        if [[ -d "${JACKER_DIR}/data/crowdsec/hub/collections" ]]; then
+            log_success "CrowdSec hub collections pre-installed and verified"
+        else
+            log_warn "CrowdSec hub collections directory not found, may need runtime installation"
         fi
 
         # Homepage configuration
@@ -1026,8 +1108,15 @@ create_secrets_files() {
     openssl rand -base64 48 > "${secrets_dir}/portainer_secret"
     openssl rand -base64 48 > "${secrets_dir}/traefik_forward_oauth"
 
-    # Set restrictive permissions
+    # Set restrictive permissions on most secrets
     chmod 600 "${secrets_dir}"/*
+
+    # However, some secrets need to be readable by containers running as different UIDs
+    # OAuth secrets - used by OAuth2-proxy running as UID 65532
+    chmod 644 "${secrets_dir}/oauth_cookie_secret" 2>/dev/null || true
+
+    # PostgreSQL password - used by postgres-exporter running as nobody user
+    chmod 644 "${secrets_dir}/postgres_password" 2>/dev/null || true
 
     # Create .gitignore for secrets
     cat > "${secrets_dir}/.gitignore" <<EOF

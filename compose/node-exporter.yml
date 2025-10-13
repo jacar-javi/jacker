@@ -71,7 +71,8 @@ services:
       # Web configuration
       - "--web.listen-address=:${NODE_EXPORTER_PORT:-9100}"
       - "--web.telemetry-path=/metrics"
-      - "--web.disable-exporter-metrics=${NODE_EXPORTER_DISABLE_EXPORTER_METRICS:-false}"
+      # Note: --web.disable-exporter-metrics flag removed (node-exporter doesn't accept =false syntax)
+      # Exporter metrics are enabled by default
       - "--web.max-requests=${NODE_EXPORTER_MAX_REQUESTS:-40}"
 
       # Collectors to enable (comprehensive list)

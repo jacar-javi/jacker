@@ -92,7 +92,8 @@ services:
       - "--web.timeout=${ALERTMANAGER_WEB_TIMEOUT:-0}"
       - "--cluster.listen-address=0.0.0.0:9094"
       - "--cluster.advertise-address=${ALERTMANAGER_CLUSTER_ADVERTISE:-}"
-      - "--cluster.peer=${ALERTMANAGER_CLUSTER_PEERS:-}"
+      # Note: cluster.peer removed for single-instance deployments (causes errors when empty)
+      # For HA setup, use the alertmanager-secondary service with "ha" profile
       - "--cluster.peer-timeout=${ALERTMANAGER_CLUSTER_TIMEOUT:-15s}"
       - "--cluster.gossip-interval=${ALERTMANAGER_GOSSIP_INTERVAL:-200ms}"
       - "--cluster.pushpull-interval=${ALERTMANAGER_PUSHPULL_INTERVAL:-1m}"

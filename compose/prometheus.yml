@@ -109,7 +109,8 @@ services:
       - "--web.external-url=https://prometheus.${PUBLIC_FQDN}"
       - "--web.route-prefix=/"
       - "--web.listen-address=0.0.0.0:9090"
-      - "--web.config.file=/etc/prometheus/web.yml"
+      # Note: --web.config.file removed (web.yml file is optional and not currently used)
+      # If needed for TLS or authentication, create config/prometheus/web.yml and uncomment
       - "--log.level=${PROMETHEUS_LOG_LEVEL:-info}"
       - "--log.format=${PROMETHEUS_LOG_FORMAT:-logfmt}"
       - "--query.timeout=${PROMETHEUS_QUERY_TIMEOUT:-2m}"
@@ -258,7 +259,8 @@ services:
       - "--web.telemetry-path=/metrics"
       - "--web.external-url=https://pushgateway.${PUBLIC_FQDN}"
       - "--web.route-prefix=/"
-      - "--push.disable-consistency-check=false"
+      # Note: --push.disable-consistency-check flag removed (pushgateway doesn't accept =false syntax)
+      # Consistency checking is enabled by default
 
     volumes:
       - ${DATADIR}/pushgateway:/data
