@@ -5,7 +5,7 @@ services:
     container_name: traefik
 
     # Use specific version for production stability
-    image: traefik:v3.5.5
+    image: traefik:v3.2
 
     # ====================================================================
     # SECURITY CONFIGURATION
