@@ -252,46 +252,49 @@ services:
 
   # ====================================================================
   # pgBackRest - Advanced Backup and Recovery
+  # NOTE: Commented out - pgBackRest doesn't have an official Docker image
+  # You can build your own or use an alternative backup solution
   # ====================================================================
-  pgbackrest:
-    image: pgbackrest/pgbackrest:latest
-    container_name: pgbackrest
-
-    security_opt:
-      - no-new-privileges:true
-
-    restart: unless-stopped
-
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-    networks:
-      - database
-      - backup
-
-    volumes:
-      - ${DATADIR}/postgres/data:/var/lib/postgresql/data:ro
-      - ${DATADIR}/postgres/backups:/var/lib/pgbackrest:rw
-      - ${DATADIR}/postgres/archive:/var/lib/postgresql/archive:rw
-      - ${DATADIR}/pgbackrest/config:/etc/pgbackrest:ro
-      - ${DATADIR}/pgbackrest/log:/var/log/pgbackrest:rw
-
-    environment:
-      PGBACKREST_STANZA: ${PGBACKREST_STANZA:-main}
-      PGBACKREST_PG_HOST: postgres
-      PGBACKREST_PG_PORT: 5432
-      PGBACKREST_PG_USER: ${POSTGRES_USER}
-      PGBACKREST_PG_PASSWORD: ${POSTGRES_PASSWORD}
-      PGBACKREST_REPO_PATH: /var/lib/pgbackrest
-      PGBACKREST_LOG_PATH: /var/log/pgbackrest
-      PGBACKREST_LOG_LEVEL: ${PGBACKREST_LOG_LEVEL:-info}
-      PGBACKREST_PROCESS_MAX: 4
-      PGBACKREST_COMPRESS_TYPE: lz4
-      PGBACKREST_REPO_RETENTION_FULL: 2
-      PGBACKREST_REPO_RETENTION_DIFF: 4
-      TZ: ${TZ}
-
-    labels:
-      - "backup.tool=pgbackrest"
-      - "backup.stanza=main"
+  # pgbackrest:
+  #   # NOTE: This image doesn't exist - needs custom build
+  #   # image: pgbackrest/pgbackrest:latest
+  #   container_name: pgbackrest
+  #
+  #   security_opt:
+  #     - no-new-privileges:true
+  #
+  #   restart: unless-stopped
+  #
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #
+  #   networks:
+  #     - database
+  #     - backup
+  #
+  #   volumes:
+  #     - ${DATADIR}/postgres/data:/var/lib/postgresql/data:ro
+  #     - ${DATADIR}/postgres/backups:/var/lib/pgbackrest:rw
+  #     - ${DATADIR}/postgres/archive:/var/lib/postgresql/archive:rw
+  #     - ${DATADIR}/pgbackrest/config:/etc/pgbackrest:ro
+  #     - ${DATADIR}/pgbackrest/log:/var/log/pgbackrest:rw
+  #
+  #   environment:
+  #     PGBACKREST_STANZA: ${PGBACKREST_STANZA:-main}
+  #     PGBACKREST_PG_HOST: postgres
+  #     PGBACKREST_PG_PORT: 5432
+  #     PGBACKREST_PG_USER: ${POSTGRES_USER}
+  #     PGBACKREST_PG_PASSWORD: ${POSTGRES_PASSWORD}
+  #     PGBACKREST_REPO_PATH: /var/lib/pgbackrest
+  #     PGBACKREST_LOG_PATH: /var/log/pgbackrest
+  #     PGBACKREST_LOG_LEVEL: ${PGBACKREST_LOG_LEVEL:-info}
+  #     PGBACKREST_PROCESS_MAX: 4
+  #     PGBACKREST_COMPRESS_TYPE: lz4
+  #     PGBACKREST_REPO_RETENTION_FULL: 2
+  #     PGBACKREST_REPO_RETENTION_DIFF: 4
+  #     TZ: ${TZ}
+  #
+  #   labels:
+  #     - "backup.tool=pgbackrest"
+  #     - "backup.stanza=main"
