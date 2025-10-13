@@ -71,9 +71,6 @@ services:
       # TLS certificates
       - ${DATADIR}/redis/certs:/tls:ro
 
-      # Logs
-      - ${DATADIR}/redis/logs:/logs:rw
-
       # Timezone
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
