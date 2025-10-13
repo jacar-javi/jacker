@@ -14,10 +14,11 @@ services:
 
     networks:
       - traefik_proxy
+      - cache
 
     ports:
-      # Expose metrics port internally for Prometheus scraping
-      - "127.0.0.1:9090:9090"
+      # Expose metrics port internally for Prometheus scraping (changed from 9090 to avoid conflict)
+      - "127.0.0.1:44180:44180"
 
     depends_on:
       traefik:
@@ -63,7 +64,7 @@ services:
 
       # HTTP Router
       - "traefik.http.routers.oauth.entrypoints=websecure"
-      - "traefik.http.routers.oauth.rule=Host(`auth.${PUBLIC_FQDN}`)"
+      - "traefik.http.routers.oauth.rule=Host(`oauth.${PUBLIC_FQDN}`)"
       - "traefik.http.routers.oauth.tls=true"
       - "traefik.http.routers.oauth.tls.certResolver=http"
 
