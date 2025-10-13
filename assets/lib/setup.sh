@@ -683,13 +683,63 @@ create_directory_structure() {
     touch "${JACKER_DIR}/data/traefik/acme/acme.json"
     chmod 600 "${JACKER_DIR}/data/traefik/acme/acme.json"
 
-    # Loki needs special permissions for UID 10001
-    chmod -R 777 "${JACKER_DIR}/data/loki/data"
-
     # Secrets directory should be restricted
     chmod 700 "${JACKER_DIR}/secrets"
 
-    log_success "Directory structure created"
+    # Set ownership for services that run as non-root users
+    log_info "Setting directory ownership for service users..."
+
+    # Load PUID/PGID from .env if it exists (for PostgreSQL)
+    local puid=1000
+    local pgid=1000
+    if [[ -f "${JACKER_DIR}/.env" ]]; then
+        puid=$(grep "^PUID=" "${JACKER_DIR}/.env" | cut -d= -f2)
+        pgid=$(grep "^PGID=" "${JACKER_DIR}/.env" | cut -d= -f2)
+    fi
+
+    # PostgreSQL (uses PUID:PGID from .env)
+    if [[ -d "${JACKER_DIR}/data/postgres" ]]; then
+        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/postgres" 2>/dev/null || \
+        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/postgres"
+    fi
+
+    # Redis (UID:GID 999:999)
+    if [[ -d "${JACKER_DIR}/data/redis" ]]; then
+        chown -R 999:999 "${JACKER_DIR}/data/redis" 2>/dev/null || \
+        sudo chown -R 999:999 "${JACKER_DIR}/data/redis"
+    fi
+
+    # Loki (UID:GID 10001:10001)
+    if [[ -d "${JACKER_DIR}/data/loki" ]]; then
+        chown -R 10001:10001 "${JACKER_DIR}/data/loki" 2>/dev/null || \
+        sudo chown -R 10001:10001 "${JACKER_DIR}/data/loki"
+    fi
+
+    # Grafana (UID:GID 472:472)
+    if [[ -d "${JACKER_DIR}/data/grafana" ]]; then
+        chown -R 472:472 "${JACKER_DIR}/data/grafana" 2>/dev/null || \
+        sudo chown -R 472:472 "${JACKER_DIR}/data/grafana"
+    fi
+
+    # Prometheus (UID:GID 65534:65534 - nobody:nobody)
+    if [[ -d "${JACKER_DIR}/data/prometheus" ]]; then
+        chown -R 65534:65534 "${JACKER_DIR}/data/prometheus" 2>/dev/null || \
+        sudo chown -R 65534:65534 "${JACKER_DIR}/data/prometheus"
+    fi
+
+    # Alertmanager (UID:GID 65534:65534 - nobody:nobody)
+    if [[ -d "${JACKER_DIR}/data/alertmanager" ]]; then
+        chown -R 65534:65534 "${JACKER_DIR}/data/alertmanager" 2>/dev/null || \
+        sudo chown -R 65534:65534 "${JACKER_DIR}/data/alertmanager"
+    fi
+
+    # Jaeger (UID:GID 10001:10001)
+    if [[ -d "${JACKER_DIR}/data/jaeger" ]]; then
+        chown -R 10001:10001 "${JACKER_DIR}/data/jaeger" 2>/dev/null || \
+        sudo chown -R 10001:10001 "${JACKER_DIR}/data/jaeger"
+    fi
+
+    log_success "Directory structure created with proper ownership"
 }
 
 #########################################

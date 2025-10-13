@@ -88,6 +88,7 @@ services:
     # ====================================================================
     command:
       - "-config.file=/etc/loki/local-config.yaml"
+      - "-config.expand-env=true"
       - "-target=${LOKI_TARGET:-all}"
       - "-log.level=${LOKI_LOG_LEVEL:-info}"
       - "-log.format=${LOKI_LOG_FORMAT:-json}"
