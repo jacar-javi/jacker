@@ -254,7 +254,7 @@ services:
       - "traefik.http.routers.redis-commander.entrypoints=websecure"
       - "traefik.http.routers.redis-commander.rule=Host(`redis.${PUBLIC_FQDN}`)"
       - "traefik.http.routers.redis-commander.tls=true"
-      - "traefik.http.routers.redis-commander.tls.certResolver=http"
+      - "traefik.http.routers.redis-commander.tls.certresolver=http"
       - "traefik.http.routers.redis-commander.service=redis-commander"
       - "traefik.http.routers.redis-commander.middlewares=chain-oauth@file"
       - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"

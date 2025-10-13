@@ -181,7 +181,7 @@ services:
       - "traefik.http.routers.alertmanager.entrypoints=websecure"
       - "traefik.http.routers.alertmanager.rule=Host(`alertmanager.${PUBLIC_FQDN}`)"
       - "traefik.http.routers.alertmanager.tls=true"
-      - "traefik.http.routers.alertmanager.tls.certResolver=http"
+      - "traefik.http.routers.alertmanager.tls.certresolver=http"
       - "traefik.http.routers.alertmanager.service=alertmanager"
       - "traefik.http.routers.alertmanager.middlewares=chain-oauth@file"
       - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"

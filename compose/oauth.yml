@@ -66,7 +66,7 @@ services:
       - "traefik.http.routers.oauth.entrypoints=websecure"
       - "traefik.http.routers.oauth.rule=Host(`oauth.${PUBLIC_FQDN}`)"
       - "traefik.http.routers.oauth.tls=true"
-      - "traefik.http.routers.oauth.tls.certResolver=http"
+      - "traefik.http.routers.oauth.tls.certresolver=http"
 
       # Service
       - "traefik.http.routers.oauth.service=oauth-svc"

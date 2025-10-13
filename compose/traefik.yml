@@ -190,7 +190,7 @@ services:
 
       # TLS Configuration
       - "traefik.http.routers.traefik-rtr.tls=true"
-      - "traefik.http.routers.traefik-rtr.tls.certResolver=http"
+      - "traefik.http.routers.traefik-rtr.tls.certresolver=http"
 
       # Service Configuration
       - "traefik.http.routers.traefik-rtr.service=api@internal"
