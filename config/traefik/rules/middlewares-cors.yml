@@ -20,10 +20,12 @@ http:
         addVaryHeader: true
 
     # Restrictive CORS for internal services
+    # Note: Dynamic configuration doesn't support env variable expansion
+    # Configure specific origins in service labels if needed
     middlewares-cors-restrict:
       headers:
-        accessControlAllowOriginList:
-          - "https://{{env \"PUBLIC_FQDN\"}}"
+        accessControlAllowOriginListRegex:
+          - "^https://.*\\.jacarsystems\\.net$"  # Allow all Jacker subdomains
         accessControlAllowMethods:
           - GET
           - POST
