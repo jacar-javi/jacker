@@ -3,8 +3,14 @@
 # network-fix.sh - Fix Docker network configuration issues
 #
 
+# Determine script directory and set JACKER_DIR
+if [[ -z "${JACKER_DIR:-}" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    export JACKER_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+fi
+
 # Source common functions
-source "${JACKER_DIR:-/opt/jacker}/assets/lib/common.sh"
+source "${JACKER_DIR}/assets/lib/common.sh"
 
 # Fix PostgreSQL multiple network issue
 fix_postgres_networks() {
