@@ -1,26 +1,17 @@
 /* Jacker Homepage Custom Styles */
 
-/* Logo width - target img with alt="logo" and override inline styles */
-img[alt="logo"] {
+/* Logo width - ONLY target the header/top logo, not service icons */
+/* The header logo is in the .information-widget-logo container at the top */
+.information-widget-logo img[alt="logo"] {
   width: 200px !important;
   height: auto !important;
   min-width: 200px !important;
   max-width: 200px !important;
 }
 
-/* Additional specificity for header logo */
-header img[alt="logo"],
-header img[src*="yo_y_jacar"] {
-  width: 200px !important;
-  height: auto !important;
-  min-width: 200px !important;
-  max-width: 200px !important;
-}
-
-/* Information widget logo (if needed) */
-.information-widget-logo,
-.information-widget-logo svg {
-  width: 200px !important;
-  height: auto !important;
-  max-width: 200px !important;
+/* Ensure service icons remain normal size */
+.service-icon,
+[class*="service"] img:not(.information-widget-logo img) {
+  width: 48px !important;
+  height: 48px !important;
 }
