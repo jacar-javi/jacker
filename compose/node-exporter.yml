@@ -23,10 +23,19 @@ services:
 
     # Required for accessing host metrics
     pid: host
-    network_mode: host
+    # Note: Changed from network_mode: host to explicit networks
+    # to allow Prometheus to scrape metrics via Docker DNS
 
     # Restart policy
     restart: unless-stopped
+
+    # Network configuration
+    networks:
+      - monitoring
+
+    # Port exposure for Prometheus scraping
+    ports:
+      - "127.0.0.1:9100:9100"
 
     # ====================================================================
     # RESOURCE LIMITS
@@ -71,8 +80,7 @@ services:
       # Web configuration
       - "--web.listen-address=:${NODE_EXPORTER_PORT:-9100}"
       - "--web.telemetry-path=/metrics"
-      # Note: --web.disable-exporter-metrics flag removed (node-exporter doesn't accept =false syntax)
-      # Exporter metrics are enabled by default
+      # Exporter metrics are enabled by default (no flag needed)
       - "--web.max-requests=${NODE_EXPORTER_MAX_REQUESTS:-40}"
 
       # Collectors to enable (comprehensive list)

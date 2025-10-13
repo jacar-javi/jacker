@@ -5,12 +5,12 @@
 title: Jacker
 headerStyle: clean
 language: es
+icon: /images/yo_y_jacar.png
 
 quicklaunch:
   searchDescriptions: true
   hideInternetSearch: true
   hideVisitURL: true
-
 
 layout:
   Frontend Apps:

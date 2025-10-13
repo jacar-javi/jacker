@@ -583,9 +583,8 @@ regenerate_api_keys() {
     echo "$cs_api_pass" > "${JACKER_DIR}/secrets/crowdsec_lapi_key"
     chmod 600 "${JACKER_DIR}/secrets/"*_key
 
-    # Re-register bouncers with CrowdSec
-    docker compose exec -T crowdsec cscli bouncers delete traefik-bouncer 2>/dev/null || true
-    docker compose exec -T crowdsec cscli bouncers add traefik-bouncer -k "$cs_traefik_key" 2>/dev/null || true
+    # Note: Bouncer re-registration removed - using Traefik plugin instead
+    # Traefik plugin uses BOUNCER_KEY_TRAEFIK_FILE environment variable
 
     log_success "API keys regenerated"
 }

@@ -4,7 +4,7 @@ http:
     chain-api:
       chain:
         middlewares:
-          - middlewares-traefik-bouncer
+          - crowdsec-bouncer@file         # CrowdSec IPS protection via Traefik plugin
           - middlewares-rate-limit-api
           - middlewares-cors-restrict
           - middlewares-secure-headers

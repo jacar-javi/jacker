@@ -165,7 +165,7 @@ services:
       GF_LOG_CONSOLE_FORMAT: ${GF_LOG_CONSOLE_FORMAT:-json}
 
       # Alerting configuration
-      GF_ALERTING_ENABLED: ${GF_ALERTING_ENABLED:-true}
+      GF_ALERTING_ENABLED: ${GF_ALERTING_ENABLED:-false}
       GF_UNIFIED_ALERTING_ENABLED: ${GF_UNIFIED_ALERTING_ENABLED:-true}
 
       # Metrics and analytics

@@ -1,3 +1,2 @@
-- name: traefik-bouncer
-  key: test_bouncer_key
-  type: traefik
+# Legacy traefik-bouncer removed - using Traefik plugin instead
+# See compose/traefik-crowdsec-plugin.yml for modern CrowdSec integration

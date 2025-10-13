@@ -4,7 +4,7 @@ http:
     chain-oauth:
       chain:
         middlewares:
-          - middlewares-traefik-bouncer  # CrowdSec IPS protection
+          - crowdsec-bouncer@file         # CrowdSec IPS protection via Traefik plugin
           - middlewares-rate-limit        # Standard rate limiting
           - middlewares-secure-headers    # Security headers including CSP
           - middlewares-oauth             # Google OAuth authentication

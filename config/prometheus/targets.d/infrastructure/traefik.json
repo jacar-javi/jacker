@@ -1,6 +1,6 @@
 [
   {
-    "targets": ["traefik:8080"],
+    "targets": ["traefik:9100"],
     "labels": {
       "job": "traefik",
       "service": "traefik",

@@ -11,7 +11,15 @@ services:
     restart: unless-stopped
 
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:3000/",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -21,7 +29,8 @@ services:
       - traefik_proxy
       - socket_proxy
     volumes:
-      - ../data/homepage:/app/config
+      - ${CONFIGDIR}/homepage/config:/app/config
+      - ${CONFIGDIR}/homepage/images:/public/images
     environment:
       TZ: $TZ
       PUID: $PUID

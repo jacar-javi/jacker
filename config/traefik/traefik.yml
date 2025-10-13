@@ -114,7 +114,6 @@ entryPoints:
         certresolver: http
         # options: tls-opts@file
       # middlewares:
-      #   - middlewares-traefik-bouncer@file
       #   - middlewares-secure-headers@file
       #   - middlewares-compress@file
     # HTTP/3 Support

@@ -57,7 +57,7 @@ ingester:
   chunk_target_size: 1536000
   chunk_idle_period: 30m
   chunk_retain_period: 0s
-  max_transfer_retries: 0
+  # max_transfer_retries: 0  # Removed in Loki 3.5.5
   lifecycler:
     address: 127.0.0.1
     ring:
@@ -83,7 +83,7 @@ compactor:
   delete_request_store: filesystem
 
 limits_config:
-  enforce_metric_name: false
+  # enforce_metric_name: false  # Removed in Loki 3.5.5
   reject_old_samples: true
   reject_old_samples_max_age: 168h
   max_cache_freshness_per_query: 10m

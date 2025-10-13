@@ -53,6 +53,8 @@ services:
       - cache
       - socket_proxy
 
+    # Extra hosts removed - node-exporter now on monitoring network
+
     # Port exposure (only bind to localhost for security)
     ports:
       - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"

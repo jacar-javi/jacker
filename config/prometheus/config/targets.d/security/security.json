@@ -8,7 +8,7 @@
     }
   },
   {
-    "targets": ["traefik:8082"],
+    "targets": ["traefik:9100"],
     "labels": {
       "job": "traefik",
       "instance": "traefik",

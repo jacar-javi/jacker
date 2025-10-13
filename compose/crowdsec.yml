@@ -176,20 +176,12 @@ services:
         crowdsecurity/apache2
         crowdsecurity/sshd
         crowdsecurity/wordpress
-        crowdsecurity/docker-collection
         crowdsecurity/pgsql
-        crowdsecurity/redis
-        crowdsecurity/grafana
-        crowdsecurity/mysql
-        crowdsecurity/endlessh
-        crowdsecurity/postfix
-        crowdsecurity/dovecot
 
       # Scenarios Configuration
       SCENARIOS: |
         crowdsecurity/ssh-bf
         crowdsecurity/ssh-slow-bf
-        crowdsecurity/http-bf-wordpress
         crowdsecurity/http-sqli-probing
         crowdsecurity/http-xss-probing
         crowdsecurity/http-path-traversal-probing

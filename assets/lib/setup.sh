@@ -1613,9 +1613,8 @@ configure_crowdsec() {
         docker_cmd="sudo docker"
     fi
 
-    # Register bouncers
-    $docker_cmd compose exec -T crowdsec cscli bouncers add traefik-bouncer \
-        -k "${CROWDSEC_TRAEFIK_BOUNCER_API_KEY}" 2>/dev/null || true
+    # Note: Bouncer registration removed - CrowdSec auto-registers bouncers via
+    # BOUNCER_KEY_TRAEFIK_FILE and BOUNCER_KEY_FIREWALL_FILE environment variables
 
     # Install collections
     $docker_cmd compose exec -T crowdsec cscli collections install crowdsecurity/traefik 2>/dev/null || true

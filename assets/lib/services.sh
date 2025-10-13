@@ -87,20 +87,10 @@ register_crowdsec_bouncers() {
     local hostname="${HOSTNAME:-$(hostname)}"
     local api_password="${CROWDSEC_API_LOCAL_PASSWORD:-}"
 
-    # Register Traefik bouncer (check if already exists first)
-    if [ -n "$traefik_key" ]; then
-        info "Checking Traefik bouncer registration"
-        if docker compose exec -T crowdsec cscli bouncers list | grep -q "traefik-bouncer"; then
-            info "Traefik bouncer already registered"
-        else
-            info "Registering Traefik bouncer"
-            if docker compose exec -T crowdsec cscli bouncers add traefik-bouncer --key "$traefik_key" &>/dev/null; then
-                success "Traefik bouncer registered"
-            else
-                warning "Failed to register Traefik bouncer (may already exist via BOUNCER_KEY env var)"
-            fi
-        fi
-    fi
+    # Note: Legacy traefik-bouncer registration removed
+    # CrowdSec now integrates with Traefik via plugin (configured in traefik.yml)
+    # Bouncer keys are configured via BOUNCER_KEY_TRAEFIK_FILE environment variable
+    # which auto-registers bouncers when CrowdSec starts
 
     # Register iptables bouncer (check if already exists first)
     if [ -n "$iptables_key" ]; then
