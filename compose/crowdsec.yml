@@ -108,10 +108,6 @@ services:
       # Data persistence (when using SQLite)
       - ${DATADIR}/crowdsec/data:/var/lib/crowdsec/data:rw
 
-      # Custom patterns and scenarios
-      - ${DATADIR}/crowdsec/patterns:/etc/crowdsec/patterns.d:ro
-      - ${DATADIR}/crowdsec/scenarios:/etc/crowdsec/scenarios:ro
-
       # Acquisition configuration
       - ${CONFIGDIR}/crowdsec/acquis.d:/etc/crowdsec/acquis.d:ro
 
