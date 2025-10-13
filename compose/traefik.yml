@@ -189,8 +189,6 @@ services:
       # - "traefik.http.routers.traefik-rtr.priority=100" # High priority for dashboard
 
       # TLS Configuration
-      - "traefik.http.routers.traefik-rtr.tls=true"
-      - "traefik.http.routers.traefik-rtr.tls.certresolver=http"
 
       # Service Configuration
       - "traefik.http.routers.traefik-rtr.service=api@internal"

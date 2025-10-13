@@ -41,7 +41,6 @@ services:
       # HTTP Routers
       - "traefik.http.routers.homepage-rtr.entrypoints=websecure"
       - "traefik.http.routers.homepage-rtr.rule=Host(`$PUBLIC_FQDN`)"
-      - "traefik.http.routers.homepage-rtr.tls.certresolver=http"
       # Middlewares
       # - "traefik.http.routers.homepage-rtr.middlewares=chain-oauth-no-crowdsec@file"
       # HTTP Services
