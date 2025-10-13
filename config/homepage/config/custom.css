@@ -1,6 +1,23 @@
 /* Jacker Homepage Custom Styles */
 
-/* Logo width - information-widget-logo is the correct class */
+/* Logo width - target img with alt="logo" and override inline styles */
+img[alt="logo"] {
+  width: 200px !important;
+  height: auto !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
+}
+
+/* Additional specificity for header logo */
+header img[alt="logo"],
+header img[src*="yo_y_jacar"] {
+  width: 200px !important;
+  height: auto !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
+}
+
+/* Information widget logo (if needed) */
 .information-widget-logo,
 .information-widget-logo svg {
   width: 200px !important;
