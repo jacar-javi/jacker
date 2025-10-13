@@ -644,6 +644,8 @@ create_directory_structure() {
         "data/traefik/acme"
         "data/traefik/logs"
         "data/oauth2-proxy"
+        # CrowdSec: Only create config/parsers and data directories
+        # Hub, scenarios, and patterns are managed dynamically by CrowdSec
         "data/crowdsec/config/parsers/s02-enrich"
         "data/crowdsec/data"
         "data/postgres"
