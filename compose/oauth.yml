@@ -86,20 +86,8 @@ services:
       - "homepage.icon=oauth.svg"
       - "homepage.href=https://auth.${PUBLIC_FQDN}"
 
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:4180/ping",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    # Healthcheck disabled - OAuth2-Proxy uses distroless image with no shell/wget/curl
+    # Traefik loadbalancer healthcheck is used instead (see labels above)
 
     # Resource limits
     deploy:

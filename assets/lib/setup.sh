@@ -579,7 +579,8 @@ generate_all_secrets() {
     if [[ "$preserve_existing" == "true" ]] && [[ -n "${EXISTING_OAUTH_COOKIE_SECRET}" ]]; then
         sed -i "s|^OAUTH_COOKIE_SECRET=.*|OAUTH_COOKIE_SECRET=${EXISTING_OAUTH_COOKIE_SECRET}|" "${JACKER_DIR}/.env.tmp"
     elif ! grep -q "^OAUTH_COOKIE_SECRET=.\+" "${JACKER_DIR}/.env.tmp"; then
-        local cookie_secret=$(python3 -c 'import os,base64; print(base64.b64encode(os.urandom(32)).decode())')
+        # Generate URL-safe base64-encoded 32-byte secret for OAuth2-Proxy
+        local cookie_secret=$(python3 -c 'import os,base64; print(base64.urlsafe_b64encode(os.urandom(32)).decode())')
         sed -i "s|^OAUTH_COOKIE_SECRET=.*|OAUTH_COOKIE_SECRET=${cookie_secret}|" "${JACKER_DIR}/.env.tmp"
     fi
 
@@ -781,7 +782,7 @@ set_directory_ownership() {
         sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/crowdsec"
     fi
 
-    # Jaeger (UID:GID 10001:10001)
+    # Jaeger (uses PUID:PGID from .env)
     if [[ -d "${JACKER_DIR}/data/jaeger" ]]; then
         # Create badger subdirectory if it doesn't exist
         mkdir -p "${JACKER_DIR}/data/jaeger/badger" 2>/dev/null || \
@@ -791,9 +792,9 @@ set_directory_ownership() {
         chmod -R 775 "${JACKER_DIR}/data/jaeger" 2>/dev/null || \
         sudo chmod -R 775 "${JACKER_DIR}/data/jaeger"
 
-        # Set ownership to match Jaeger container UID
-        chown -R 10001:10001 "${JACKER_DIR}/data/jaeger" 2>/dev/null || \
-        sudo chown -R 10001:10001 "${JACKER_DIR}/data/jaeger"
+        # Set ownership to match PUID:PGID from .env (not hardcoded UID)
+        chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/jaeger" 2>/dev/null || \
+        sudo chown -R "${puid}:${pgid}" "${JACKER_DIR}/data/jaeger"
     fi
 
     log_success "Directory ownership configured"
@@ -1100,6 +1101,7 @@ create_secrets_files() {
 
     # Create individual secret files for Docker secrets
     echo "${POSTGRES_PASSWORD}" > "${secrets_dir}/postgres_password"
+    echo "${OAUTH_CLIENT_SECRET}" > "${secrets_dir}/oauth_client_secret"
     echo "${OAUTH_COOKIE_SECRET}" > "${secrets_dir}/oauth_cookie_secret"
     echo "${CROWDSEC_TRAEFIK_BOUNCER_API_KEY}" > "${secrets_dir}/crowdsec_bouncer_key"
     echo "${CROWDSEC_API_LOCAL_PASSWORD}" > "${secrets_dir}/crowdsec_lapi_key"
@@ -1115,6 +1117,7 @@ create_secrets_files() {
 
     # However, some secrets need to be readable by containers running as different UIDs
     # OAuth secrets - used by OAuth2-proxy running as UID 65532
+    chmod 644 "${secrets_dir}/oauth_client_secret" 2>/dev/null || true
     chmod 644 "${secrets_dir}/oauth_cookie_secret" 2>/dev/null || true
 
     # PostgreSQL password - used by postgres-exporter running as nobody user

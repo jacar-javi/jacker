@@ -17,7 +17,7 @@ skip_provider_button = false
 
 # Cookie Configuration
 cookie_name = "_oauth2_proxy"
-cookie_secret = "" # Loaded from Docker secret file
+# cookie_secret loaded from Docker secret file via environment variable
 # cookie_domain is set via environment variable in docker-compose
 cookie_path = "/"
 cookie_expire = "168h"
