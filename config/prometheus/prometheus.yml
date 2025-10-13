@@ -3,7 +3,7 @@ global:
   scrape_timeout: 10s
   evaluation_interval: 15s
   external_labels:
-    monitor: 'jacker-monitor'
+    monitor: jacker-monitor
 
 # Alertmanager configuration
 alerting:
@@ -18,7 +18,7 @@ rule_files:
 # Scrape configurations
 scrape_configs:
   # Traefik v3 metrics
-  - job_name: 'traefik'
+  - job_name: traefik
     static_configs:
       - targets: ['traefik:8080']
     metrics_path: /metrics
@@ -26,48 +26,48 @@ scrape_configs:
     scrape_timeout: 5s
 
   # PostgreSQL metrics
-  - job_name: 'postgres'
+  - job_name: postgres
     static_configs:
       - targets: ['postgres-exporter:9187']
     scrape_interval: 30s
 
   # Redis metrics
-  - job_name: 'redis'
+  - job_name: redis
     static_configs:
       - targets: ['redis-exporter:9121']
     scrape_interval: 30s
 
   # Node exporter metrics (system metrics)
-  - job_name: 'node'
+  - job_name: node
     static_configs:
       - targets: ['node-exporter:9100']
     scrape_interval: 30s
 
   # Prometheus self-monitoring
-  - job_name: 'prometheus'
+  - job_name: prometheus
     static_configs:
       - targets: ['localhost:9090']
 
   # Loki metrics
-  - job_name: 'loki'
+  - job_name: loki
     static_configs:
       - targets: ['loki:3100']
     metrics_path: /metrics
 
   # Grafana metrics
-  - job_name: 'grafana'
+  - job_name: grafana
     static_configs:
       - targets: ['grafana:3000']
     metrics_path: /metrics
 
   # CrowdSec metrics
-  - job_name: 'crowdsec'
+  - job_name: crowdsec
     static_configs:
       - targets: ['crowdsec:6060']
     metrics_path: /metrics
 
   # OAuth2-Proxy metrics
-  - job_name: 'oauth2-proxy'
+  - job_name: oauth2-proxy
     static_configs:
       - targets: ['oauth:9090']
     metrics_path: /metrics

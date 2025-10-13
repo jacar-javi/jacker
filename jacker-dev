@@ -1,0 +1,815 @@
+#!/usr/bin/env bash
+#
+# jacker-dev - Development tools for Jacker project
+# Provides linting, testing, and development utilities
+#
+
+set -euo pipefail
+
+# Script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+JACKER_DIR="${SCRIPT_DIR}"
+
+# Colors for output
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly MAGENTA='\033[0;35m'
+readonly CYAN='\033[0;36m'
+readonly BOLD='\033[1m'
+readonly NC='\033[0m' # No Color
+
+# Version
+readonly VERSION="1.0.0"
+
+#########################################
+# Helper Functions
+#########################################
+
+print_header() {
+    echo -e "\n${BLUE}==>${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+print_info() {
+    echo -e "${CYAN}ℹ${NC} $1"
+}
+
+show_banner() {
+    echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║       JACKER DEVELOPMENT TOOLS         ║${NC}"
+    echo -e "${BLUE}║           Version ${VERSION}              ║${NC}"
+    echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
+}
+
+#########################################
+# Installation Functions
+#########################################
+
+detect_os() {
+    if [[ -f /etc/os-release ]]; then
+        # shellcheck source=/dev/null
+        source /etc/os-release
+        OS_ID="${ID}"
+        OS_VERSION="${VERSION_ID}"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        OS_ID="macos"
+        OS_VERSION=$(sw_vers -productVersion)
+    else
+        OS_ID="unknown"
+        OS_VERSION="unknown"
+    fi
+}
+
+install_shellcheck() {
+    print_header "Installing ShellCheck"
+
+    detect_os
+
+    case "${OS_ID}" in
+        ubuntu|debian)
+            if command -v apt-get &>/dev/null; then
+                print_info "Installing ShellCheck via apt..."
+                sudo apt-get update -qq
+                sudo apt-get install -y shellcheck
+            fi
+            ;;
+        fedora|rhel|centos)
+            if command -v dnf &>/dev/null; then
+                print_info "Installing ShellCheck via dnf..."
+                sudo dnf install -y ShellCheck
+            elif command -v yum &>/dev/null; then
+                print_info "Installing ShellCheck via yum..."
+                sudo yum install -y ShellCheck
+            fi
+            ;;
+        arch|manjaro)
+            if command -v pacman &>/dev/null; then
+                print_info "Installing ShellCheck via pacman..."
+                sudo pacman -S --noconfirm shellcheck
+            fi
+            ;;
+        alpine)
+            if command -v apk &>/dev/null; then
+                print_info "Installing ShellCheck via apk..."
+                sudo apk add --no-cache shellcheck
+            fi
+            ;;
+        macos)
+            if command -v brew &>/dev/null; then
+                print_info "Installing ShellCheck via Homebrew..."
+                brew install shellcheck
+            else
+                print_error "Homebrew not found. Please install Homebrew first."
+                return 1
+            fi
+            ;;
+        *)
+            print_warning "Unknown OS. Attempting to install from GitHub releases..."
+            install_shellcheck_from_github
+            ;;
+    esac
+
+    if command -v shellcheck &>/dev/null; then
+        print_success "ShellCheck installed successfully ($(shellcheck --version | grep version: | awk '{print $2}'))"
+        return 0
+    else
+        print_error "Failed to install ShellCheck"
+        return 1
+    fi
+}
+
+install_shellcheck_from_github() {
+    local version="v0.9.0"
+    local arch
+
+    case "$(uname -m)" in
+        x86_64) arch="x86_64" ;;
+        aarch64) arch="aarch64" ;;
+        armv7l) arch="armv6hf" ;;
+        *)
+            print_error "Unsupported architecture: $(uname -m)"
+            return 1
+            ;;
+    esac
+
+    local url="https://github.com/koalaman/shellcheck/releases/download/${version}/shellcheck-${version}.linux.${arch}.tar.xz"
+
+    print_info "Downloading ShellCheck from GitHub..."
+    cd /tmp
+    wget -q "$url" -O shellcheck.tar.xz || curl -sL "$url" -o shellcheck.tar.xz
+    tar -xf shellcheck.tar.xz
+    sudo mv "shellcheck-${version}/shellcheck" /usr/local/bin/
+    rm -rf shellcheck.tar.xz "shellcheck-${version}"
+    cd - >/dev/null
+}
+
+install_yamllint() {
+    print_header "Installing yamllint"
+
+    # Try pip first (most universal)
+    if command -v pip3 &>/dev/null || command -v pip &>/dev/null; then
+        print_info "Installing yamllint via pip..."
+        if command -v pip3 &>/dev/null; then
+            pip3 install --user yamllint
+        else
+            pip install --user yamllint
+        fi
+
+        # Add local bin to PATH if needed
+        export PATH="${HOME}/.local/bin:${PATH}"
+    else
+        detect_os
+
+        case "${OS_ID}" in
+            ubuntu|debian)
+                print_info "Installing yamllint via apt..."
+                sudo apt-get update -qq
+                sudo apt-get install -y yamllint
+                ;;
+            fedora|rhel|centos)
+                print_info "Installing yamllint via dnf/yum..."
+                if command -v dnf &>/dev/null; then
+                    sudo dnf install -y yamllint
+                else
+                    sudo yum install -y yamllint
+                fi
+                ;;
+            arch|manjaro)
+                print_info "Installing yamllint via pacman..."
+                sudo pacman -S --noconfirm yamllint
+                ;;
+            alpine)
+                print_info "Installing yamllint via apk..."
+                sudo apk add --no-cache yamllint
+                ;;
+            macos)
+                if command -v brew &>/dev/null; then
+                    print_info "Installing yamllint via Homebrew..."
+                    brew install yamllint
+                else
+                    print_error "Please install pip or Homebrew first"
+                    return 1
+                fi
+                ;;
+            *)
+                print_error "Cannot install yamllint on unknown OS"
+                return 1
+                ;;
+        esac
+    fi
+
+    # Check PATH for user installations
+    if [[ -f "${HOME}/.local/bin/yamllint" ]]; then
+        export PATH="${HOME}/.local/bin:${PATH}"
+    fi
+
+    if command -v yamllint &>/dev/null; then
+        print_success "yamllint installed successfully ($(yamllint --version))"
+        return 0
+    else
+        print_error "Failed to install yamllint"
+        return 1
+    fi
+}
+
+ensure_tools_installed() {
+    local install_required=false
+
+    if ! command -v shellcheck &>/dev/null; then
+        print_warning "ShellCheck not found"
+        install_required=true
+        install_shellcheck || return 1
+    else
+        print_info "ShellCheck found: $(shellcheck --version | grep version: | awk '{print $2}')"
+    fi
+
+    if ! command -v yamllint &>/dev/null; then
+        print_warning "yamllint not found"
+        install_required=true
+        install_yamllint || return 1
+    else
+        print_info "yamllint found: $(yamllint --version | awk '{print $2}')"
+    fi
+
+    if [[ "$install_required" == false ]]; then
+        print_success "All linting tools are installed"
+    fi
+
+    return 0
+}
+
+#########################################
+# Linting Functions
+#########################################
+
+run_shellcheck() {
+    local fix_mode="${1:-false}"
+
+    print_header "Running ShellCheck"
+
+    # Find all shell scripts
+    local scripts
+    scripts=$(find "${JACKER_DIR}" -type f \( -name "*.sh" -o -name "jacker" -o -name "jacker-dev" \) \
+        -not -path "*/.git/*" \
+        -not -path "*/node_modules/*" \
+        -not -path "*/.serena/*" \
+        -not -path "*/yaml_backup*/*" | sort)
+
+    local total_scripts
+    total_scripts=$(echo "$scripts" | wc -l)
+
+    print_info "Found $total_scripts shell scripts"
+
+    if [[ "$fix_mode" == "true" ]]; then
+        print_header "Applying ShellCheck fixes"
+
+        # ShellCheck doesn't have a --fix option, so we use our custom fix scripts
+        if [[ -f "${JACKER_DIR}/fix_shellcheck_warnings.sh" ]]; then
+            print_info "Running custom ShellCheck fix script..."
+            bash "${JACKER_DIR}/fix_shellcheck_warnings.sh"
+        else
+            print_info "Creating ShellCheck fix script..."
+            create_shellcheck_fix_script
+            bash "${JACKER_DIR}/fix_shellcheck_auto.sh"
+        fi
+
+        print_success "ShellCheck fixes applied"
+    fi
+
+    # Run ShellCheck analysis
+    local errors=0
+    local warnings=0
+    local clean_files=0
+
+    echo
+    print_header "ShellCheck Analysis Results"
+    echo "────────────────────────────────"
+
+    for script in $scripts; do
+        local output
+        output=$(shellcheck --format=gcc "$script" 2>&1 || true)
+
+        if [[ -z "$output" ]]; then
+            ((clean_files++))
+            echo -e "${GREEN}✓${NC} $(basename "$script")"
+        else
+            local script_errors
+            local script_warnings
+            script_errors=$(echo "$output" | grep -c "error:" 2>/dev/null || true)
+            script_warnings=$(echo "$output" | grep -c "warning:" 2>/dev/null || true)
+            script_errors=${script_errors:-0}
+            script_warnings=${script_warnings:-0}
+
+            if [[ "$script_errors" -gt 0 ]]; then
+                echo -e "${RED}✗${NC} $(basename "$script") - $script_errors errors, $script_warnings warnings"
+                ((errors += script_errors))
+            elif [[ "$script_warnings" -gt 0 ]]; then
+                echo -e "${YELLOW}⚠${NC} $(basename "$script") - $script_warnings warnings"
+            fi
+            ((warnings += script_warnings))
+        fi
+    done
+
+    echo
+    print_header "ShellCheck Summary"
+    echo "────────────────────────────"
+    echo -e "Total scripts:  $total_scripts"
+    echo -e "Clean files:    ${GREEN}$clean_files${NC} ✓"
+    echo -e "Errors:         ${RED}$errors${NC} $([ "$errors" -eq 0 ] && echo "✓" || echo "✗")"
+    echo -e "Warnings:       ${YELLOW}$warnings${NC}"
+
+    # Return non-zero if there are errors
+    [[ "$errors" -eq 0 ]] && return 0 || return 1
+}
+
+run_yamllint() {
+    local fix_mode="${1:-false}"
+
+    print_header "Running yamllint"
+
+    # Ensure .yamllint config exists
+    if [[ ! -f "${JACKER_DIR}/.yamllint" ]]; then
+        print_info "Creating .yamllint configuration..."
+        create_yamllint_config
+    fi
+
+    # Find all YAML files
+    local yaml_files
+    yaml_files=$(find "${JACKER_DIR}" -type f \( -name "*.yml" -o -name "*.yaml" \) \
+        -not -path "*/.git/*" \
+        -not -path "*/node_modules/*" \
+        -not -path "*/.serena/*" \
+        -not -path "*/yaml_backup*/*" | sort)
+
+    local total_files
+    total_files=$(echo "$yaml_files" | wc -l)
+
+    print_info "Found $total_files YAML files"
+
+    if [[ "$fix_mode" == "true" ]]; then
+        print_header "Applying YAML fixes"
+
+        # yamllint doesn't have --fix in older versions, use custom script
+        if yamllint --help 2>&1 | grep -q -- "--fix"; then
+            print_info "Using yamllint --fix..."
+            for file in $yaml_files; do
+                yamllint --fix "$file" 2>/dev/null || true
+            done
+        else
+            print_info "yamllint --fix not available, using custom fix script..."
+            if [[ -f "${JACKER_DIR}/fix_yaml_auto.py" ]]; then
+                python3 "${JACKER_DIR}/fix_yaml_auto.py"
+            else
+                create_yaml_fix_script
+                python3 "${JACKER_DIR}/fix_yaml_auto.py"
+            fi
+        fi
+
+        print_success "YAML fixes applied"
+    fi
+
+    # Run yamllint analysis
+    local errors=0
+    local warnings=0
+    local clean_files=0
+
+    echo
+    print_header "yamllint Analysis Results"
+    echo "────────────────────────────────"
+
+    for file in $yaml_files; do
+        local output
+        output=$(yamllint --config-file "${JACKER_DIR}/.yamllint" "$file" 2>&1 || true)
+
+        if [[ -z "$output" ]]; then
+            ((clean_files++))
+            echo -e "${GREEN}✓${NC} $(basename "$file")"
+        else
+            local file_errors
+            local file_warnings
+            file_errors=$(echo "$output" | grep -c "error" 2>/dev/null || true)
+            file_warnings=$(echo "$output" | grep -c "warning" 2>/dev/null || true)
+            file_errors=${file_errors:-0}
+            file_warnings=${file_warnings:-0}
+
+            if [[ "$file_errors" -gt 0 ]]; then
+                echo -e "${RED}✗${NC} $(basename "$file") - $file_errors errors, $file_warnings warnings"
+                ((errors += file_errors))
+            elif [[ "$file_warnings" -gt 0 ]]; then
+                echo -e "${YELLOW}⚠${NC} $(basename "$file") - $file_warnings warnings"
+            fi
+            ((warnings += file_warnings))
+        fi
+    done
+
+    echo
+    print_header "yamllint Summary"
+    echo "────────────────────────────"
+    echo -e "Total files:    $total_files"
+    echo -e "Clean files:    ${GREEN}$clean_files${NC} ✓"
+    echo -e "Errors:         ${RED}$errors${NC} $([ "$errors" -eq 0 ] && echo "✓" || echo "✗")"
+    echo -e "Warnings:       ${YELLOW}$warnings${NC}"
+
+    # Return non-zero if there are errors
+    [[ "$errors" -eq 0 ]] && return 0 || return 1
+}
+
+#########################################
+# Configuration Creation Functions
+#########################################
+
+create_yamllint_config() {
+    cat > "${JACKER_DIR}/.yamllint" <<'EOF'
+extends: default
+
+rules:
+  line-length:
+    max: 120
+    level: warning
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+
+  comments:
+    min-spaces-from-content: 2
+    require-starting-space: true
+
+  document-start:
+    present: false
+
+  trailing-spaces: enable
+
+  empty-lines:
+    max: 2
+    max-start: 0
+    max-end: 1
+
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+
+  colons:
+    max-spaces-before: 0
+    max-spaces-after: 1
+
+  commas:
+    max-spaces-before: 0
+    min-spaces-after: 1
+    max-spaces-after: 1
+
+  key-duplicates: enable
+  key-ordering: disable
+
+  quoted-strings:
+    quote-type: any
+    required: only-when-needed
+    extra-required: []
+    extra-allowed: []
+
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no', 'True', 'False']
+    check-keys: false
+
+  new-line-at-end-of-file: enable
+  new-lines:
+    type: unix
+
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: false
+
+ignore: |
+  .git/
+  node_modules/
+  .venv/
+  .serena/
+  *.bak
+  *.tmp
+  yaml_backup*/
+EOF
+    print_success "Created .yamllint configuration"
+}
+
+create_shellcheck_fix_script() {
+    cat > "${JACKER_DIR}/fix_shellcheck_auto.sh" <<'EOF'
+#!/bin/bash
+# Auto-fix common ShellCheck issues
+
+echo "Fixing ShellCheck issues..."
+
+SCRIPTS=$(find . -type f \( -name "*.sh" -o -name "jacker*" \) \
+  -not -path "./.git/*" \
+  -not -path "./node_modules/*" \
+  -not -path "./.serena/*")
+
+# Fix read without -r (SC2162)
+for script in $SCRIPTS; do
+    sed -i.bak 's/read -p/read -rp/g' "$script"
+    sed -i 's/^\(\s*\)read \([^-]\)/\1read -r \2/g' "$script"
+    rm "${script}.bak" 2>/dev/null || true
+done
+
+echo "✅ ShellCheck fixes applied"
+EOF
+    chmod +x "${JACKER_DIR}/fix_shellcheck_auto.sh"
+}
+
+create_yaml_fix_script() {
+    # Create the Python YAML fix script if it doesn't exist
+    [[ -f "${JACKER_DIR}/fix_yaml_auto.py" ]] && return 0
+
+    cat > "${JACKER_DIR}/fix_yaml_auto.py" <<'EOF'
+#!/usr/bin/env python3
+"""Auto-fix common YAML issues"""
+
+import os
+import re
+from pathlib import Path
+import yaml
+
+def fix_yaml_file(filepath):
+    """Fix common YAML issues in a file."""
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        original = content
+
+        # Fix trailing whitespace
+        content = re.sub(r'[ \t]+$', '', content, flags=re.MULTILINE)
+
+        # Add newline at end if missing
+        if content and not content.endswith('\n'):
+            content += '\n'
+
+        # Fix comment spacing
+        content = re.sub(r'^(\s*)#([^\s#])', r'\1# \2', content, flags=re.MULTILINE)
+
+        if content != original:
+            # Validate it's still valid YAML
+            try:
+                yaml.safe_load(content)
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                return True
+            except:
+                return False
+    except:
+        return False
+    return False
+
+# Process all YAML files
+yaml_files = []
+for ext in ['*.yml', '*.yaml']:
+    yaml_files.extend(Path('.').rglob(ext))
+
+yaml_files = [f for f in yaml_files if not any(
+    part in str(f) for part in ['.git', 'node_modules', '.serena', 'yaml_backup']
+)]
+
+fixed = 0
+for f in yaml_files:
+    if fix_yaml_file(f):
+        fixed += 1
+        print(f"✅ Fixed: {f}")
+
+print(f"\n✅ Fixed {fixed} files")
+EOF
+}
+
+#########################################
+# Main Commands
+#########################################
+
+cmd_lint() {
+    local fix_mode=false
+    local tool="all"
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --fix|-f)
+                fix_mode=true
+                shift
+                ;;
+            --shell|--sh)
+                tool="shell"
+                shift
+                ;;
+            --yaml|--yml)
+                tool="yaml"
+                shift
+                ;;
+            --help|-h)
+                show_lint_help
+                exit 0
+                ;;
+            *)
+                print_error "Unknown option: $1"
+                show_lint_help
+                exit 1
+                ;;
+        esac
+    done
+
+    show_banner
+
+    # Ensure tools are installed
+    ensure_tools_installed || {
+        print_error "Failed to install required tools"
+        exit 1
+    }
+
+    local shell_result=0
+    local yaml_result=0
+
+    # Run linters
+    case "$tool" in
+        all)
+            run_shellcheck "$fix_mode" || shell_result=$?
+            echo
+            run_yamllint "$fix_mode" || yaml_result=$?
+            ;;
+        shell)
+            run_shellcheck "$fix_mode" || shell_result=$?
+            ;;
+        yaml)
+            run_yamllint "$fix_mode" || yaml_result=$?
+            ;;
+    esac
+
+    # Final summary
+    echo
+    print_header "Overall Linting Summary"
+    echo "════════════════════════════════════"
+
+    if [[ "$shell_result" -eq 0 ]] && [[ "$yaml_result" -eq 0 ]]; then
+        print_success "All linting checks passed! 🎉"
+        return 0
+    else
+        if [[ "$shell_result" -ne 0 ]]; then
+            print_error "ShellCheck found errors"
+        fi
+        if [[ "$yaml_result" -ne 0 ]]; then
+            print_error "yamllint found errors"
+        fi
+        print_info "Run with --fix to automatically fix some issues"
+        return 1
+    fi
+}
+
+cmd_test() {
+    show_banner
+    print_header "Running Tests"
+
+    # Add test implementation here
+    print_info "Test suite not yet implemented"
+}
+
+cmd_format() {
+    show_banner
+    print_header "Formatting Code"
+
+    # Check for shfmt
+    if ! command -v shfmt &>/dev/null; then
+        print_warning "shfmt not found. Installing..."
+        GO111MODULE=on go install mvdan.cc/sh/v3/cmd/shfmt@latest 2>/dev/null || {
+            print_error "Failed to install shfmt. Please install Go first."
+            exit 1
+        }
+    fi
+
+    print_info "Formatting shell scripts..."
+    find "${JACKER_DIR}" -type f \( -name "*.sh" -o -name "jacker*" \) \
+        -not -path "*/.git/*" \
+        -not -path "*/node_modules/*" \
+        -exec shfmt -w -i 4 {} \;
+
+    print_success "Code formatting complete"
+}
+
+cmd_check() {
+    show_banner
+    print_header "Running Pre-commit Checks"
+
+    # Run all checks
+    cmd_lint || return 1
+
+    print_success "All checks passed"
+}
+
+cmd_install_hooks() {
+    show_banner
+    print_header "Installing Git Hooks"
+
+    if [[ -f "${JACKER_DIR}/hooks/install.sh" ]]; then
+        bash "${JACKER_DIR}/hooks/install.sh"
+    else
+        print_error "Git hooks installer not found"
+        exit 1
+    fi
+}
+
+show_help() {
+    show_banner
+    echo
+    echo "Usage: jacker-dev <command> [options]"
+    echo
+    echo "Commands:"
+    echo "  lint [--fix] [--shell|--yaml]  Run linters on code"
+    echo "  test                            Run test suite"
+    echo "  format                          Format code with shfmt"
+    echo "  check                           Run pre-commit checks"
+    echo "  install-hooks                   Install git hooks"
+    echo "  help                            Show this help message"
+    echo
+    echo "Lint Options:"
+    echo "  --fix, -f      Auto-fix issues where possible"
+    echo "  --shell, --sh  Run only ShellCheck"
+    echo "  --yaml, --yml  Run only yamllint"
+    echo
+    echo "Examples:"
+    echo "  jacker-dev lint                 # Run all linters"
+    echo "  jacker-dev lint --fix           # Fix issues automatically"
+    echo "  jacker-dev lint --shell --fix   # Fix only shell scripts"
+    echo "  jacker-dev check                # Run all pre-commit checks"
+}
+
+show_lint_help() {
+    echo "Usage: jacker-dev lint [options]"
+    echo
+    echo "Options:"
+    echo "  --fix, -f      Auto-fix issues where possible"
+    echo "  --shell, --sh  Run only ShellCheck"
+    echo "  --yaml, --yml  Run only yamllint"
+    echo "  --help, -h     Show this help message"
+    echo
+    echo "Examples:"
+    echo "  jacker-dev lint              # Check all files"
+    echo "  jacker-dev lint --fix        # Fix all fixable issues"
+    echo "  jacker-dev lint --yaml --fix # Fix only YAML files"
+}
+
+#########################################
+# Main Entry Point
+#########################################
+
+main() {
+    local cmd="${1:-help}"
+    shift || true
+
+    case "$cmd" in
+        lint)
+            cmd_lint "$@"
+            ;;
+        test)
+            cmd_test "$@"
+            ;;
+        format)
+            cmd_format "$@"
+            ;;
+        check)
+            cmd_check "$@"
+            ;;
+        install-hooks)
+            cmd_install_hooks "$@"
+            ;;
+        help|-h|--help)
+            show_help
+            exit 0
+            ;;
+        version|-v|--version)
+            echo "jacker-dev version $VERSION"
+            exit 0
+            ;;
+        *)
+            print_error "Unknown command: $cmd"
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+# Run main function
+main "$@"

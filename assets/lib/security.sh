@@ -6,6 +6,7 @@ set -euo pipefail
 
 # Source common functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# shellcheck source=/dev/null
 source "${SCRIPT_DIR}/common.sh"
 
 #########################################
@@ -107,15 +108,15 @@ install_crowdsec_collections() {
 add_crowdsec_bouncer() {
     log_info "Adding CrowdSec bouncer..."
 
-    read -p "Bouncer name: " bouncer_name
-    read -p "Generate random key? (Y/n): " gen_key
+    read -rp "Bouncer name: " bouncer_name
+    read -rp "Generate random key? (Y/n): " gen_key
     gen_key="${gen_key:-Y}"
 
     if [[ "${gen_key,,}" == "y" ]]; then
         local api_key=$(openssl rand -hex 32)
         log_info "Generated API key: $api_key"
     else
-        read -p "API key: " api_key
+        read -rp "API key: " api_key
     fi
 
     # Add bouncer
@@ -141,7 +142,7 @@ ban_ip() {
     local ip="$1"
 
     if [[ -z "$ip" ]]; then
-        read -p "IP address to ban: " ip
+        read -rp "IP address to ban: " ip
     fi
 
     log_info "Banning IP: $ip"
@@ -159,7 +160,7 @@ unban_ip() {
     local ip="$1"
 
     if [[ -z "$ip" ]]; then
-        read -p "IP address to unban: " ip
+        read -rp "IP address to unban: " ip
     fi
 
     log_info "Unbanning IP: $ip"
@@ -177,7 +178,7 @@ whitelist_ip() {
     local ip="$1"
 
     if [[ -z "$ip" ]]; then
-        read -p "IP address to whitelist: " ip
+        read -rp "IP address to whitelist: " ip
     fi
 
     log_info "Whitelisting IP: $ip"
@@ -217,12 +218,12 @@ manage_scenarios() {
             docker compose exec -T crowdsec cscli scenarios list 2>/dev/null
             ;;
         install)
-            read -p "Scenario to install: " scenario
+            read -rp "Scenario to install: " scenario
             docker compose exec -T crowdsec cscli scenarios install "$scenario" 2>/dev/null
             docker compose exec -T crowdsec cscli reload 2>/dev/null
             ;;
         remove)
-            read -p "Scenario to remove: " scenario
+            read -rp "Scenario to remove: " scenario
             docker compose exec -T crowdsec cscli scenarios remove "$scenario" 2>/dev/null
             docker compose exec -T crowdsec cscli reload 2>/dev/null
             ;;
@@ -366,7 +367,7 @@ enable_firewall() {
 
 disable_firewall() {
     log_warn "Disabling firewall - this will leave your system exposed!"
-    read -p "Are you sure? (y/N): " confirm
+    read -rp "Are you sure? (y/N): " confirm
 
     if [[ "${confirm,,}" != "y" ]]; then
         return
@@ -387,7 +388,7 @@ allow_firewall_rule() {
     local source="$2"
 
     if [[ -z "$port" ]]; then
-        read -p "Port or service to allow: " port
+        read -rp "Port or service to allow: " port
     fi
 
     if command -v ufw &>/dev/null; then
@@ -409,7 +410,7 @@ deny_firewall_rule() {
     local source="$2"
 
     if [[ -z "$port" ]]; then
-        read -p "Port or service to deny: " port
+        read -rp "Port or service to deny: " port
     fi
 
     if command -v ufw &>/dev/null; then
@@ -438,7 +439,7 @@ list_firewall_rules() {
 
 reset_firewall() {
     log_warn "This will reset all firewall rules to defaults!"
-    read -p "Are you sure? (y/N): " confirm
+    read -rp "Are you sure? (y/N): " confirm
 
     if [[ "${confirm,,}" != "y" ]]; then
         return
@@ -712,7 +713,7 @@ harden_security() {
     echo "3. Harden containers"
     echo "4. Configure AppArmor/SELinux"
     echo "5. Enable audit logging"
-    read -p "Choose option [1]: " harden_choice
+    read -rp "Choose option [1]: " harden_choice
     harden_choice="${harden_choice:-1}"
 
     case "$harden_choice" in
@@ -730,6 +731,10 @@ harden_security() {
             ;;
         5)
             enable_audit_logging
+            ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
             ;;
     esac
 }
@@ -812,7 +817,7 @@ configure_mandatory_access_control() {
         log_info "SELinux detected"
         if [[ "$(getenforce)" != "Enforcing" ]]; then
             log_warn "SELinux not in enforcing mode"
-            read -p "Enable SELinux enforcing mode? (y/N): " enable_selinux
+            read -rp "Enable SELinux enforcing mode? (y/N): " enable_selinux
             if [[ "${enable_selinux,,}" == "y" ]]; then
                 sudo setenforce 1
                 sudo sed -i 's/^SELINUX=.*/SELINUX=enforcing/' /etc/selinux/config
@@ -848,7 +853,7 @@ EOF
         log_success "Audit logging enabled for Docker"
     else
         log_warn "Audit system not installed"
-        read -p "Install auditd? (y/N): " install_audit
+        read -rp "Install auditd? (y/N): " install_audit
         if [[ "${install_audit,,}" == "y" ]]; then
             if command -v apt-get &>/dev/null; then
                 sudo apt-get install -y auditd

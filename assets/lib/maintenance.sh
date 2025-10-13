@@ -6,6 +6,7 @@ set -euo pipefail
 
 # Source common functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# shellcheck source=/dev/null
 source "${SCRIPT_DIR}/common.sh"
 
 #########################################
@@ -51,7 +52,7 @@ backup_jacker() {
     create_backup_manifest "$backup_dir"
 
     # Compress if requested
-    read -p "Compress backup? (Y/n): " compress
+    read -rp "Compress backup? (Y/n): " compress
     if [[ "${compress,,}" != "n" ]]; then
         compress_backup "$backup_dir"
     fi
@@ -66,7 +67,7 @@ backup_full() {
     log_info "Performing full backup..."
 
     # Stop services if requested
-    read -p "Stop services during backup? (recommended) (Y/n): " stop_services
+    read -rp "Stop services during backup? (recommended) (Y/n): " stop_services
     if [[ "${stop_services,,}" != "n" ]]; then
         docker compose stop
         local services_stopped=true
@@ -127,7 +128,7 @@ backup_config() {
         tar -czf "$backup_dir/secrets.tar.gz.enc" -C "${JACKER_DIR}" secrets
         # Encrypt the secrets backup
         if command -v openssl &>/dev/null; then
-            read -sp "Enter encryption password for secrets: " enc_password
+            read -rsp "Enter encryption password for secrets: " enc_password
             echo
             openssl enc -aes-256-cbc -salt -in "$backup_dir/secrets.tar.gz.enc" \
                     -out "$backup_dir/secrets.tar.gz.enc.aes" -pass pass:"$enc_password"
@@ -265,7 +266,7 @@ backup_selective() {
     echo "6. Security data (CrowdSec)"
     echo "7. Docker volumes"
 
-    read -p "Enter selections (comma-separated, e.g., 1,3,4): " selections
+    read -rp "Enter selections (comma-separated, e.g., 1,3,4): " selections
 
     IFS=',' read -ra SELECTIONS <<< "$selections"
 
@@ -295,6 +296,10 @@ backup_selective() {
                 ;;
             7)
                 backup_volumes "$backup_dir"
+                ;;
+            *)
+                log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+                return 1 2>/dev/null || exit 1
                 ;;
         esac
     done
@@ -373,7 +378,7 @@ restore_jacker() {
     # List available backups
     list_backups
 
-    read -p "Enter backup to restore (path or name): " backup_source
+    read -rp "Enter backup to restore (path or name): " backup_source
 
     # Find backup
     local backup_path
@@ -399,7 +404,7 @@ restore_jacker() {
 
     # Confirm restore
     log_warn "This will overwrite current configuration and data!"
-    read -p "Continue with restore? (y/N): " confirm
+    read -rp "Continue with restore? (y/N): " confirm
 
     if [[ "${confirm,,}" != "y" ]]; then
         log_info "Restore cancelled"
@@ -447,7 +452,7 @@ restore_config() {
     # Restore secrets (if encrypted)
     if [[ -f "$backup_path/secrets.tar.gz.enc.aes" ]]; then
         log_info "Restoring encrypted secrets..."
-        read -sp "Enter decryption password: " dec_password
+        read -rsp "Enter decryption password: " dec_password
         echo
 
         openssl enc -d -aes-256-cbc -in "$backup_path/secrets.tar.gz.enc.aes" \
@@ -600,7 +605,7 @@ update_jacker() {
     echo "2. Update Docker images"
     echo "3. Update configurations"
     echo "4. Update all"
-    read -p "Choose option [4]: " update_choice
+    read -rp "Choose option [4]: " update_choice
     update_choice="${update_choice:-4}"
 
     case "$update_choice" in
@@ -615,6 +620,10 @@ update_jacker() {
             ;;
         4)
             update_all
+            ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
             ;;
     esac
 }
@@ -678,13 +687,13 @@ update_docker_images() {
     # Show which images were updated
     docker compose images
 
-    read -p "Recreate containers with new images? (Y/n): " recreate
+    read -rp "Recreate containers with new images? (Y/n): " recreate
     if [[ "${recreate,,}" != "n" ]]; then
         docker compose up -d --force-recreate
     fi
 
     # Clean up old images
-    read -p "Remove old unused images? (Y/n): " cleanup
+    read -rp "Remove old unused images? (Y/n): " cleanup
     if [[ "${cleanup,,}" != "n" ]]; then
         docker image prune -af
     fi
@@ -722,6 +731,10 @@ update_configurations() {
                     "promtail-config.yml")
                         envsubst < "$template" > "${JACKER_DIR}/data/loki/promtail-config.yml"
                         ;;
+                    *)
+                        log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+                        return 1 2>/dev/null || exit 1
+                        ;;
                 esac
             fi
         done
@@ -754,7 +767,7 @@ cleanup_jacker() {
     echo "3. Clean old backups"
     echo "4. Clean temporary files"
     echo "5. Deep clean (all)"
-    read -p "Choose option: " clean_choice
+    read -rp "Choose option: " clean_choice
 
     case "$clean_choice" in
         1)
@@ -771,6 +784,10 @@ cleanup_jacker() {
             ;;
         5)
             deep_clean
+            ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
             ;;
     esac
 }
@@ -790,7 +807,7 @@ clean_docker_resources() {
     docker image prune -af
 
     # Remove unused volumes
-    read -p "Remove unused volumes? (y/N): " remove_volumes
+    read -rp "Remove unused volumes? (y/N): " remove_volumes
     if [[ "${remove_volumes,,}" == "y" ]]; then
         docker volume prune -f
     fi
@@ -825,7 +842,7 @@ clean_logs() {
         local loki_size=$(du -sh "$loki_dir" | awk '{print $1}')
         log_info "Loki data size: $loki_size"
 
-        read -p "Clean old Loki chunks? (y/N): " clean_loki
+        read -rp "Clean old Loki chunks? (y/N): " clean_loki
         if [[ "${clean_loki,,}" == "y" ]]; then
             find "$loki_dir/chunks" -type f -mtime +7 -delete 2>/dev/null
             log_success "Old Loki chunks cleaned"
@@ -847,7 +864,7 @@ clean_old_backups() {
     log_info "Current backups:"
     ls -lah "$backup_dir"
 
-    read -p "Keep how many recent backups? [5]: " keep_count
+    read -rp "Keep how many recent backups? [5]: " keep_count
     keep_count="${keep_count:-5}"
 
     # Remove old backups
@@ -879,7 +896,7 @@ clean_temp_files() {
 
 deep_clean() {
     log_warn "Deep clean will remove all unnecessary data!"
-    read -p "Continue? (y/N): " confirm
+    read -rp "Continue? (y/N): " confirm
 
     if [[ "${confirm,,}" != "y" ]]; then
         return
@@ -919,7 +936,7 @@ migrate_jacker() {
     echo "2. Migrate from Docker Compose v1 to v2"
     echo "3. Migrate database backend"
     echo "4. Migrate from OAuth to Authentik"
-    read -p "Choose option: " migrate_choice
+    read -rp "Choose option: " migrate_choice
 
     case "$migrate_choice" in
         1)
@@ -933,6 +950,10 @@ migrate_jacker() {
             ;;
         4)
             migrate_to_authentik
+            ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
             ;;
     esac
 }
@@ -1014,7 +1035,7 @@ migrate_database() {
     echo "1. PostgreSQL to MySQL/MariaDB"
     echo "2. SQLite to PostgreSQL"
     echo "3. External database"
-    read -p "Choose option: " db_choice
+    read -rp "Choose option: " db_choice
 
     case "$db_choice" in
         1)
@@ -1026,18 +1047,22 @@ migrate_database() {
         3)
             configure_external_database
             ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
+            ;;
     esac
 }
 
 configure_external_database() {
     log_info "Configuring external database..."
 
-    read -p "Database host: " db_host
-    read -p "Database port [5432]: " db_port
+    read -rp "Database host: " db_host
+    read -rp "Database port [5432]: " db_port
     db_port="${db_port:-5432}"
-    read -p "Database name: " db_name
-    read -p "Database user: " db_user
-    read -sp "Database password: " db_pass
+    read -rp "Database name: " db_name
+    read -rp "Database user: " db_user
+    read -rsp "Database password: " db_pass
     echo
 
     # Update .env

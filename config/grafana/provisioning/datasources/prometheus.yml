@@ -17,5 +17,5 @@ datasources:
       incrementalQuerying: true
       incrementalQueryOverlapWindow: 10m
       disableMetricsLookup: false
-      cacheLevel: 'High'
+      cacheLevel: High
       manageAlerts: true

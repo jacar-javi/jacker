@@ -6,6 +6,7 @@ set -euo pipefail
 
 # Source common functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# shellcheck source=/dev/null
 source "${SCRIPT_DIR}/common.sh"
 
 #########################################
@@ -137,7 +138,7 @@ configure_oauth() {
     echo "2. GitHub OAuth"
     echo "3. Generic OIDC"
     echo "4. Disable OAuth"
-    read -p "Choose provider [1]: " provider_choice
+    read -rp "Choose provider [1]: " provider_choice
     provider_choice="${provider_choice:-1}"
 
     case "$provider_choice" in
@@ -153,6 +154,10 @@ configure_oauth() {
         4)
             disable_oauth
             ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
+            ;;
     esac
 
     # Restart OAuth service
@@ -166,9 +171,9 @@ configure_google_oauth_interactive() {
     echo "Create credentials at: https://console.cloud.google.com/apis/credentials"
     echo
 
-    read -p "OAuth Client ID: " client_id
-    read -p "OAuth Client Secret: " client_secret
-    read -p "Allowed email addresses (comma-separated): " whitelist
+    read -rp "OAuth Client ID: " client_id
+    read -rp "OAuth Client Secret: " client_secret
+    read -rp "Allowed email addresses (comma-separated): " whitelist
 
     # Update .env file
     update_env_var "OAUTH_PROVIDER" "google"
@@ -192,11 +197,11 @@ configure_github_oauth() {
     echo "Create OAuth App at: https://github.com/settings/developers"
     echo
 
-    read -p "OAuth Client ID: " client_id
-    read -p "OAuth Client Secret: " client_secret
-    read -p "GitHub Organization (optional): " github_org
-    read -p "GitHub Team (optional): " github_team
-    read -p "Allowed email addresses (comma-separated): " whitelist
+    read -rp "OAuth Client ID: " client_id
+    read -rp "OAuth Client Secret: " client_secret
+    read -rp "GitHub Organization (optional): " github_org
+    read -rp "GitHub Team (optional): " github_team
+    read -rp "Allowed email addresses (comma-separated): " whitelist
 
     update_env_var "OAUTH_PROVIDER" "github"
     update_env_var "OAUTH_CLIENT_ID" "$client_id"
@@ -213,11 +218,11 @@ configure_oidc() {
     echo "Generic OIDC Configuration"
     echo
 
-    read -p "OIDC Issuer URL: " issuer_url
-    read -p "OAuth Client ID: " client_id
-    read -p "OAuth Client Secret: " client_secret
-    read -p "JWKS URL (optional): " jwks_url
-    read -p "Allowed email addresses (comma-separated): " whitelist
+    read -rp "OIDC Issuer URL: " issuer_url
+    read -rp "OAuth Client ID: " client_id
+    read -rp "OAuth Client Secret: " client_secret
+    read -rp "JWKS URL (optional): " jwks_url
+    read -rp "Allowed email addresses (comma-separated): " whitelist
 
     update_env_var "OAUTH_PROVIDER" "oidc"
     update_env_var "OAUTH_CLIENT_ID" "$client_id"
@@ -231,7 +236,7 @@ configure_oidc() {
 
 disable_oauth() {
     log_warn "Disabling OAuth - services will be publicly accessible!"
-    read -p "Are you sure? (y/N): " confirm
+    read -rp "Are you sure? (y/N): " confirm
 
     if [[ "${confirm,,}" != "y" ]]; then
         log_info "OAuth configuration unchanged"
@@ -317,7 +322,7 @@ configure_ssl() {
     echo "1. Let's Encrypt (recommended)"
     echo "2. Custom certificates"
     echo "3. Self-signed (development only)"
-    read -p "Choose option [1]: " ssl_choice
+    read -rp "Choose option [1]: " ssl_choice
     ssl_choice="${ssl_choice:-1}"
 
     case "$ssl_choice" in
@@ -330,6 +335,10 @@ configure_ssl() {
         3)
             configure_self_signed
             ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
+            ;;
     esac
 
     # Restart Traefik
@@ -341,7 +350,7 @@ configure_letsencrypt() {
     echo
     echo "Let's Encrypt Configuration"
 
-    read -p "Email address for certificates: " le_email
+    read -rp "Email address for certificates: " le_email
     update_env_var "LETSENCRYPT_EMAIL" "$le_email"
 
     # Ensure ACME configuration in Traefik
@@ -369,8 +378,8 @@ configure_custom_certs() {
     echo
     echo "Custom Certificate Configuration"
 
-    read -p "Path to certificate file: " cert_path
-    read -p "Path to private key file: " key_path
+    read -rp "Path to certificate file: " cert_path
+    read -rp "Path to private key file: " key_path
 
     if [[ ! -f "$cert_path" ]] || [[ ! -f "$key_path" ]]; then
         log_error "Certificate files not found"
@@ -444,10 +453,10 @@ configure_domain() {
     echo "Current FQDN: ${PUBLIC_FQDN}"
     echo
 
-    read -p "New domain name [${DOMAINNAME}]: " new_domain
+    read -rp "New domain name [${DOMAINNAME}]: " new_domain
     new_domain="${new_domain:-${DOMAINNAME}}"
 
-    read -p "New hostname [${HOSTNAME}]: " new_hostname
+    read -rp "New hostname [${HOSTNAME}]: " new_hostname
     new_hostname="${new_hostname:-${HOSTNAME}}"
 
     local new_fqdn="${new_hostname}.${new_domain}"
@@ -474,7 +483,7 @@ regenerate_secrets() {
     echo "3. Database passwords"
     echo "4. API keys"
     echo "5. Cancel"
-    read -p "Choose option [5]: " secrets_choice
+    read -rp "Choose option [5]: " secrets_choice
     secrets_choice="${secrets_choice:-5}"
 
     case "$secrets_choice" in
@@ -494,12 +503,16 @@ regenerate_secrets() {
             log_info "Cancelled"
             return
             ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
+            ;;
     esac
 }
 
 regenerate_all_secrets() {
     log_warn "This will regenerate ALL secrets and require service restart!"
-    read -p "Are you sure? (y/N): " confirm
+    read -rp "Are you sure? (y/N): " confirm
 
     if [[ "${confirm,,}" != "y" ]]; then
         return
@@ -535,7 +548,7 @@ regenerate_database_passwords() {
     log_info "Regenerating database passwords..."
 
     log_warn "This will break database connections until services are restarted!"
-    read -p "Continue? (y/N): " confirm
+    read -rp "Continue? (y/N): " confirm
 
     if [[ "${confirm,,}" != "y" ]]; then
         return
@@ -589,7 +602,7 @@ configure_authentik() {
         echo "1. Reconfigure Authentik"
         echo "2. Disable Authentik"
         echo "3. Cancel"
-        read -p "Choose option [3]: " auth_choice
+        read -rp "Choose option [3]: " auth_choice
         auth_choice="${auth_choice:-3}"
     else
         echo "Authentik is a self-hosted identity provider"
@@ -598,7 +611,7 @@ configure_authentik() {
         echo "  - LDAP/SAML support"
         echo "  - User self-service"
         echo
-        read -p "Enable Authentik? (y/N): " enable_auth
+        read -rp "Enable Authentik? (y/N): " enable_auth
         auth_choice="1"
     fi
 
@@ -611,6 +624,10 @@ configure_authentik() {
             ;;
         3)
             return
+            ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
             ;;
     esac
 }
@@ -657,7 +674,7 @@ setup_authentik() {
 
 disable_authentik() {
     log_warn "This will disable Authentik authentication"
-    read -p "Are you sure? (y/N): " confirm
+    read -rp "Are you sure? (y/N): " confirm
 
     if [[ "${confirm,,}" != "y" ]]; then
         return
@@ -688,7 +705,7 @@ configure_grafana() {
     echo "2. Import dashboards"
     echo "3. Configure data sources"
     echo "4. Reset admin password"
-    read -p "Choose option: " grafana_choice
+    read -rp "Choose option: " grafana_choice
 
     case "$grafana_choice" in
         1)
@@ -703,6 +720,10 @@ configure_grafana() {
         4)
             reset_grafana_password
             ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
+            ;;
     esac
 }
 
@@ -712,7 +733,7 @@ configure_grafana_database() {
     echo "Database backend options:"
     echo "1. SQLite (default)"
     echo "2. PostgreSQL (recommended for HA)"
-    read -p "Choose option [1]: " db_choice
+    read -rp "Choose option [1]: " db_choice
     db_choice="${db_choice:-1}"
 
     if [[ "$db_choice" == "2" ]]; then
@@ -817,7 +838,7 @@ configure_alerting() {
     echo "2. Configure Slack alerts"
     echo "3. Configure webhook alerts"
     echo "4. Test alert configuration"
-    read -p "Choose option: " alert_choice
+    read -rp "Choose option: " alert_choice
 
     case "$alert_choice" in
         1)
@@ -832,24 +853,28 @@ configure_alerting() {
         4)
             test_alerting
             ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
+            ;;
     esac
 }
 
 configure_email_alerts() {
     log_info "Configuring email alerts..."
 
-    read -p "SMTP Host [smtp.gmail.com]: " smtp_host
+    read -rp "SMTP Host [smtp.gmail.com]: " smtp_host
     smtp_host="${smtp_host:-smtp.gmail.com}"
 
-    read -p "SMTP Port [587]: " smtp_port
+    read -rp "SMTP Port [587]: " smtp_port
     smtp_port="${smtp_port:-587}"
 
-    read -p "SMTP Username: " smtp_user
-    read -sp "SMTP Password: " smtp_pass
+    read -rp "SMTP Username: " smtp_user
+    read -rsp "SMTP Password: " smtp_pass
     echo
 
-    read -p "From address: " smtp_from
-    read -p "To address: " smtp_to
+    read -rp "From address: " smtp_from
+    read -rp "To address: " smtp_to
 
     update_env_var "SMTP_HOST" "$smtp_host"
     update_env_var "SMTP_PORT" "$smtp_port"
@@ -867,8 +892,8 @@ configure_email_alerts() {
 configure_slack_alerts() {
     log_info "Configuring Slack alerts..."
 
-    read -p "Slack Webhook URL: " webhook_url
-    read -p "Default channel [#alerts]: " channel
+    read -rp "Slack Webhook URL: " webhook_url
+    read -rp "Default channel [#alerts]: " channel
     channel="${channel:-#alerts}"
 
     update_env_var "SLACK_WEBHOOK_URL" "$webhook_url"
@@ -882,7 +907,7 @@ configure_slack_alerts() {
 configure_webhook_alerts() {
     log_info "Configuring webhook alerts..."
 
-    read -p "Webhook URL: " webhook_url
+    read -rp "Webhook URL: " webhook_url
     update_env_var "WEBHOOK_URL_CRITICAL" "$webhook_url"
 
     update_alertmanager_config
@@ -1022,7 +1047,7 @@ restore_configuration() {
     echo "Available backups:"
     ls -1 "$backup_dir" | sort -r | head -10
 
-    read -p "Enter backup name to restore: " backup_name
+    read -rp "Enter backup name to restore: " backup_name
 
     if [[ ! -d "$backup_dir/$backup_name" ]]; then
         log_error "Backup not found: $backup_name"
@@ -1030,7 +1055,7 @@ restore_configuration() {
     fi
 
     log_warn "This will overwrite current configuration!"
-    read -p "Continue? (y/N): " confirm
+    read -rp "Continue? (y/N): " confirm
 
     if [[ "${confirm,,}" != "y" ]]; then
         return

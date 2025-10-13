@@ -73,26 +73,26 @@ http:
         # Security Response Headers
         customResponseHeaders:
           X-Robots-Tag: "noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
-          X-Frame-Options: "DENY"
-          X-Content-Type-Options: "nosniff"
+          X-Frame-Options: DENY
+          X-Content-Type-Options: nosniff
           X-XSS-Protection: "1; mode=block"
-          X-Permitted-Cross-Domain-Policies: "none"
-          X-Download-Options: "noopen"
-          X-DNS-Prefetch-Control: "off"
-          Cross-Origin-Embedder-Policy: "require-corp"
-          Cross-Origin-Opener-Policy: "same-origin"
-          Cross-Origin-Resource-Policy: "same-site"
-          Referrer-Policy: "strict-origin-when-cross-origin"
+          X-Permitted-Cross-Domain-Policies: none
+          X-Download-Options: noopen
+          X-DNS-Prefetch-Control: off
+          Cross-Origin-Embedder-Policy: require-corp
+          Cross-Origin-Opener-Policy: same-origin
+          Cross-Origin-Resource-Policy: same-site
+          Referrer-Policy: strict-origin-when-cross-origin
           Cache-Control: "no-store, no-cache, must-revalidate, proxy-revalidate"
-          Pragma: "no-cache"
+          Pragma: no-cache
           Expires: "0"
           Server: ""  # Hide server header
 
         # Referrer Policy
-        referrerPolicy: "strict-origin-when-cross-origin"
+        referrerPolicy: strict-origin-when-cross-origin
 
         # Custom Frame Options
-        customFrameOptionsValue: "DENY"
+        customFrameOptionsValue: DENY
 
         # SSL Configuration
         sslHost: ""
@@ -172,11 +172,11 @@ http:
           payment=(),
           usb=()
 
-        referrerPolicy: "strict-origin-when-cross-origin"
+        referrerPolicy: strict-origin-when-cross-origin
 
         customResponseHeaders:
-          X-Frame-Options: "SAMEORIGIN"
-          X-Content-Type-Options: "nosniff"
+          X-Frame-Options: SAMEORIGIN
+          X-Content-Type-Options: nosniff
           X-XSS-Protection: "1; mode=block"
 
     # ====================================================================
@@ -206,9 +206,9 @@ http:
       headers:
         accessControlAllowCredentials: true
         accessControlAllowHeaders:
-          - "Content-Type"
-          - "Authorization"
-          - "X-Requested-With"
+          - Content-Type
+          - Authorization
+          - X-Requested-With
         accessControlAllowMethods:
           - GET
           - POST
@@ -225,9 +225,9 @@ http:
     request-headers:
       headers:
         customRequestHeaders:
-          X-Forwarded-Proto: "https"
+          X-Forwarded-Proto: https
           X-Forwarded-Port: "443"
-          X-Forwarded-Ssl: "on"
+          X-Forwarded-Ssl: on
           X-Forwarded-Host: "${PUBLIC_FQDN}"
 
     # ====================================================================

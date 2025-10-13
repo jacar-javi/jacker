@@ -1124,6 +1124,10 @@ main() {
             show_usage
             exit 0
             ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
+            ;;
     esac
 
     # Check if running from Jacker directory

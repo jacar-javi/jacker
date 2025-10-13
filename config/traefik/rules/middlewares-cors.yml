@@ -30,8 +30,8 @@ http:
           - PUT
           - DELETE
         accessControlAllowHeaders:
-          - "Content-Type"
-          - "Authorization"
+          - Content-Type
+          - Authorization
         accessControlMaxAge: 100
         accessControlAllowCredentials: true
         addVaryHeader: true

@@ -32,19 +32,19 @@ scrape_configs:
             values: ["com.docker.compose.project"]
     relabel_configs:
       - source_labels: ['__meta_docker_container_name']
-        target_label: 'container_name'
+        target_label: container_name
         regex: '/(.*)'
       - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
-        target_label: 'compose_project'
+        target_label: compose_project
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
-        target_label: 'compose_service'
+        target_label: compose_service
       - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'stream'
+        target_label: stream
       - source_labels: ['__meta_docker_container_label_homepage_group']
-        target_label: 'app_group'
+        target_label: app_group
       - source_labels: ['__meta_docker_container_label_homepage_name']
-        target_label: 'app_name'
-      - target_label: 'host'
+        target_label: app_name
+      - target_label: host
         replacement: '${HOSTNAME}'
 
   # System logs
@@ -67,9 +67,9 @@ scrape_configs:
         host: ${HOSTNAME}
     relabel_configs:
       - source_labels: ['__journal__systemd_unit']
-        target_label: 'unit'
+        target_label: unit
       - source_labels: ['__journal__hostname']
-        target_label: 'hostname'
+        target_label: hostname
 
   # Traefik logs
   - job_name: traefik

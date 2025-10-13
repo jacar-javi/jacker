@@ -5,6 +5,7 @@
 
 # Source common functions if not already loaded
 if [[ -z "${JACKER_ROOT:-}" ]]; then
+# shellcheck source=/dev/null
     source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 fi
 

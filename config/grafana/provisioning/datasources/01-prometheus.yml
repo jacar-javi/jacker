@@ -51,7 +51,7 @@ datasources:
           datasourceUid: jaeger-uid
 
       # Caching
-      cacheLevel: 'High'
+      cacheLevel: High
 
       # Add CORS headers
       oauthPassThru: false

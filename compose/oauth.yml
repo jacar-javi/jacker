@@ -28,7 +28,7 @@ services:
     configs:
       - source: oauth2_proxy_cfg
         target: /etc/oauth2-proxy/oauth2-proxy.cfg
-        mode: 0444
+        mode: "0444"
 
     secrets:
       - oauth_client_secret

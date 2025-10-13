@@ -17,7 +17,7 @@ http:
 
         # Proxy Headers
         hostsProxyHeaders:
-          - "X-Forwarded-Host"
+          - X-Forwarded-Host
         sslProxyHeaders:
           X-Forwarded-Proto: https
 
@@ -31,7 +31,7 @@ http:
         frameDeny: true
         contentTypeNosniff: true
         browserXssFilter: true
-        referrerPolicy: "strict-origin-when-cross-origin"
+        referrerPolicy: strict-origin-when-cross-origin
 
         # Content Security Policy - Strict but functional
         contentSecurityPolicy: |
@@ -63,10 +63,10 @@ http:
         # Custom Response Headers
         customResponseHeaders:
           X-Robots-Tag: "noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
-          X-Frame-Options: "SAMEORIGIN"
-          X-Content-Type-Options: "nosniff"
+          X-Frame-Options: SAMEORIGIN
+          X-Content-Type-Options: nosniff
           X-XSS-Protection: "1; mode=block"
-          X-Permitted-Cross-Domain-Policies: "none"
-          X-Download-Options: "noopen"
-          X-DNS-Prefetch-Control: "off"
+          X-Permitted-Cross-Domain-Policies: none
+          X-Download-Options: noopen
+          X-DNS-Prefetch-Control: off
           server: ""  # Hide server header

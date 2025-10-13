@@ -39,14 +39,14 @@ route:
   repeat_interval: 12h
 
   # Default receiver
-  receiver: 'default'
+  receiver: default
 
   # Child routes
   routes:
     # Critical alerts - immediate notification via multiple channels
     - match:
         severity: critical
-      receiver: 'critical-alerts'
+      receiver: critical-alerts
       group_wait: 10s
       repeat_interval: 1h
       continue: true
@@ -54,81 +54,81 @@ route:
     # Security alerts - dedicated channel
     - match:
         service: security
-      receiver: 'security-alerts'
+      receiver: security-alerts
       group_wait: 10s
       repeat_interval: 30m
 
     # CrowdSec alerts
     - match:
         service: crowdsec
-      receiver: 'security-alerts'
+      receiver: security-alerts
       group_wait: 10s
 
     # Database alerts
     - match_re:
         service: (postgresql|postgres|redis)
-      receiver: 'database-alerts'
+      receiver: database-alerts
       group_wait: 1m
       repeat_interval: 4h
 
     # OAuth/Authentication alerts
     - match:
         service: oauth
-      receiver: 'auth-alerts'
+      receiver: auth-alerts
       group_wait: 30s
       repeat_interval: 2h
 
     # Infrastructure warnings
     - match:
         severity: warning
-      receiver: 'warning-alerts'
+      receiver: warning-alerts
       group_wait: 5m
       repeat_interval: 6h
 
     # Info/Low priority alerts
     - match:
         severity: info
-      receiver: 'info-alerts'
+      receiver: info-alerts
       group_wait: 15m
       repeat_interval: 24h
 
     # Development/Test environments (if labeled)
     - match:
         environment: development
-      receiver: 'dev-alerts'
+      receiver: dev-alerts
       group_wait: 30m
       repeat_interval: 24h
 
     # Null receiver for specific alerts to ignore
     - match:
         alertname: Watchdog
-      receiver: 'null'
+      receiver: null
 
 # Inhibition rules - prevent alert storms
 inhibit_rules:
   # Critical alerts inhibit warnings for same service
   - source_match:
-      severity: 'critical'
+      severity: critical
     target_match:
-      severity: 'warning'
+      severity: warning
     equal: ['alertname', 'cluster', 'service']
 
   # Node down inhibits all other node alerts
   - source_match:
-      alertname: 'NodeDown'
+      alertname: NodeDown
     target_match_re:
       alertname: 'Node.*'
     equal: ['instance']
 
   # Database down inhibits performance alerts
   - source_match:
-      alertname: 'PostgreSQLDown'
+      alertname: PostgreSQLDown
     target_match_re:
       alertname: 'PostgreSQL.*'
     equal: ['instance']
 
   - source_match:
-      alertname: 'RedisDown'
+      alertname: RedisDown
     target_match_re:
       alertname: 'Redis.*'
     equal: ['instance']
@@ -136,7 +136,7 @@ inhibit_rules:
 # Receivers configuration
 receivers:
   # Default receiver - email only
-  - name: 'default'
+  - name: default
     email_configs:
       - to: '${ALERT_EMAIL_TO:-admin@example.com}'
         send_resolved: true
@@ -152,7 +152,7 @@ receivers:
           {{ end }}
 
   # Critical alerts - multiple channels
-  - name: 'critical-alerts'
+  - name: critical-alerts
     email_configs:
       - to: '${ALERT_EMAIL_CRITICAL:-admin@example.com}'
         send_resolved: true
@@ -163,7 +163,7 @@ receivers:
         title: '🚨 Critical Alert'
         text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
         send_resolved: true
-        color: 'danger'
+        color: danger
     pagerduty_configs:
       - service_key: '${PAGERDUTY_SERVICE_KEY}'
         send_resolved: true
@@ -172,7 +172,7 @@ receivers:
         send_resolved: true
 
   # Security alerts
-  - name: 'security-alerts'
+  - name: security-alerts
     email_configs:
       - to: '${ALERT_EMAIL_SECURITY:-security@example.com}'
         send_resolved: true
@@ -191,7 +191,7 @@ receivers:
         color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
 
   # Database alerts
-  - name: 'database-alerts'
+  - name: database-alerts
     email_configs:
       - to: '${ALERT_EMAIL_DATABASE:-dba@example.com}'
         send_resolved: true
@@ -202,7 +202,7 @@ receivers:
         send_resolved: true
 
   # Authentication alerts
-  - name: 'auth-alerts'
+  - name: auth-alerts
     email_configs:
       - to: '${ALERT_EMAIL_AUTH:-security@example.com}'
         send_resolved: true
@@ -213,7 +213,7 @@ receivers:
         send_resolved: true
 
   # Warning alerts
-  - name: 'warning-alerts'
+  - name: warning-alerts
     email_configs:
       - to: '${ALERT_EMAIL_WARNING:-ops@example.com}'
         send_resolved: true
@@ -224,10 +224,10 @@ receivers:
         title: '⚠️  Warning'
         text: '{{ .CommonAnnotations.summary }}'
         send_resolved: false
-        color: 'warning'
+        color: warning
 
   # Info alerts
-  - name: 'info-alerts'
+  - name: info-alerts
     slack_configs:
       - channel: '${SLACK_CHANNEL_INFO:-#monitoring}'
         title: 'ℹ️ Info'
@@ -236,7 +236,7 @@ receivers:
         color: '#36a64f'
 
   # Development alerts
-  - name: 'dev-alerts'
+  - name: dev-alerts
     slack_configs:
       - channel: '${SLACK_CHANNEL_DEV:-#dev-monitoring}'
         title: 'Dev Alert'
@@ -244,4 +244,4 @@ receivers:
         send_resolved: false
 
   # Null receiver - silences alerts
-  - name: 'null'
+  - name: null

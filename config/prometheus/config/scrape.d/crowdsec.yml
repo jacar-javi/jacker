@@ -1,8 +1,8 @@
 scrape_configs:
   # crowdsec scraping
-  - job_name: 'crowdsec'
+  - job_name: crowdsec
     dns_sd_configs:
       - names:
-        - 'crowdsec'
-        type: 'A'
+        - crowdsec
+        type: A
         port: 6060

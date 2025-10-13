@@ -17,7 +17,7 @@ global:
   # Attach these labels to any time series or alerts when communicating with
   # external systems (federation, remote storage, Alertmanager)
   external_labels:
-    monitor: 'jacker-monitor'
+    monitor: jacker-monitor
     environment: '${ENVIRONMENT:-production}'
     hostname: '${HOSTNAME}'
 
@@ -77,20 +77,20 @@ scrape_configs:
   # ====================================================================
   # PROMETHEUS SELF-MONITORING
   # ====================================================================
-  - job_name: 'prometheus'
+  - job_name: prometheus
     # Override global settings
     scrape_interval: 10s
     static_configs:
       - targets: ['localhost:9090']
         labels:
-          service: 'prometheus'
-          component: 'monitoring'
+          service: prometheus
+          component: monitoring
 
   # ====================================================================
   # FILE-BASED SERVICE DISCOVERY FOR CORE SERVICES
   # ====================================================================
   # Core infrastructure services (Traefik, Socket-Proxy, etc.)
-  - job_name: 'infrastructure'
+  - job_name: infrastructure
     file_sd_configs:
       - files:
           - /etc/prometheus/targets.d/infrastructure/*.json
@@ -114,7 +114,7 @@ scrape_configs:
   # FILE-BASED SERVICE DISCOVERY FOR MONITORING STACK
   # ====================================================================
   # Monitoring services (Grafana, Loki, Alertmanager, etc.)
-  - job_name: 'monitoring'
+  - job_name: monitoring
     file_sd_configs:
       - files:
           - /etc/prometheus/targets.d/monitoring/*.json
@@ -128,7 +128,7 @@ scrape_configs:
   # FILE-BASED SERVICE DISCOVERY FOR APPLICATION SERVICES
   # ====================================================================
   # Application services (user-deployed containers)
-  - job_name: 'applications'
+  - job_name: applications
     file_sd_configs:
       - files:
           - /etc/prometheus/targets.d/applications/*.json
@@ -147,7 +147,7 @@ scrape_configs:
   # FILE-BASED SERVICE DISCOVERY FOR EXPORTERS
   # ====================================================================
   # Various exporters (node-exporter, postgres-exporter, redis-exporter, etc.)
-  - job_name: 'exporters'
+  - job_name: exporters
     file_sd_configs:
       - files:
           - /etc/prometheus/targets.d/exporters/*.json
@@ -165,7 +165,7 @@ scrape_configs:
   # ====================================================================
   # BLACKBOX EXPORTER FOR ENDPOINT MONITORING
   # ====================================================================
-  - job_name: 'blackbox-http'
+  - job_name: blackbox-http
     metrics_path: /probe
     params:
       module: [http_2xx]
@@ -191,7 +191,7 @@ scrape_configs:
   # DOCKER SWARM SERVICE DISCOVERY (if using Swarm mode)
   # ====================================================================
   # Uncomment if using Docker Swarm
-  # - job_name: 'swarm-services'
+  # - job_name: swarm-services
   #   dockerswarm_sd_configs:
   #     - host: tcp://socket-proxy:2375
   #       role: services
@@ -200,21 +200,21 @@ scrape_configs:
   #   relabel_configs:
   #     # Only keep services with prometheus annotations
   #     - source_labels: [__meta_dockerswarm_service_label_prometheus_enable]
-  #       regex: 'true'
+  #       regex: true
   #       action: keep
 
   # ====================================================================
   # KUBERNETES SERVICE DISCOVERY (if using Kubernetes)
   # ====================================================================
   # Uncomment if running in Kubernetes
-  # - job_name: 'kubernetes-pods'
+  # - job_name: kubernetes-pods
   #   kubernetes_sd_configs:
   #     - role: pod
   #
   #   relabel_configs:
   #     # Only keep pods with prometheus annotations
   #     - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-  #       regex: 'true'
+  #       regex: true
   #       action: keep
 
 # Storage configuration (optional)

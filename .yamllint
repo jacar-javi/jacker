@@ -1,0 +1,116 @@
+extends: default
+
+rules:
+  line-length:
+    max: 150
+    level: warning
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+
+  comments:
+    min-spaces-from-content: 1  # More lenient for inline comments
+    require-starting-space: true
+    ignore-shebangs: true
+
+  comments-indentation: disable
+
+  document-start:
+    present: false
+
+  trailing-spaces: enable
+
+  empty-lines:
+    max: 2
+    max-start: 0
+    max-end: 1
+
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+    min-spaces-inside-empty: 0
+    max-spaces-inside-empty: 0
+
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+    min-spaces-inside-empty: 0
+    max-spaces-inside-empty: 0
+
+  colons:
+    max-spaces-before: 0
+    max-spaces-after: 1
+
+  commas:
+    max-spaces-before: 0
+    min-spaces-after: 1
+    max-spaces-after: 1
+
+  key-duplicates: enable
+  key-ordering: disable
+
+  # More permissive for Docker Compose files
+  quoted-strings:
+    quote-type: any
+    required: only-when-needed
+    extra-required: []
+    # Allow quotes for Docker Compose specific patterns
+    extra-allowed:
+      - ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+:[0-9]+$  # IP:port:port mappings
+      - ^[0-9]+:[0-9]+$  # port mappings
+      - ^127\.0\.0\.1:[0-9]+:[0-9]+$  # localhost port mappings
+      - .*\..*=.*  # Any label with equals sign (Docker labels format)
+      - ^traefik\..*  # Traefik labels
+      - ^homepage\..*  # Homepage labels
+      - ^logging\..*  # Logging labels
+      - ^com\..*  # Common Docker labels pattern
+      - ^diun\..*  # Diun labels
+      - ^io\..*  # IO labels
+      - .*\$\{.*\}.*  # Variables with ${} syntax
+      - ^(true|false|yes|no|on|off)$  # Boolean values
+      - ^[0-9]+$  # Pure numbers that might be quoted
+      - ^CMD$  # Docker CMD instruction
+      - ^ENTRYPOINT$  # Docker ENTRYPOINT instruction
+      - ^wget$  # Commands
+      - ^curl$  # Commands
+      - ^sh$  # Commands
+      - ^bash$  # Commands
+      - ^--.*  # Command line arguments
+      - ^-.*  # Command line flags
+      - ^http://.*  # URLs
+      - ^https://.*  # URLs
+      - ^/.*  # File paths
+      - .*\*.*  # Glob patterns with wildcards
+      - ^\..*  # Hidden files/directories
+      - .*\.\w+$  # File extensions
+      - ^LICENSE$  # Common file names
+      - ^README.*  # README files
+      - ^CHANGELOG.*  # CHANGELOG files
+    allow-quoted-quotes: true
+
+  truthy:
+    allowed-values: ["true", "false", "yes", "no", "True", "False", "on", "off"]
+    check-keys: false
+    level: warning
+
+  new-line-at-end-of-file: enable
+  new-lines:
+    type: unix
+
+  # More permissive for Docker Compose mode values
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: false
+
+ignore: |
+  .git/
+  node_modules/
+  .venv/
+  .serena/
+  *.bak
+  *.tmp
+  yaml_backup*/

@@ -6,6 +6,7 @@ set -euo pipefail
 
 # Source common functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# shellcheck source=/dev/null
 source "${SCRIPT_DIR}/common.sh"
 
 #########################################
@@ -88,22 +89,22 @@ configure_quick() {
     log_info "Quick configuration mode"
 
     # Domain configuration
-    read -p "Enter your domain name (e.g., example.com): " domain
-    read -p "Enter your hostname (e.g., myserver): " hostname
+    read -rp "Enter your domain name (e.g., example.com): " domain
+    read -rp "Enter your hostname (e.g., myserver): " hostname
 
     sed -i "s|^DOMAINNAME=.*|DOMAINNAME=${domain}|" "${JACKER_DIR}/.env.tmp"
     sed -i "s|^PUBLIC_FQDN=.*|PUBLIC_FQDN=${hostname}.${domain}|" "${JACKER_DIR}/.env.tmp"
 
     # Let's Encrypt
-    read -p "Enter email for Let's Encrypt certificates: " le_email
+    read -rp "Enter email for Let's Encrypt certificates: " le_email
     sed -i "s|^LETSENCRYPT_EMAIL=.*|LETSENCRYPT_EMAIL=${le_email}|" "${JACKER_DIR}/.env.tmp"
 
     # OAuth (optional)
     echo
     echo "OAuth configuration (press Enter to skip for now):"
-    read -p "Google OAuth Client ID: " oauth_id
-    read -p "Google OAuth Client Secret: " oauth_secret
-    read -p "Allowed emails (comma-separated): " oauth_emails
+    read -rp "Google OAuth Client ID: " oauth_id
+    read -rp "Google OAuth Client Secret: " oauth_secret
+    read -rp "Allowed emails (comma-separated): " oauth_emails
 
     if [[ -n "$oauth_id" ]]; then
         sed -i "s|^OAUTH_CLIENT_ID=.*|OAUTH_CLIENT_ID=${oauth_id}|" "${JACKER_DIR}/.env.tmp"
@@ -117,10 +118,10 @@ configure_interactive() {
 
     # Full interactive configuration
     # Domain and networking
-    read -p "Domain name [${DETECTED_DOMAIN:-example.com}]: " domain
+    read -rp "Domain name [${DETECTED_DOMAIN:-example.com}]: " domain
     domain="${domain:-${DETECTED_DOMAIN:-example.com}}"
 
-    read -p "Hostname [${HOSTNAME}]: " hostname_input
+    read -rp "Hostname [${HOSTNAME}]: " hostname_input
     hostname_input="${hostname_input:-${HOSTNAME}}"
 
     sed -i "s|^DOMAINNAME=.*|DOMAINNAME=${domain}|" "${JACKER_DIR}/.env.tmp"
@@ -128,7 +129,7 @@ configure_interactive() {
     sed -i "s|^PUBLIC_FQDN=.*|PUBLIC_FQDN=${hostname_input}.${domain}|" "${JACKER_DIR}/.env.tmp"
 
     # Let's Encrypt
-    read -p "Let's Encrypt email address: " le_email
+    read -rp "Let's Encrypt email address: " le_email
     sed -i "s|^LETSENCRYPT_EMAIL=.*|LETSENCRYPT_EMAIL=${le_email}|" "${JACKER_DIR}/.env.tmp"
 
     # OAuth configuration
@@ -137,7 +138,7 @@ configure_interactive() {
     echo "1. Google OAuth (recommended)"
     echo "2. Authentik (self-hosted)"
     echo "3. Skip authentication (not recommended for production)"
-    read -p "Choose authentication method [1]: " auth_choice
+    read -rp "Choose authentication method [1]: " auth_choice
     auth_choice="${auth_choice:-1}"
 
     case "$auth_choice" in
@@ -150,11 +151,15 @@ configure_interactive() {
         3)
             log_warn "Skipping authentication - services will be publicly accessible!"
             ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
+            ;;
     esac
 
     # Advanced options
     echo
-    read -p "Configure advanced options? (y/N): " advanced
+    read -rp "Configure advanced options? (y/N): " advanced
     if [[ "${advanced,,}" == "y" ]]; then
         configure_advanced_options
     fi
@@ -165,9 +170,9 @@ configure_google_oauth() {
     echo "Google OAuth Configuration"
     echo "See: https://console.cloud.google.com/apis/credentials"
 
-    read -p "OAuth Client ID: " oauth_id
-    read -p "OAuth Client Secret: " oauth_secret
-    read -p "Allowed email addresses (comma-separated): " oauth_emails
+    read -rp "OAuth Client ID: " oauth_id
+    read -rp "OAuth Client Secret: " oauth_secret
+    read -rp "Allowed email addresses (comma-separated): " oauth_emails
 
     sed -i "s|^OAUTH_CLIENT_ID=.*|OAUTH_CLIENT_ID=${oauth_id}|" "${JACKER_DIR}/.env.tmp"
     sed -i "s|^OAUTH_CLIENT_SECRET=.*|OAUTH_CLIENT_SECRET=${oauth_secret}|" "${JACKER_DIR}/.env.tmp"
@@ -204,20 +209,20 @@ configure_advanced_options() {
     echo "Advanced Configuration Options:"
 
     # Timezone
-    read -p "Timezone [Europe/Madrid]: " tz
+    read -rp "Timezone [Europe/Madrid]: " tz
     tz="${tz:-Europe/Madrid}"
     sed -i "s|^TZ=.*|TZ=${tz}|" "${JACKER_DIR}/.env.tmp"
 
     # Network configuration
-    read -p "Configure custom Docker networks? (y/N): " custom_net
+    read -rp "Configure custom Docker networks? (y/N): " custom_net
     if [[ "${custom_net,,}" == "y" ]]; then
-        read -p "Docker default subnet [192.168.69.0/24]: " docker_subnet
+        read -rp "Docker default subnet [192.168.69.0/24]: " docker_subnet
         docker_subnet="${docker_subnet:-192.168.69.0/24}"
         sed -i "s|^DOCKER_DEFAULT_SUBNET=.*|DOCKER_DEFAULT_SUBNET=${docker_subnet}|" "${JACKER_DIR}/.env.tmp"
     fi
 
     # Alerting
-    read -p "Configure email alerts? (y/N): " alerts
+    read -rp "Configure email alerts? (y/N): " alerts
     if [[ "${alerts,,}" == "y" ]]; then
         configure_alerting
     fi
@@ -227,17 +232,17 @@ configure_alerting() {
     echo
     echo "Email Alert Configuration:"
 
-    read -p "SMTP Host [smtp.gmail.com]: " smtp_host
+    read -rp "SMTP Host [smtp.gmail.com]: " smtp_host
     smtp_host="${smtp_host:-smtp.gmail.com}"
 
-    read -p "SMTP Port [587]: " smtp_port
+    read -rp "SMTP Port [587]: " smtp_port
     smtp_port="${smtp_port:-587}"
 
-    read -p "SMTP Username: " smtp_user
-    read -sp "SMTP Password: " smtp_pass
+    read -rp "SMTP Username: " smtp_user
+    read -rsp "SMTP Password: " smtp_pass
     echo
 
-    read -p "Alert recipient email: " alert_email
+    read -rp "Alert recipient email: " alert_email
 
     sed -i "s|^SMTP_HOST=.*|SMTP_HOST=${smtp_host}|" "${JACKER_DIR}/.env.tmp"
     sed -i "s|^SMTP_PORT=.*|SMTP_PORT=${smtp_port}|" "${JACKER_DIR}/.env.tmp"
@@ -615,7 +620,7 @@ prepare_system() {
 
     # Configure UFW if requested
     if command -v ufw &>/dev/null; then
-        read -p "Configure UFW firewall? (y/N): " configure_ufw
+        read -rp "Configure UFW firewall? (y/N): " configure_ufw
         if [[ "${configure_ufw,,}" == "y" ]]; then
             setup_ufw
         fi
@@ -903,7 +908,7 @@ setup_jacker() {
         echo "1. Reinstall (preserve configuration)"
         echo "2. Fresh install (backup and start over)"
         echo "3. Cancel"
-        read -p "Choose option [1]: " install_choice
+        read -rp "Choose option [1]: " install_choice
         install_choice="${install_choice:-1}"
 
         case "$install_choice" in
@@ -917,6 +922,10 @@ setup_jacker() {
             3)
                 log_info "Installation cancelled"
                 return 0
+                ;;
+            *)
+                log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+                return 1 2>/dev/null || exit 1
                 ;;
         esac
     fi

@@ -74,7 +74,7 @@ services:
         target: /etc/postgresql/pg_hba.conf
       - source: postgres_init
         target: /docker-entrypoint-initdb.d/00-create-databases.sh
-        mode: 0755
+        mode: "0755"
 
     # ====================================================================
     # VOLUME MOUNTS
@@ -239,9 +239,9 @@ services:
       DATA_SOURCE_PASS_FILE: /run/secrets/postgres_password
       PG_EXPORTER_WEB_LISTEN_ADDRESS: ":9187"
       PG_EXPORTER_WEB_TELEMETRY_PATH: "/metrics"
-      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
-      PG_EXPORTER_DISABLE_SETTINGS_METRICS: "false"
-      PG_EXPORTER_AUTO_DISCOVER_DATABASES: "true"
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: false
+      PG_EXPORTER_DISABLE_SETTINGS_METRICS: false
+      PG_EXPORTER_AUTO_DISCOVER_DATABASES: true
       PG_EXPORTER_EXCLUDE_DATABASES: "template0,template1"
       PG_EXPORTER_CONSTANT_LABELS: "environment=${ENVIRONMENT:-production}"
 

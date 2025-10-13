@@ -24,7 +24,7 @@ dependencies:
   traefik: true              # Requires Traefik reverse proxy
   oauth: true                # Requires OAuth authentication
   crowdsec: true             # Uses CrowdSec protection
-  network: "traefik_proxy"   # Required network
+  network: traefik_proxy   # Required network
 
 services:
   - name: {service-name}
@@ -48,9 +48,9 @@ environment:
       description: "Public fully qualified domain name"
       example: "example.com"
     - name: TZ
-      description: "Timezone"
+      description: Timezone
       example: "Europe/Madrid"
-      default: "UTC"
+      default: UTC
     # Add stack-specific required variables
     # - name: {VAR_NAME}
     #   description: "{Description}"
@@ -77,7 +77,7 @@ systemd:
     - network-online.target
   requires:
     - docker.service
-  restart_policy: "on-failure"
+  restart_policy: on-failure
   restart_sec: "10s"
   timeout_start_sec: "60s"
   timeout_stop_sec: "30s"
@@ -138,7 +138,7 @@ firewall:
   rules:
     # - port: 8080
     #   proto: tcp
-    #   allow_from: "any"
+    #   allow_from: any
 
 resources:
   # Optional resource limits
@@ -179,7 +179,7 @@ notes: |
 
 changelog:
   - version: "1.0.0"
-    date: "YYYY-MM-DD"
+    date: YYYY-MM-DD
     changes:
       - "Initial release"
       - "{Change 1}"

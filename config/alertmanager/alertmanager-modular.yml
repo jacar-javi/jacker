@@ -39,7 +39,7 @@ route:
   repeat_interval: 12h
 
   # Default receiver
-  receiver: 'default-receiver'
+  receiver: default-receiver
 
   # Child routes for different alert types
   routes:
@@ -109,21 +109,21 @@ route:
 inhibit_rules:
   # If a critical alert is firing, suppress warnings for the same service
   - source_match:
-      severity: 'critical'
+      severity: critical
     target_match:
-      severity: 'warning'
+      severity: warning
     equal: ['service', 'alertname']
 
   # If a node is down, suppress all other alerts for that node
   - source_match:
-      alertname: 'NodeDown'
+      alertname: NodeDown
     target_match_re:
       alertname: '^(?!NodeDown).*'
     equal: ['instance']
 
   # If Prometheus is down, suppress all other monitoring alerts
   - source_match:
-      alertname: 'PrometheusDown'
+      alertname: PrometheusDown
     target_match_re:
       service: '^(prometheus|grafana|loki|alertmanager).*'
 
@@ -132,7 +132,7 @@ receivers:
   # ====================================================================
   # DEFAULT RECEIVER - Catches all unmatched alerts
   # ====================================================================
-  - name: 'default-receiver'
+  - name: default-receiver
     webhook_configs:
       - url: 'http://webhook-logger:8080/log'
         send_resolved: true
@@ -140,7 +140,7 @@ receivers:
   # ====================================================================
   # CRITICAL ALERTS RECEIVER
   # ====================================================================
-  - name: 'critical-receiver'
+  - name: critical-receiver
     # Email notifications
     email_configs:
       - to: '${ALERT_EMAIL_TO}'
@@ -159,7 +159,7 @@ receivers:
     # telegram_configs:
     #   - bot_token: '${TELEGRAM_BOT_TOKEN}'
     #     chat_id: '${TELEGRAM_CHAT_ID}'
-    #     parse_mode: 'MarkdownV2'
+    #     parse_mode: MarkdownV2
     #     disable_web_page_preview: true
     #     message: |
     #       🚨 *CRITICAL ALERT*
@@ -172,17 +172,17 @@ receivers:
     # pagerduty_configs:
     #   - routing_key: '${PAGERDUTY_ROUTING_KEY}'
     #     description: '{{ .GroupLabels.alertname }}'
-    #     severity: 'critical'
+    #     severity: critical
 
   # ====================================================================
   # WARNING ALERTS RECEIVER
   # ====================================================================
-  - name: 'warning-receiver'
+  - name: warning-receiver
     # Slack notifications (if configured)
     # slack_configs:
     #   - api_url: '${SLACK_API_URL}'
     #     channel: '#alerts-warning'
-    #     username: 'Alertmanager'
+    #     username: Alertmanager
     #     icon_emoji: ':warning:'
     #     title: 'Warning Alert'
     #     text: '{{ .GroupLabels.alertname }} - {{ .GroupLabels.service }}'
@@ -198,35 +198,35 @@ receivers:
   # ====================================================================
   # INFO ALERTS RECEIVER
   # ====================================================================
-  - name: 'info-receiver'
+  - name: info-receiver
     # Discord webhook (if configured)
     # discord_configs:
     #   - webhook_url: '${DISCORD_WEBHOOK_URL}'
-    #     title: 'Information'
+    #     title: Information
     #     message: '{{ .CommonAnnotations.summary }}'
 
   # ====================================================================
   # SERVICE-SPECIFIC RECEIVERS
   # ====================================================================
-  - name: 'database-receiver'
+  - name: database-receiver
     email_configs:
       - to: '${DBA_EMAIL:-ALERT_EMAIL_TO}'
         headers:
           Subject: '[DB] {{ .GroupLabels.alertname }} - {{ .GroupLabels.database }}'
 
-  - name: 'security-receiver'
+  - name: security-receiver
     email_configs:
       - to: '${SECURITY_EMAIL:-ALERT_EMAIL_TO}'
         headers:
           Subject: '[SECURITY] {{ .GroupLabels.alertname }}'
         send_resolved: false
 
-  - name: 'monitoring-receiver'
+  - name: monitoring-receiver
     webhook_configs:
       - url: 'http://monitoring-webhook:8080/alert'
         send_resolved: true
 
-  - name: 'application-receiver'
+  - name: application-receiver
     email_configs:
       - to: '${APP_TEAM_EMAIL:-ALERT_EMAIL_TO}'
         headers:

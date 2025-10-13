@@ -34,7 +34,7 @@ datasources:
       manageAlerts: false
 
       # Cache configuration
-      cacheLevel: 'High'
+      cacheLevel: High
 
       # Service map
       serviceMap:

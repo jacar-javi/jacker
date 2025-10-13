@@ -4,8 +4,8 @@ global:
   evaluation_interval: 15s
   scrape_timeout: 10s
   external_labels:
-    monitor: 'jacker-monitor'
-    environment: 'production'
+    monitor: jacker-monitor
+    environment: production
 
 # Alertmanager configuration
 alerting:
@@ -22,40 +22,40 @@ rule_files:
 # Scrape configurations
 scrape_configs:
   # Infrastructure metrics
-  - job_name: 'infrastructure'
+  - job_name: infrastructure
     file_sd_configs:
       - files:
         - '/etc/prometheus/targets.d/infrastructure/*.json'
         refresh_interval: 30s
 
   # Application metrics
-  - job_name: 'applications'
+  - job_name: applications
     file_sd_configs:
       - files:
         - '/etc/prometheus/targets.d/applications/*.json'
         refresh_interval: 30s
 
   # Exporter metrics
-  - job_name: 'exporters'
+  - job_name: exporters
     file_sd_configs:
       - files:
         - '/etc/prometheus/targets.d/exporters/*.json'
         refresh_interval: 30s
 
   # Security metrics
-  - job_name: 'security'
+  - job_name: security
     file_sd_configs:
       - files:
         - '/etc/prometheus/targets.d/security/*.json'
         refresh_interval: 30s
 
   # Self monitoring
-  - job_name: 'prometheus'
+  - job_name: prometheus
     static_configs:
       - targets: ['localhost:9090']
         labels:
-          service: 'prometheus'
-          component: 'monitoring'
+          service: prometheus
+          component: monitoring
 
 # Remote write configuration (optional)
 # remote_write:

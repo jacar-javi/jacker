@@ -6,6 +6,7 @@ set -euo pipefail
 
 # Source common functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# shellcheck source=/dev/null
 source "${SCRIPT_DIR}/common.sh"
 
 #########################################
@@ -55,6 +56,10 @@ run_health_check() {
             ;;
         monitoring)
             check_monitoring_stack
+            ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
             ;;
     esac
 
@@ -228,6 +233,10 @@ check_volumes() {
                         "test '$(stat -c %a ${JACKER_DIR}/data/traefik/acme/acme.json)' = '600'" \
                         "warning"
                 fi
+                ;;
+            *)
+                log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+                return 1 2>/dev/null || exit 1
                 ;;
         esac
     done
@@ -615,7 +624,7 @@ configure_monitoring() {
     echo "2. Configure Loki retention"
     echo "3. Configure alert rules"
     echo "4. Configure metric exporters"
-    read -p "Choose option: " mon_choice
+    read -rp "Choose option: " mon_choice
 
     case "$mon_choice" in
         1)
@@ -629,6 +638,10 @@ configure_monitoring() {
             ;;
         4)
             configure_exporters
+            ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
             ;;
     esac
 }
@@ -699,7 +712,7 @@ EOF
 configure_loki_retention() {
     log_info "Configuring Loki retention..."
 
-    read -p "Log retention period (e.g., 7d, 30d) [7d]: " retention
+    read -rp "Log retention period (e.g., 7d, 30d) [7d]: " retention
     retention="${retention:-7d}"
 
     local loki_config="${JACKER_DIR}/data/loki/loki-config.yml"
@@ -775,7 +788,7 @@ configure_exporters() {
     echo "2. Redis exporter"
     echo "3. Blackbox exporter (HTTP/TCP checks)"
     echo "4. Custom exporter"
-    read -p "Choose exporter to configure: " exporter_choice
+    read -rp "Choose exporter to configure: " exporter_choice
 
     case "$exporter_choice" in
         1)
@@ -789,6 +802,10 @@ configure_exporters() {
             ;;
         4)
             configure_custom_exporter
+            ;;
+        *)
+            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            return 1 2>/dev/null || exit 1
             ;;
     esac
 }
@@ -821,9 +838,9 @@ configure_blackbox_exporter() {
 configure_custom_exporter() {
     log_info "Custom exporter configuration..."
 
-    read -p "Exporter name: " exporter_name
-    read -p "Exporter port: " exporter_port
-    read -p "Exporter image: " exporter_image
+    read -rp "Exporter name: " exporter_name
+    read -rp "Exporter port: " exporter_port
+    read -rp "Exporter image: " exporter_image
 
     echo "Custom exporter configuration would be added to compose"
     log_warn "Not yet implemented"
