@@ -47,15 +47,15 @@ scrape_configs:
       - target_label: host
         replacement: '${HOSTNAME}'
 
-  # System logs
-  - job_name: syslog
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: syslog
-          host: ${HOSTNAME}
-          __path__: /var/log/syslog
+  # System logs - disabled due to permission errors (container runs as non-root)
+  # - job_name: syslog
+  #   static_configs:
+  #     - targets:
+  #         - localhost
+  #       labels:
+  #         job: syslog
+  #         host: ${HOSTNAME}
+  #         __path__: /var/log/syslog
 
   # Journal logs
   - job_name: journal

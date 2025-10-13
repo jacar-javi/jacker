@@ -1,10 +1,11 @@
 [
   {
-    "targets": ["oauth:9090"],
+    "targets": ["oauth:44180"],
     "labels": {
       "job": "oauth2-proxy",
       "service": "oauth2-proxy",
-      "component": "authentication"
+      "component": "authentication",
+      "metrics_path": "/metrics"
     }
   },
   {

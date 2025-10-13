@@ -36,5 +36,15 @@
       "exporter_type": "cadvisor",
       "metrics_path": "/metrics"
     }
+  },
+  {
+    "targets": ["pushgateway:9091"],
+    "labels": {
+      "job": "pushgateway",
+      "service": "pushgateway",
+      "component": "metrics-gateway",
+      "exporter_type": "pushgateway",
+      "metrics_path": "/metrics"
+    }
   }
 ]
