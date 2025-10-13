@@ -1574,11 +1574,15 @@ backup_existing_installation() {
     # Backup .env
     [[ -f "${JACKER_DIR}/.env" ]] && cp "${JACKER_DIR}/.env" "$backup_dir/"
 
-    # Backup data directory
-    [[ -d "${JACKER_DIR}/data" ]] && tar -czf "$backup_dir/data.tar.gz" -C "${JACKER_DIR}" data
+    # Backup data directory (use sudo to read files owned by service users)
+    if [[ -d "${JACKER_DIR}/data" ]]; then
+        sudo tar -czf "$backup_dir/data.tar.gz" -C "${JACKER_DIR}" data 2>&1 | grep -v "Cannot open" || true
+    fi
 
-    # Backup secrets
-    [[ -d "${JACKER_DIR}/secrets" ]] && tar -czf "$backup_dir/secrets.tar.gz" -C "${JACKER_DIR}" secrets
+    # Backup secrets (use sudo to read restricted files)
+    if [[ -d "${JACKER_DIR}/secrets" ]]; then
+        sudo tar -czf "$backup_dir/secrets.tar.gz" -C "${JACKER_DIR}" secrets 2>/dev/null || true
+    fi
 
     log_success "Backup created at: $backup_dir"
 }
