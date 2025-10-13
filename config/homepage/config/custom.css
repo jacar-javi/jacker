@@ -1,0 +1,14 @@
+/* Jacker Homepage Custom Styles */
+
+/* Logo width */
+.logo img {
+  width: 200px !important;
+  height: auto !important;
+}
+
+/* Alternative selectors if above doesn't work */
+header img[alt*="logo" i],
+header img[src*="logo" i] {
+  width: 200px !important;
+  height: auto !important;
+}

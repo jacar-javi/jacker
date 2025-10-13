@@ -5,7 +5,6 @@
 title: Jacker
 headerStyle: clean
 language: es
-logoWidth: 200
 
 quicklaunch:
   searchDescriptions: true

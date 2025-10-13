@@ -2,7 +2,7 @@ services:
   # Portainer - WebUI for Containers
   portainer:
     container_name: portainer
-    image: portainer/portainer-ce:2.33.1
+    image: portainer/portainer-ce:2.33.2
     security_opt:
       - no-new-privileges=true
     restart: unless-stopped
