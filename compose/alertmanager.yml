@@ -62,8 +62,8 @@ services:
     # ====================================================================
     volumes:
       # Configuration (read-only)
-      - ${DATADIR}/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - ${DATADIR}/alertmanager/templates:/etc/alertmanager/templates:ro
+      - ${CONFIGDIR}/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ${CONFIGDIR}/alertmanager/templates:/etc/alertmanager/templates:ro
 
       # Data storage (read-write)
       - ${DATADIR}/alertmanager/data:/alertmanager:rw
@@ -236,8 +236,8 @@ services:
       - monitoring
 
     volumes:
-      - ${DATADIR}/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - ${DATADIR}/alertmanager/templates:/etc/alertmanager/templates:ro
+      - ${CONFIGDIR}/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ${CONFIGDIR}/alertmanager/templates:/etc/alertmanager/templates:ro
       - ${DATADIR}/alertmanager-secondary/data:/alertmanager:rw
 
     tmpfs:
