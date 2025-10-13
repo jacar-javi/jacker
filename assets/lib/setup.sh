@@ -843,6 +843,10 @@ create_configuration_files() {
             envsubst < "$templates_dir/oauth2-proxy.cfg.template" > "${JACKER_DIR}/config/oauth2-proxy/oauth2-proxy.cfg" 2>/dev/null || \
                 { sudo bash -c "envsubst < '$templates_dir/oauth2-proxy.cfg.template' > '${JACKER_DIR}/config/oauth2-proxy/oauth2-proxy.cfg'" && \
                   sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/config/oauth2-proxy/oauth2-proxy.cfg"; }
+
+            # Append cookie_secret to config (OAuth2-Proxy reads it from config, not env _FILE in v7.7.1)
+            echo "" >> "${JACKER_DIR}/config/oauth2-proxy/oauth2-proxy.cfg"
+            echo "cookie_secret = \"${OAUTH_COOKIE_SECRET}\"" >> "${JACKER_DIR}/config/oauth2-proxy/oauth2-proxy.cfg"
         fi
 
         # CrowdSec configuration
