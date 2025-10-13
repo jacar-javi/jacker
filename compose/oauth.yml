@@ -16,10 +16,6 @@ services:
       - traefik_proxy
       - cache
 
-    ports:
-      # Expose metrics port internally for Prometheus scraping (changed from 9090 to avoid conflict)
-      - "127.0.0.1:44180:44180"
-
     depends_on:
       traefik:
         condition: service_healthy

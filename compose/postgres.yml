@@ -221,9 +221,6 @@ services:
       - database
       - monitoring
 
-    ports:
-      - "127.0.0.1:9187:9187"
-
     environment:
       # Use separate environment variables to avoid URL encoding issues with special characters
       DATA_SOURCE_URI: "postgres:5432/${POSTGRES_DB}?sslmode=disable"

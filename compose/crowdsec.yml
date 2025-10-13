@@ -96,14 +96,8 @@ services:
       - /var/log:/host/var/log:ro
       - /var/log/journal:/host/var/log/journal:ro
 
-      # Docker logs
-      - ${DOCKERDIR}/logs:/logs/docker:ro
-
-      # Traefik logs
-      - ${DATADIR}/traefik/logs:/logs/traefik:ro
-
       # Configuration persistence
-      - ${DATADIR}/crowdsec/config:/etc/crowdsec:rw
+      - ${CONFIGDIR}/crowdsec/config:/etc/crowdsec:rw
 
       # Data persistence (when using SQLite)
       - ${DATADIR}/crowdsec/data:/var/lib/crowdsec/data:rw
