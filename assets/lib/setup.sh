@@ -775,53 +775,75 @@ create_configuration_files() {
     if [[ -d "$templates_dir" ]]; then
         # Traefik configuration
         if [[ -f "$templates_dir/traefik.yml.template" ]]; then
-            envsubst < "$templates_dir/traefik.yml.template" > "${JACKER_DIR}/config/traefik/traefik.yml"
+            envsubst < "$templates_dir/traefik.yml.template" > "${JACKER_DIR}/config/traefik/traefik.yml" 2>/dev/null || \
+                { sudo bash -c "envsubst < '$templates_dir/traefik.yml.template' > '${JACKER_DIR}/config/traefik/traefik.yml'" && \
+                  sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/config/traefik/traefik.yml"; }
         fi
 
         # Loki configuration
         if [[ -f "$templates_dir/loki-config.yml.template" ]]; then
-            envsubst < "$templates_dir/loki-config.yml.template" > "${JACKER_DIR}/config/loki/loki-config.yml"
+            envsubst < "$templates_dir/loki-config.yml.template" > "${JACKER_DIR}/config/loki/loki-config.yml" 2>/dev/null || \
+                { sudo bash -c "envsubst < '$templates_dir/loki-config.yml.template' > '${JACKER_DIR}/config/loki/loki-config.yml'" && \
+                  sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/config/loki/loki-config.yml"; }
         fi
 
         # Promtail configuration
         if [[ -f "$templates_dir/promtail-config.yml.template" ]]; then
-            envsubst < "$templates_dir/promtail-config.yml.template" > "${JACKER_DIR}/config/loki/promtail-config.yml"
+            envsubst < "$templates_dir/promtail-config.yml.template" > "${JACKER_DIR}/config/loki/promtail-config.yml" 2>/dev/null || \
+                { sudo bash -c "envsubst < '$templates_dir/promtail-config.yml.template' > '${JACKER_DIR}/config/loki/promtail-config.yml'" && \
+                  sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/config/loki/promtail-config.yml"; }
         fi
 
         # CrowdSec configuration
         if [[ -f "$templates_dir/config.yaml.local.template" ]]; then
-            envsubst < "$templates_dir/config.yaml.local.template" > "${JACKER_DIR}/data/crowdsec/config/config.yaml.local"
+            envsubst < "$templates_dir/config.yaml.local.template" > "${JACKER_DIR}/data/crowdsec/config/config.yaml.local" 2>/dev/null || \
+                { sudo bash -c "envsubst < '$templates_dir/config.yaml.local.template' > '${JACKER_DIR}/data/crowdsec/config/config.yaml.local'" && \
+                  sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/crowdsec/config/config.yaml.local"; }
         fi
 
         # Homepage configuration
         if [[ -f "$templates_dir/homepage-settings.yaml.template" ]]; then
-            envsubst < "$templates_dir/homepage-settings.yaml.template" > "${JACKER_DIR}/config/homepage/settings.yaml"
+            envsubst < "$templates_dir/homepage-settings.yaml.template" > "${JACKER_DIR}/config/homepage/settings.yaml" 2>/dev/null || \
+                { sudo bash -c "envsubst < '$templates_dir/homepage-settings.yaml.template' > '${JACKER_DIR}/config/homepage/settings.yaml'" && \
+                  sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/config/homepage/settings.yaml"; }
         fi
 
         # Homepage custom CSS and JS
         if [[ -f "$templates_dir/homepage-custom.css.template" ]]; then
-            cp "$templates_dir/homepage-custom.css.template" "${JACKER_DIR}/config/homepage/custom.css"
+            cp "$templates_dir/homepage-custom.css.template" "${JACKER_DIR}/config/homepage/custom.css" 2>/dev/null || \
+                { sudo cp "$templates_dir/homepage-custom.css.template" "${JACKER_DIR}/config/homepage/custom.css" && \
+                  sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/config/homepage/custom.css"; }
         fi
         if [[ -f "$templates_dir/homepage-custom.js.template" ]]; then
-            cp "$templates_dir/homepage-custom.js.template" "${JACKER_DIR}/config/homepage/custom.js"
+            cp "$templates_dir/homepage-custom.js.template" "${JACKER_DIR}/config/homepage/custom.js" 2>/dev/null || \
+                { sudo cp "$templates_dir/homepage-custom.js.template" "${JACKER_DIR}/config/homepage/custom.js" && \
+                  sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/config/homepage/custom.js"; }
         fi
-        
+
         # Alertmanager configuration
         if [[ -n "${TELEGRAM_BOT_TOKEN}" ]] || [[ -n "${SMTP_HOST}" ]] || [[ -n "${SLACK_WEBHOOK_URL}" ]]; then
             log_info "Configuring Alertmanager with notification channels..."
             if [[ -f "$templates_dir/alertmanager-with-telegram.yml.template" ]]; then
-                envsubst < "$templates_dir/alertmanager-with-telegram.yml.template" > "${JACKER_DIR}/config/alertmanager/alertmanager.yml"
+                envsubst < "$templates_dir/alertmanager-with-telegram.yml.template" > "${JACKER_DIR}/config/alertmanager/alertmanager.yml" 2>/dev/null || \
+                    { sudo bash -c "envsubst < '$templates_dir/alertmanager-with-telegram.yml.template' > '${JACKER_DIR}/config/alertmanager/alertmanager.yml'" && \
+                      sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/config/alertmanager/alertmanager.yml"; }
             fi
         elif [[ -f "$templates_dir/alertmanager.yml.template" ]]; then
-            envsubst < "$templates_dir/alertmanager.yml.template" > "${JACKER_DIR}/config/alertmanager/alertmanager.yml"
+            envsubst < "$templates_dir/alertmanager.yml.template" > "${JACKER_DIR}/config/alertmanager/alertmanager.yml" 2>/dev/null || \
+                { sudo bash -c "envsubst < '$templates_dir/alertmanager.yml.template' > '${JACKER_DIR}/config/alertmanager/alertmanager.yml'" && \
+                  sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/config/alertmanager/alertmanager.yml"; }
         fi
-        
+
         # Telegram webhook template
         if [[ -n "${TELEGRAM_BOT_TOKEN}" ]] && [[ -n "${TELEGRAM_CHAT_ID}" ]]; then
             log_info "Setting up Telegram webhook templates..."
-            mkdir -p "${JACKER_DIR}/data/telegram-webhook/templates"
+            mkdir -p "${JACKER_DIR}/data/telegram-webhook/templates" 2>/dev/null || \
+                { sudo mkdir -p "${JACKER_DIR}/data/telegram-webhook/templates" && \
+                  sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/telegram-webhook/templates"; }
             if [[ -f "${JACKER_DIR}/assets/configs/telegram/telegram.tmpl" ]]; then
-                cp "${JACKER_DIR}/assets/configs/telegram/telegram.tmpl" "${JACKER_DIR}/data/telegram-webhook/templates/"
+                cp "${JACKER_DIR}/assets/configs/telegram/telegram.tmpl" "${JACKER_DIR}/data/telegram-webhook/templates/" 2>/dev/null || \
+                    { sudo cp "${JACKER_DIR}/assets/configs/telegram/telegram.tmpl" "${JACKER_DIR}/data/telegram-webhook/templates/" && \
+                      sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/telegram-webhook/templates/telegram.tmpl"; }
             fi
         fi
     fi
