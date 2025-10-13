@@ -525,7 +525,7 @@ SCRIPTS=$(find . -type f \( -name "*.sh" -o -name "jacker*" \) \
 
 # Fix read without -r (SC2162)
 for script in $SCRIPTS; do
-    sed -i.bak 's/read -p/read -rp/g' "$script"
+    sed -i.bak 's/read -rp/read -rp/g' "$script"
     sed -i 's/^\(\s*\)read \([^-]\)/\1read -r \2/g' "$script"
     rm "${script}.bak" 2>/dev/null || true
 done

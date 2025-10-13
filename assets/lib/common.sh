@@ -43,24 +43,37 @@ print_color() {
     echo -e "${color}$*${NC}"
 }
 
-# Print info message
+# Print info message (respects QUIET flag)
 info() {
+    if [ "${QUIET:-false}" = "true" ]; then
+        return
+    fi
     print_color "$BLUE" "$INFO_SIGN $*"
 }
 
 # Print success message
 success() {
+    if [ "${QUIET:-false}" = "true" ] && [ "${VERBOSE:-false}" != "true" ]; then
+        return
+    fi
     print_color "$GREEN" "$CHECK_MARK $*"
 }
 
-# Print warning message
+# Print warning message (always shown)
 warning() {
     print_color "$YELLOW" "$WARNING_SIGN $*"
 }
 
-# Print error message
+# Print error message (always shown)
 error() {
-    print_color "$RED" "$CROSS_MARK $*"
+    print_color "$RED" "$CROSS_MARK $*" >&2
+}
+
+# Print verbose message (only shown with VERBOSE flag)
+verbose() {
+    if [ "${VERBOSE:-false}" = "true" ]; then
+        print_color "$CYAN" "[VERBOSE] $*"
+    fi
 }
 
 # Print section header
@@ -652,8 +665,70 @@ retry_command() {
     return 1
 }
 
+# Validate Docker service name
+validate_service_name() {
+    local service="$1"
+
+    if [ -z "$service" ]; then
+        error "Service name is required"
+        return 1
+    fi
+
+    # Get list of available services
+    local available_services
+    available_services=$(docker compose config --services 2>/dev/null)
+
+    if [ -z "$available_services" ]; then
+        error "No services defined in docker-compose.yml"
+        return 1
+    fi
+
+    # Check if service exists
+    if ! echo "$available_services" | grep -q "^${service}$"; then
+        error "Service '$service' not found"
+        info "Available services:"
+        echo "$available_services" | sed 's/^/  - /' | while IFS= read -r line; do
+            echo "$line"
+        done
+        return 1
+    fi
+
+    return 0
+}
+
+
+# Check if in dry run mode
+is_dry_run() {
+    [ "${DRY_RUN:-false}" = "true" ]
+}
+
+# Execute command or show in dry run mode
+execute_or_dry_run() {
+    local cmd="$*"
+
+    if is_dry_run; then
+        info "[DRY-RUN] Would execute: $cmd"
+        return 0
+    else
+        verbose "Executing: $cmd"
+        eval "$cmd"
+        return $?
+    fi
+}
+
+# Load user configuration if exists
+load_user_config() {
+    local config_file="${JACKER_CONFIG:-$HOME/.jackerrc}"
+
+    if [ -f "$config_file" ]; then
+        verbose "Loading user config from: $config_file"
+        # shellcheck source=/dev/null
+        source "$config_file"
+    fi
+}
+
 # Export all functions
-export -f print_color info success warning error section subsection
+export -f print_color info success warning error section subsection verbose
 export -f get_jacker_root cd_jacker_root get_data_dir get_compose_dir get_assets_dir
 export -f load_env check_env_exists get_env_var set_env_var
 export -f validate_hostname validate_domain validate_email validate_ip validate_port
@@ -664,3 +739,4 @@ export -f prompt_with_default confirm_action select_option
 export -f ensure_dir backup_file create_from_template
 export -f init_logging log
 export -f generate_password timestamp command_exists retry_command
+export -f validate_service_name is_dry_run execute_or_dry_run load_user_config

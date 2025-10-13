@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+#
+# Jacker User Configuration File
+#
+# Copy this file to ~/.jackerrc to customize Jacker behavior
+#
+# This file is sourced by the jacker CLI to load user preferences
+# You can override default settings and add custom aliases/functions
+
+# ============================================================================
+# Default Settings
+# ============================================================================
+
+# Default editor for configuration files
+export EDITOR="${EDITOR:-vim}"
+
+# Default backup location
+export JACKER_BACKUP_DIR="${JACKER_BACKUP_DIR:-$HOME/jacker-backups}"
+
+# Default log level (DEBUG, INFO, WARNING, ERROR)
+export JACKER_LOG_LEVEL="${JACKER_LOG_LEVEL:-INFO}"
+
+# Default timeout for health checks (seconds)
+export JACKER_HEALTH_TIMEOUT="${JACKER_HEALTH_TIMEOUT:-60}"
+
+# Enable colored output by default
+export JACKER_COLOR="${JACKER_COLOR:-true}"
+
+# ============================================================================
+# Service Defaults
+# ============================================================================
+
+# Default services to start (space-separated list)
+export JACKER_DEFAULT_SERVICES="${JACKER_DEFAULT_SERVICES:-traefik oauth prometheus grafana}"
+
+# Services to always exclude from 'all' operations
+export JACKER_EXCLUDE_SERVICES="${JACKER_EXCLUDE_SERVICES:-}"
+
+# ============================================================================
+# Custom Aliases
+# ============================================================================
+
+# Quick aliases for common operations
+alias jk='jacker'
+alias jks='jacker status'
+alias jkl='jacker logs'
+alias jku='jacker start'
+alias jkd='jacker stop'
+alias jkr='jacker restart'
+alias jkh='jacker health'
+
+# ============================================================================
+# Custom Functions
+# ============================================================================
+
+# Example: Quick function to restart and follow logs
+jacker_restart_and_logs() {
+    local service="$1"
+    jacker restart "$service" && jacker logs "$service" -f
+}
+
+# Example: Backup before update
+jacker_safe_update() {
+    jacker backup && jacker update "$@"
+}
+
+# ============================================================================
+# Environment-Specific Settings
+# ============================================================================
+
+# Development environment settings
+if [[ "$JACKER_ENV" == "dev" ]]; then
+    export VERBOSE=true
+    export JACKER_LOG_LEVEL=DEBUG
+fi
+
+# Production environment settings
+if [[ "$JACKER_ENV" == "prod" ]]; then
+    export QUIET=true
+    export JACKER_LOG_LEVEL=ERROR
+fi
+
+# ============================================================================
+# Hooks
+# ============================================================================
+
+# Pre-start hook - runs before starting services
+jacker_pre_start_hook() {
+    verbose "Running pre-start hook..."
+    # Add custom pre-start logic here
+    return 0
+}
+
+# Post-start hook - runs after starting services
+jacker_post_start_hook() {
+    verbose "Running post-start hook..."
+    # Add custom post-start logic here
+    return 0
+}
+
+# Pre-stop hook - runs before stopping services
+jacker_pre_stop_hook() {
+    verbose "Running pre-stop hook..."
+    # Add custom pre-stop logic here
+    return 0
+}
+
+# Post-stop hook - runs after stopping services
+jacker_post_stop_hook() {
+    verbose "Running post-stop hook..."
+    # Add custom post-stop logic here
+    return 0
+}
+
+# ============================================================================
+# Advanced Settings
+# ============================================================================
+
+# Docker compose command override (e.g., for using docker-compose v1)
+# export DOCKER_COMPOSE_CMD="docker compose"
+
+# Custom docker host (for remote Docker)
+# export DOCKER_HOST="tcp://remote-docker:2376"
+
+# Custom docker context
+# export DOCKER_CONTEXT="remote"
+
+# SSL/TLS settings for remote Docker
+# export DOCKER_TLS_VERIFY="1"
+# export DOCKER_CERT_PATH="$HOME/.docker/certs"
+
+# ============================================================================
+# Project-Specific Overrides
+# ============================================================================
+
+# You can add project-specific settings here based on the current directory
+# Example:
+# if [[ "$PWD" == *"my-project"* ]]; then
+#     export JACKER_DEFAULT_SERVICES="nginx postgres redis"
+# fi

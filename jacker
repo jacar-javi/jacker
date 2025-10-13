@@ -57,11 +57,12 @@ ${YELLOW}Information Commands:${NC}
   version         Show version information
   help            Show this help message
 
-${GREEN}Options:${NC}
+${GREEN}Global Options:${NC}
   -h, --help      Show help for specific command
-  -v, --version   Show version information
+  -v, --verbose   Enable verbose output
   -q, --quiet     Suppress non-critical output
-  -y, --yes       Auto-confirm prompts
+  --dry-run       Show what would be done without making changes
+  --version       Show version information
 
 ${GREEN}Examples:${NC}
   jacker init                     # First-time setup
@@ -188,16 +189,23 @@ EOF
     if [[ ${#services[@]} -eq 0 ]]; then
         info "Starting all services..."
         if [[ "$detach" == "true" ]]; then
-            docker compose up -d
+            execute_or_dry_run "docker compose up -d"
         else
-            docker compose up
+            execute_or_dry_run "docker compose up"
         fi
     else
+        # Validate each service
+        for service in "${services[@]}"; do
+            if ! validate_service_name "$service"; then
+                return 1
+            fi
+        done
+
         info "Starting services: ${services[*]}"
         if [[ "$detach" == "true" ]]; then
-            docker compose up -d "${services[@]}"
+            execute_or_dry_run "docker compose up -d ${services[*]}"
         else
-            docker compose up "${services[@]}"
+            execute_or_dry_run "docker compose up ${services[*]}"
         fi
     fi
 
@@ -254,13 +262,20 @@ EOF
     if [[ ${#services[@]} -eq 0 ]]; then
         info "Stopping all services..."
         if [[ "$remove_volumes" == "true" ]]; then
-            docker compose down -v
+            execute_or_dry_run "docker compose down -v"
         else
-            docker compose down
+            execute_or_dry_run "docker compose down"
         fi
     else
+        # Validate each service
+        for service in "${services[@]}"; do
+            if ! validate_service_name "$service"; then
+                return 1
+            fi
+        done
+
         info "Stopping services: ${services[*]}"
-        docker compose stop "${services[@]}"
+        execute_or_dry_run "docker compose stop ${services[*]}"
     fi
 
     success "Services stopped"
@@ -305,10 +320,17 @@ EOF
 
     if [[ ${#services[@]} -eq 0 ]]; then
         info "Restarting all services..."
-        docker compose restart
+        execute_or_dry_run "docker compose restart"
     else
+        # Validate each service
+        for service in "${services[@]}"; do
+            if ! validate_service_name "$service"; then
+                return 1
+            fi
+        done
+
         info "Restarting services: ${services[*]}"
-        docker compose restart "${services[@]}"
+        execute_or_dry_run "docker compose restart ${services[*]}"
     fi
 
     success "Services restarted"
@@ -435,6 +457,11 @@ EOF
     cd_jacker_root
     check_env_exists
 
+    # Validate service exists
+    if ! validate_service_name "$service"; then
+        return 1
+    fi
+
     local args=()
     [[ "$follow" == "true" ]] && args+=("-f")
     [[ -n "$tail" ]] && args+=("--tail" "$tail")
@@ -503,6 +530,11 @@ EOF
 
     cd_jacker_root
     check_env_exists
+
+    # Validate service exists
+    if ! validate_service_name "$service"; then
+        return 1
+    fi
 
     local args=()
     [[ -n "$user" ]] && args+=("--user" "$user")
@@ -1064,7 +1096,7 @@ EOF
 
     # System info
     subsection "Host System"
-    echo "OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)"
+    echo "OS: $(grep PRETTY_NAME /etc/os-release | cut -d'"' -f2)"
     echo "Kernel: $(uname -r)"
     echo "Architecture: $(uname -m)"
     echo "CPU Cores: $(nproc)"
@@ -1090,8 +1122,10 @@ EOF
     # Service status
     subsection "Service Status"
     if [[ -f "$JACKER_ROOT/.env" ]]; then
-        local running=$(docker compose ps --services --filter "status=running" 2>/dev/null | wc -l)
-        local total=$(docker compose ps --services 2>/dev/null | wc -l)
+        local running
+        local total
+        running=$(docker compose ps --services --filter "status=running" 2>/dev/null | wc -l)
+        total=$(docker compose ps --services 2>/dev/null | wc -l)
         echo "Running: $running / $total services"
     else
         echo "No services configured"
@@ -1114,21 +1148,67 @@ cmd_version() {
 # Main Entry Point
 # ============================================================================
 main() {
-    # Handle global flags
+    # Initialize global flags
+    export VERBOSE=false
+    export QUIET=false
+    export DRY_RUN=false
+
+    # Parse global flags first
+    local args=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -v|--verbose)
+                VERBOSE=true
+                shift
+                ;;
+            -q|--quiet)
+                QUIET=true
+                shift
+                ;;
+            --dry-run)
+                DRY_RUN=true
+                shift
+                ;;
+            --version)
+                cmd_version
+                exit 0
+                ;;
+            --help)
+                show_usage
+                exit 0
+                ;;
+            --)
+                shift
+                args+=("$@")
+                break
+                ;;
+            *)
+                args+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    # Restore positional parameters
+    set -- "${args[@]}"
+
+    # Handle version and help as commands (legacy support)
     case "${1:-}" in
-        -v|--version|version)
+        version)
             cmd_version
             exit 0
             ;;
-        -h|--help|help)
+        help)
             show_usage
             exit 0
             ;;
         *)
-            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
-            return 1 2>/dev/null || exit 1
+            # Continue with normal command processing
             ;;
     esac
+
+    # Load user configuration if exists
+    load_user_config
 
     # Check if running from Jacker directory
     if [[ ! -f "$JACKER_ROOT/docker-compose.yml" ]]; then
