@@ -1,0 +1,184 @@
+groups:
+  - name: databases
+    interval: 30s
+    rules:
+      # PostgreSQL Alerts
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL main database service has been down for more than 1 minute."
+
+      - alert: PostgreSQLHighConnections
+        expr: |
+          pg_stat_activity_count{}
+          / pg_settings_max_connections{} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL high connection usage"
+          description: "PostgreSQL is using more than 80% of max connections ({{ $value | humanizePercentage }})."
+
+      - alert: PostgreSQLSlowQueries
+        expr: |
+          rate(pg_stat_user_tables_n_tup_fetched[5m]) > 100000
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL slow query detected"
+          description: "PostgreSQL is experiencing slow queries. Check pg_stat_statements."
+
+      - alert: PostgreSQLReplicationLag
+        expr: |
+          pg_replication_lag_seconds > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL replication lag"
+          description: "PostgreSQL replication is lagging by {{ $value }} seconds."
+
+      - alert: PostgreSQLDeadlocks
+        expr: |
+          rate(pg_stat_database_deadlocks[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL deadlocks detected"
+          description: "PostgreSQL has experienced {{ $value }} deadlocks in the last 5 minutes."
+
+      - alert: PostgreSQLCacheHitRateLow
+        expr: |
+          pg_stat_database_blks_hit{datname!~"template.*|postgres"}
+          / (pg_stat_database_blks_hit{datname!~"template.*|postgres"}
+          + pg_stat_database_blks_read{datname!~"template.*|postgres"}) < 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL low cache hit ratio"
+          description: "PostgreSQL cache hit ratio is below 90% for database {{ $labels.datname }} ({{ $value | humanizePercentage }})."
+
+      - alert: PostgreSQLTableBloat
+        expr: |
+          pg_stat_user_tables_n_dead_tup
+          / (pg_stat_user_tables_n_live_tup + pg_stat_user_tables_n_dead_tup) > 0.1
+        for: 30m
+        labels:
+          severity: info
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL table bloat detected"
+          description: "Table {{ $labels.relname }} has more than 10% dead tuples. Consider running VACUUM."
+
+      # Redis Alerts
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis cache service is down"
+          description: "Redis cache service has been down for more than 1 minute."
+
+      - alert: RedisHighMemoryUsage
+        expr: |
+          redis_memory_used_bytes
+          / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis is using more than 90% of maximum memory ({{ $value | humanizePercentage }})."
+
+      - alert: RedisHighConnections
+        expr: |
+          redis_connected_clients > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis high connection count"
+          description: "Redis has more than 1000 connected clients (current: {{ $value }})."
+
+      - alert: RedisRejectedConnections
+        expr: |
+          increase(redis_rejected_connections_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis rejecting connections"
+          description: "Redis has rejected {{ $value }} connections in the last 5 minutes."
+
+      - alert: RedisKeyEviction
+        expr: |
+          increase(redis_evicted_keys_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: info
+          service: redis
+        annotations:
+          summary: "Redis evicting keys"
+          description: "Redis has evicted {{ $value }} keys in the last 5 minutes due to memory pressure."
+
+      - alert: RedisMasterLinkDown
+        expr: |
+          redis_master_link_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis master-replica link down"
+          description: "Redis replica has lost connection to master."
+
+      - alert: RedisSlowlogIncreasing
+        expr: |
+          rate(redis_slowlog_length[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis slow operations detected"
+          description: "Redis slowlog is increasing, indicating slow operations."
+
+      - alert: RedisPersistenceError
+        expr: |
+          redis_rdb_last_bgsave_status == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis persistence failure"
+          description: "Redis background save (BGSAVE) has failed. Data persistence is at risk."
+
+      - alert: RedisAOFRewriteFailed
+        expr: |
+          redis_aof_last_rewrite_status == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis AOF rewrite failed"
+          description: "Redis Append-Only File (AOF) rewrite has failed."

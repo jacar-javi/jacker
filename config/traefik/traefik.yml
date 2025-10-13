@@ -5,15 +5,15 @@
 # GLOBAL CONFIGURATION
 # ====================================================================
 global:
-  checkNewVersion: false  # Disable version check for security
-  sendAnonymousUsage: false  # Disable telemetry for privacy
+  checkNewVersion: false # Disable version check for security
+  sendAnonymousUsage: false # Disable telemetry for privacy
 
 # ====================================================================
 # SERVER TRANSPORT - BACKEND COMMUNICATION
 # ====================================================================
 serversTransport:
-  insecureSkipVerify: false  # Always verify certificates
-  maxIdleConnsPerHost: 200  # Connection pool size
+  insecureSkipVerify: false # Always verify certificates
+  maxIdleConnsPerHost: 200 # Connection pool size
   forwardingTimeouts:
     dialTimeout: 30s
     responseHeaderTimeout: 30s
@@ -28,7 +28,7 @@ certificatesResolvers:
     acme:
       email: javi@jacar.es
       storage: /acme/acme.json
-      keyType: EC384  # Elliptic curve for performance
+      keyType: EC384 # Elliptic curve for performance
       # certificatesDuration removed in Traefik v3 - certificates auto-renewed at 30 days before expiry
       httpChallenge:
         entryPoint: web
@@ -74,36 +74,6 @@ entryPoints:
           to: websecure
           scheme: https
           permanent: true
-      # middlewares:
-      #   - middlewares-compress@file # Compression only - CrowdSec removed to allow ACME challenges
-    # Connection limits
-    transport:
-      lifeCycle:
-        requestAcceptGraceTimeout: 10s
-        graceTimeOut: 30s
-      respondingTimeouts:
-        readTimeout: 60s
-        writeTimeout: 60s
-        idleTimeout: 180s
-    # Forwarded headers configuration
-    forwardedHeaders:
-      insecure: false
-      trustedIPs:
-        - 127.0.0.1/32
-        - 10.0.0.0/8
-        - 172.16.0.0/12
-        - 192.168.0.0/16
-        # Cloudflare IPs
-        - 173.245.48.0/20
-        - 103.21.244.0/22
-        - 103.22.200.0/22
-        - 103.31.4.0/22
-        - 141.101.64.0/18
-    # ProxyProtocol support (if behind another proxy)
-    proxyProtocol:
-      insecure: false
-      trustedIPs:
-        - 127.0.0.1/32
 
   # HTTPS Entry Point - Port 443
   websecure:
@@ -112,42 +82,17 @@ entryPoints:
     http:
       tls:
         certresolver: http
-        # options: tls-opts@file
-      # middlewares:
-      #   - middlewares-secure-headers@file
-      #   - middlewares-compress@file
+
     # HTTP/3 Support
     http3:
       advertisedPort: 443
     # HTTP/2 Configuration
     http2:
       maxConcurrentStreams: 250
-    # Connection configuration
-    transport:
-      lifeCycle:
-        requestAcceptGraceTimeout: 10s
-        graceTimeOut: 30s
-      respondingTimeouts:
-        readTimeout: 300s  # Increased for large uploads
-        writeTimeout: 300s  # Increased for large downloads
-        idleTimeout: 180s
-    # Forwarded headers
-    forwardedHeaders:
-      insecure: false
-      trustedIPs:
-        - 127.0.0.1/32
-        - 10.0.0.0/8
-        - 172.16.0.0/12
-        - 192.168.0.0/16
 
   # Traefik Internal API - Port 8080
   traefik:
     address: :8080
-    transport:
-      respondingTimeouts:
-        readTimeout: 10s
-        writeTimeout: 10s
-        idleTimeout: 10s
 
   # Metrics endpoint - Port 9100 (Prometheus standard)
   metrics:
@@ -158,8 +103,8 @@ entryPoints:
 # ====================================================================
 api:
   dashboard: true
-  debug: false  # Set to true only for debugging
-  insecure: false  # Never expose API without authentication
+  debug: false # Set to true only for debugging
+  insecure: false # Never expose API without authentication
 
 # ====================================================================
 # PING - HEALTH CHECK ENDPOINT
@@ -173,9 +118,9 @@ ping:
 # LOGGING CONFIGURATION
 # ====================================================================
 log:
-  level: INFO  # DEBUG, INFO, WARN, ERROR, FATAL, PANIC
-  format: json  # json or common
-  filePath: /logs/traefik.log
+  level: INFO # DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+  format: json # json or common
+  # filePath: /logs/traefik.log
   # Log rotation (if not handled externally)
   # maxSize: 100  # megabytes
   # maxAge: 7  # days
@@ -186,7 +131,7 @@ log:
 # ACCESS LOGGING
 # ====================================================================
 accessLog:
-  filePath: /logs/access.log
+  # filePath: /logs/access.log
   format: json
   fields:
     defaultMode: keep
@@ -244,11 +189,6 @@ providers:
     exposedByDefault: false
     network: traefik_proxy
     watch: true
-    # Default routing rule
-    defaultRule: "Host(`{{ normalize .Name }}.{{ env \"PUBLIC_FQDN\" }}`)"
-    # Container constraints
-    constraints: "Label(`traefik.enable`, `true`)"
-    # throttleDuration removed in Traefik v3
 
   # File Provider - Static Configuration
   file:
@@ -308,17 +248,14 @@ metrics:
   #   prefix: traefik
 
 # ====================================================================
-# TRACING - OPENTELEMETRY
+# TRACING - OPENTELEMETRY (TO JAEGER)
 # ====================================================================
-# Tracing disabled temporarily - Traefik v3 changed tracing configuration significantly
-# TODO: Reconfigure tracing for Traefik v3 compatibility
-# tracing:
-#   serviceName: traefik
-#   otlp:
-#     http:
-#       endpoint: http://jaeger:4318/v1/traces
-#     grpc:
-#       endpoint: jaeger:4317
+# Traefik v3 uses OpenTelemetry Protocol (OTLP) for tracing
+# Sends traces to Jaeger via OTLP HTTP endpoint (port 4318)
+tracing:
+  otlp:
+    http:
+      endpoint: http://jaeger:4318/v1/traces
 
 # ====================================================================
 # PILOT - TRAEFIK PILOT (OPTIONAL CLOUD FEATURES)
@@ -336,7 +273,6 @@ experimental:
     traefik-plugin-crowdsec:
       moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
     # Additional plugins can be added here
-
 # ====================================================================
 # HUB - TRAEFIK HUB (OPTIONAL ENTERPRISE FEATURES)
 # ====================================================================

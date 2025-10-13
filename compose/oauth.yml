@@ -72,12 +72,8 @@ services:
 
       # Middlewares - No OAuth required for the OAuth service itself
       # Use rate limiting and security headers only
-      # - "traefik.http.routers.oauth.middlewares=middlewares-rate-limit@file,middlewares-secure-headers@file"
 
       # ForwardAuth middleware for other services
-      - "traefik.http.middlewares.oauth-auth.forwardAuth.address=http://oauth:4180/oauth2/auth"
-      - "traefik.http.middlewares.oauth-auth.forwardAuth.trustForwardHeader=true"
-      - "traefik.http.middlewares.oauth-auth.forwardAuth.authResponseHeaders=X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Access-Token,X-Auth-Request-Groups"
 
       # Health check
       - "traefik.http.services.oauth-svc.loadbalancer.healthcheck.path=/ping"
@@ -88,22 +84,10 @@ services:
       - "homepage.name=OAuth2 Proxy"
       - "homepage.description=Modern OAuth 2.0 Authentication"
       - "homepage.icon=oauth.svg"
-      - "homepage.href=https://auth.${PUBLIC_FQDN}"
+      - "homepage.href=https://oauth.${PUBLIC_FQDN}"
 
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:4180/ping",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    # Healthcheck disabled - OAuth2-Proxy uses distroless image with no shell/wget/curl
+    # Traefik loadbalancer healthcheck is used instead (see labels above)
 
     # Resource limits
     deploy:

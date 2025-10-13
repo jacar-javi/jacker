@@ -1,0 +1,170 @@
+groups:
+  - name: logging
+    interval: 30s
+    rules:
+      # Loki Alerts
+      - alert: LokiDown
+        expr: up{job="loki"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: loki
+        annotations:
+          summary: "Loki log aggregation service is down"
+          description: "Loki has been down for more than 2 minutes. Log collection is not working."
+
+      - alert: LokiIngestionRate
+        expr: |
+          rate(loki_ingester_chunks_created_total[5m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+          service: loki
+        annotations:
+          summary: "Loki not receiving logs"
+          description: "Loki has not received any new logs in the last 10 minutes."
+
+      - alert: LokiHighMemoryUsage
+        expr: |
+          container_memory_usage_bytes{name="loki"}
+          / container_spec_memory_limit_bytes{name="loki"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: loki
+        annotations:
+          summary: "Loki high memory usage"
+          description: "Loki is using more than 80% of its memory limit ({{ $value | humanizePercentage }})."
+
+      - alert: LokiRequestErrors
+        expr: |
+          rate(loki_request_errors_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: loki
+        annotations:
+          summary: "Loki request errors"
+          description: "Loki is experiencing {{ $value | humanizePercentage }} request error rate."
+
+      - alert: LokiQueryTimeout
+        expr: |
+          rate(loki_query_timeout_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: loki
+        annotations:
+          summary: "Loki query timeouts"
+          description: "Loki queries are timing out ({{ $value | humanizePercentage }} timeout rate)."
+
+      - alert: LokiCompactorNotRunning
+        expr: |
+          time() - loki_compactor_last_successful_run_timestamp_seconds > 86400
+        for: 1h
+        labels:
+          severity: warning
+          service: loki
+        annotations:
+          summary: "Loki compactor not running"
+          description: "Loki compactor has not run successfully in the last 24 hours."
+
+      - alert: LokiTooManyStreams
+        expr: |
+          loki_ingester_memory_streams > 10000
+        for: 5m
+        labels:
+          severity: warning
+          service: loki
+        annotations:
+          summary: "Loki has too many streams"
+          description: "Loki ingester has {{ $value }} active streams. Consider reviewing label cardinality."
+
+      # Promtail Alerts
+      - alert: PromtailDown
+        expr: up{job="promtail"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: promtail
+        annotations:
+          summary: "Promtail log collector is down"
+          description: "Promtail has been down for more than 5 minutes. Logs are not being collected."
+
+      - alert: PromtailHighLagTime
+        expr: |
+          promtail_stream_lag_seconds > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: promtail
+        annotations:
+          summary: "Promtail high lag time"
+          description: "Promtail is {{ $value }} seconds behind in processing logs."
+
+      - alert: PromtailDroppedEntries
+        expr: |
+          increase(promtail_dropped_entries_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: promtail
+        annotations:
+          summary: "Promtail dropping log entries"
+          description: "Promtail has dropped {{ $value }} log entries in the last 5 minutes."
+
+      - alert: PromtailSendErrors
+        expr: |
+          rate(promtail_sent_entries_total[5m]) == 0 AND
+          rate(promtail_read_lines_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          service: promtail
+        annotations:
+          summary: "Promtail cannot send logs to Loki"
+          description: "Promtail is reading logs but cannot send them to Loki."
+
+      - alert: PromtailFileLagIncreasing
+        expr: |
+          deriv(promtail_file_lag_seconds[5m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          service: promtail
+        annotations:
+          summary: "Promtail file processing lag increasing"
+          description: "Promtail file processing lag is increasing for {{ $labels.filename }}."
+
+      - alert: PromtailTooManyFiles
+        expr: |
+          promtail_files_active_total > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: promtail
+        annotations:
+          summary: "Promtail tracking too many files"
+          description: "Promtail is tracking {{ $value }} files. Consider adjusting file discovery rules."
+
+      - alert: PromtailRequestErrors
+        expr: |
+          rate(promtail_request_errors_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: promtail
+        annotations:
+          summary: "Promtail request errors"
+          description: "Promtail is experiencing errors sending logs to Loki ({{ $value | humanizePercentage }} error rate)."
+
+      - alert: LogIngestionRateHigh
+        expr: |
+          sum(rate(promtail_read_bytes_total[5m])) > 10485760
+        for: 5m
+        labels:
+          severity: info
+          service: promtail
+        annotations:
+          summary: "High log ingestion rate"
+          description: "Log ingestion rate is above 10MB/s (current: {{ $value | humanize1024 }}B/s)."

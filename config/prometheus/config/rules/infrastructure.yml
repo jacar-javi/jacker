@@ -1,0 +1,113 @@
+groups:
+  - name: infrastructure
+    interval: 30s
+    rules:
+      # Container down
+      - alert: ContainerDown
+        expr: up{job=~".*"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.job }} is down"
+          description: "Container {{ $labels.job }} has been down for more than 2 minutes."
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: |
+          (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage ({{ $value | humanize }}%)"
+          description: "CPU usage is above 80% (current: {{ $value | humanize }}%)."
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage ({{ $value | humanize }}%)"
+          description: "Memory usage is above 85% (current: {{ $value | humanize }}%)."
+
+      # Disk space warning
+      - alert: DiskSpaceWarning
+        expr: |
+          (node_filesystem_size_bytes{mountpoint="/"} - node_filesystem_avail_bytes{mountpoint="/"})
+          / node_filesystem_size_bytes{mountpoint="/"} * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space ({{ $value | humanize }}% used)"
+          description: "Disk usage is above 80% on root filesystem."
+
+      # Disk space critical
+      - alert: DiskSpaceCritical
+        expr: |
+          (node_filesystem_size_bytes{mountpoint="/"} - node_filesystem_avail_bytes{mountpoint="/"})
+          / node_filesystem_size_bytes{mountpoint="/"} * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical disk space ({{ $value | humanize }}% used)"
+          description: "Disk usage is above 90% on root filesystem."
+
+      # PostgreSQL down
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database is down."
+
+      # Redis down
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache service is down."
+
+      # Loki down
+      - alert: LokiDown
+        expr: up{job="loki"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: loki
+        annotations:
+          summary: "Loki is down"
+          description: "Loki log aggregation service is down."
+
+      # Network errors
+      - alert: NetworkTransmitErrors
+        expr: rate(node_network_transmit_errs_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Network transmission errors detected"
+          description: "Network interface {{ $labels.device }} is experiencing transmission errors."
+
+      # Container restart
+      - alert: ContainerRestarting
+        expr: |
+          rate(container_restart_count[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} is restarting"
+          description: "Container {{ $labels.name }} has restarted {{ $value }} times in the last 15 minutes."

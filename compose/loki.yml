@@ -59,7 +59,6 @@ services:
       # Data storage (read-write - cannot use configs for runtime data)
       - ${DATADIR}/loki/data:/loki:rw
       - ${DATADIR}/loki/wal:/wal:rw
-      - ${DATADIR}/loki/rules:/rules:rw
 
       # Temporary storage for chunks
       - ${DATADIR}/loki/chunks:/chunks:rw

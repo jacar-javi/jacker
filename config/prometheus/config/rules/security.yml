@@ -1,0 +1,220 @@
+groups:
+  - name: security
+    interval: 30s
+    rules:
+      # CrowdSec Core Alerts
+      - alert: CrowdSecDown
+        expr: up{job="crowdsec"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: crowdsec
+        annotations:
+          summary: "CrowdSec IPS is down"
+          description: "CrowdSec intrusion prevention system has been down for more than 2 minutes. Security monitoring is compromised."
+
+      - alert: CrowdSecDatabaseConnectionError
+        expr: |
+          increase(crowdsec_database_errors_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          service: crowdsec
+        annotations:
+          summary: "CrowdSec database connection errors"
+          description: "CrowdSec is experiencing database connection errors. Cannot store or retrieve decisions."
+
+      - alert: CrowdSecHighDecisionCount
+        expr: |
+          crowdsec_active_decisions > 10000
+        for: 5m
+        labels:
+          severity: warning
+          service: crowdsec
+        annotations:
+          summary: "CrowdSec high active decisions"
+          description: "CrowdSec has {{ $value }} active decisions (bans/captchas). Possible ongoing attack."
+
+      - alert: CrowdSecParserErrors
+        expr: |
+          rate(crowdsec_parser_errors_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: crowdsec
+        annotations:
+          summary: "CrowdSec parser errors"
+          description: "CrowdSec is experiencing parser errors ({{ $value | humanizePercentage }} error rate). Some logs may not be analyzed."
+
+      - alert: CrowdSecScenarioTriggered
+        expr: |
+          increase(crowdsec_scenario_triggered_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: info
+          service: crowdsec
+        annotations:
+          summary: "CrowdSec scenarios triggered"
+          description: "CrowdSec scenario {{ $labels.scenario }} has been triggered {{ $value }} times in the last 5 minutes."
+
+      - alert: CrowdSecBouncerDown
+        expr: |
+          time() - crowdsec_bouncer_last_heartbeat_seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+          service: crowdsec
+        annotations:
+          summary: "CrowdSec bouncer offline"
+          description: "CrowdSec bouncer {{ $labels.bouncer }} has not sent a heartbeat for more than 5 minutes."
+
+      - alert: CrowdSecAcquisitionErrors
+        expr: |
+          rate(crowdsec_acquisition_errors_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: crowdsec
+        annotations:
+          summary: "CrowdSec acquisition errors"
+          description: "CrowdSec is experiencing errors acquiring logs from {{ $labels.source }}."
+
+      - alert: CrowdSecAPIErrors
+        expr: |
+          rate(crowdsec_api_errors_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: crowdsec
+        annotations:
+          summary: "CrowdSec API errors"
+          description: "CrowdSec API is experiencing errors ({{ $value | humanizePercentage }} error rate)."
+
+      - alert: CrowdSecMachineNotValidated
+        expr: |
+          crowdsec_machine_validated == 0
+        for: 10m
+        labels:
+          severity: warning
+          service: crowdsec
+        annotations:
+          summary: "CrowdSec machine not validated"
+          description: "CrowdSec machine {{ $labels.machine }} is not validated with the central API."
+
+      # Attack Detection Alerts
+      - alert: BruteForceAttackDetected
+        expr: |
+          increase(crowdsec_scenario_triggered_total{scenario=~".*brute.*"}[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: crowdsec
+          attack_type: brute_force
+        annotations:
+          summary: "Brute force attack detected"
+          description: "CrowdSec has detected {{ $value }} brute force attempts in the last 5 minutes."
+
+      - alert: WebScanningDetected
+        expr: |
+          increase(crowdsec_scenario_triggered_total{scenario=~".*scan.*"}[5m]) > 10
+        for: 2m
+        labels:
+          severity: info
+          service: crowdsec
+          attack_type: scanning
+        annotations:
+          summary: "Web scanning detected"
+          description: "CrowdSec has detected web scanning activity ({{ $value }} events in 5 minutes)."
+
+      - alert: DDoSAttackSuspected
+        expr: |
+          increase(crowdsec_scenario_triggered_total{scenario=~".*ddos.*|.*flood.*"}[1m]) > 100
+        for: 1m
+        labels:
+          severity: critical
+          service: crowdsec
+          attack_type: ddos
+        annotations:
+          summary: "Possible DDoS attack"
+          description: "CrowdSec has detected possible DDoS activity ({{ $value }} events in 1 minute)."
+
+      - alert: SQLInjectionAttempt
+        expr: |
+          increase(crowdsec_scenario_triggered_total{scenario=~".*sql.*"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: crowdsec
+          attack_type: sql_injection
+        annotations:
+          summary: "SQL injection attempt detected"
+          description: "CrowdSec has detected SQL injection attempts."
+
+      # Traefik Security Alerts
+      - alert: TraefikHighErrorRate
+        expr: |
+          sum(rate(traefik_service_requests_total{code=~"4.."}[5m]))
+          / sum(rate(traefik_service_requests_total[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: traefik
+        annotations:
+          summary: "Traefik high 4xx error rate"
+          description: "Traefik is experiencing {{ $value | humanizePercentage }} 4xx error rate. Possible scanning or probing."
+
+      - alert: TraefikRateLimitTriggered
+        expr: |
+          increase(traefik_middleware_requests_total{middleware=~".*rate.*"}[5m]) > 1000
+        for: 5m
+        labels:
+          severity: info
+          service: traefik
+        annotations:
+          summary: "Traefik rate limiting active"
+          description: "Traefik rate limiter has processed {{ $value }} requests in 5 minutes."
+
+      - alert: TraefikTLSHandshakeErrors
+        expr: |
+          rate(traefik_tls_handshake_errors_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          service: traefik
+        annotations:
+          summary: "Traefik TLS handshake errors"
+          description: "Traefik is experiencing TLS handshake errors ({{ $value | humanizePercentage }} error rate)."
+
+      # General Security Alerts
+      - alert: UnauthorizedAccessAttempts
+        expr: |
+          sum(rate(traefik_service_requests_total{code="401"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High rate of unauthorized access attempts"
+          description: "Seeing {{ $value | humanize }} unauthorized (401) responses per second."
+
+      - alert: ForbiddenAccessAttempts
+        expr: |
+          sum(rate(traefik_service_requests_total{code="403"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High rate of forbidden access attempts"
+          description: "Seeing {{ $value | humanize }} forbidden (403) responses per second."
+
+      - alert: SuspiciousGeoLocation
+        expr: |
+          increase(crowdsec_geoip_decisions_total{country!~"US|GB|CA|AU|DE|FR|NL"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: info
+          service: security
+        annotations:
+          summary: "Suspicious geographic location activity"
+          description: "Increased activity from {{ $labels.country }} ({{ $value }} decisions)."

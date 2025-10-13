@@ -71,6 +71,7 @@ services:
         ipv4_address: ${TRAEFIK_PROXY_IP}
       socket_proxy: {}
       monitoring: {}
+      cache: {}
 
     # Extra hosts for internal resolution
     extra_hosts:
@@ -169,7 +170,7 @@ services:
       # TRAEFIK_API_DEBUG: ${TRAEFIK_DEBUG:-false}
 
       # Redis for distributed rate limiting
-      # TRAEFIK_RATELIMIT_REDIS_ENDPOINT: redis:6379
+      TRAEFIK_RATELIMIT_REDIS_ENDPOINT: redis:6379
 
       # Optional: OpenTelemetry tracing
       # TRAEFIK_TRACING_ENABLED: ${TRACING_ENABLED:-false}
@@ -194,7 +195,6 @@ services:
       - "traefik.http.routers.traefik-rtr.service=api@internal"
 
       # Middleware Chain - OAuth protected with no CrowdSec (to prevent lockout)
-      # - "traefik.http.routers.traefik-rtr.middlewares=chain-oauth-no-crowdsec@file"
 
       # ============================================================
       # METRICS ENDPOINT (Internal only for Prometheus)
