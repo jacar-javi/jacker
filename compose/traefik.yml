@@ -123,6 +123,9 @@ services:
       # Optional: Plugins storage (runtime data - cannot use configs)
       - ${DATADIR}/traefik/plugins:/plugins-storage:rw
 
+      # Dynamic configuration rules (file provider watches this directory)
+      - ${CONFIGDIR}/traefik/rules:/rules:ro
+
       # Timezone configuration
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
@@ -131,41 +134,9 @@ services:
     # DOCKER CONFIGS (Immutable configuration files)
     # ====================================================================
     configs:
-      # Main configuration
+      # Main static configuration
       - source: traefik_yml
         target: /etc/traefik/traefik.yml
-
-      # Middleware configurations
-      - source: traefik_middlewares_oauth
-        target: /rules/middlewares-oauth.yml
-      - source: traefik_middlewares_cache
-        target: /rules/middlewares-cache.yml
-      - source: traefik_middlewares_compress
-        target: /rules/middlewares-compress.yml
-      - source: traefik_middlewares_cors
-        target: /rules/middlewares-cors.yml
-      - source: traefik_middlewares_rate_limit
-        target: /rules/middlewares-rate-limit.yml
-      - source: traefik_middlewares_secure_headers
-        target: /rules/middlewares-secure-headers.yml
-      - source: traefik_middlewares_crowdsec_bouncer
-        target: /rules/middlewares-traefik-bouncer.yml
-
-      # Chain configurations
-      - source: traefik_chain_api
-        target: /rules/chain-api.yml
-      - source: traefik_chain_oauth
-        target: /rules/chain-oauth.yml
-      - source: traefik_chain_no_oauth
-        target: /rules/chain-no-oauth.yml
-      - source: traefik_chain_public
-        target: /rules/chain-public.yml
-      - source: traefik_chain_strict
-        target: /rules/chain-strict.yml
-
-      # TLS options
-      - source: traefik_tls_opts
-        target: /rules/tls-opts.yml
 
     # ====================================================================
     # ENVIRONMENT CONFIGURATION
