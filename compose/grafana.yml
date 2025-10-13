@@ -227,8 +227,6 @@ services:
       - "homepage.weight=200"
       - "homepage.widget.type=grafana"
       - "homepage.widget.url=http://grafana:3000"
-      - "homepage.widget.username=${GRAFANA_ADMIN_USER:-admin}"
-      - "homepage.widget.password=${GRAFANA_ADMIN_PASSWORD:-}"
 
       # Service Discovery
       - "com.centurylinklabs.watchtower.enable=false" # Don't auto-update monitoring
