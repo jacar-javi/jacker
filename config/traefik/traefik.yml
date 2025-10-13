@@ -28,6 +28,7 @@ certificatesResolvers:
   # Production Let's Encrypt resolver
   http:
     acme:
+      email: javi@jacar.es
       storage: /acme/acme.json
       keyType: EC384  # Elliptic curve for performance
       # certificatesDuration removed in Traefik v3 - certificates auto-renewed at 30 days before expiry
@@ -39,6 +40,7 @@ certificatesResolvers:
   # DNS Challenge resolver for wildcard certificates
   dns-cloudflare:
     acme:
+      email: javi@jacar.es
       storage: /acme/acme-dns.json
       keyType: EC384
       dnsChallenge:
@@ -52,6 +54,7 @@ certificatesResolvers:
   # Staging resolver for testing
   staging:
     acme:
+      email: javi@jacar.es
       storage: /acme/acme-staging.json
       keyType: RSA4096
       httpChallenge:
@@ -74,7 +77,7 @@ entryPoints:
           scheme: https
           permanent: true
       middlewares:
-        - compress@file  # Compression only - CrowdSec removed to allow ACME challenges
+        - middlewares-compress@file  # Compression only - CrowdSec removed to allow ACME challenges
     # Connection limits
     transport:
       lifeCycle:
@@ -113,9 +116,9 @@ entryPoints:
         options: tls-opts@file
         certResolver: http
       middlewares:
-        - crowdsec-bouncer@file
-        - secure-headers@file
-        - compress@file
+        - middlewares-crowdsec-bouncer@file
+        - middlewares-secure-headers@file
+        - middlewares-compress@file
     # HTTP/3 Support
     http3:
       advertisedPort: 443
