@@ -655,7 +655,7 @@ create_directory_structure() {
         "data/grafana/data"
         "data/prometheus"
         "data/alertmanager"
-        "data/homepage/config"
+        "data/homepage"
         "data/portainer"
         "data/vscode"
         "data/node-exporter"
@@ -668,6 +668,7 @@ create_directory_structure() {
         "config/loki"
         "config/grafana/provisioning/dashboards"
         "config/grafana/provisioning/datasources"
+        "config/grafana/provisioning/notifiers"
         "config/prometheus"
         "config/alertmanager"
         "config/homepage"
@@ -787,15 +788,15 @@ create_configuration_files() {
 
         # Homepage configuration
         if [[ -f "$templates_dir/homepage-settings.yaml.template" ]]; then
-            envsubst < "$templates_dir/homepage-settings.yaml.template" > "${JACKER_DIR}/data/homepage/config/settings.yaml"
+            envsubst < "$templates_dir/homepage-settings.yaml.template" > "${JACKER_DIR}/config/homepage/settings.yaml"
         fi
 
         # Homepage custom CSS and JS
         if [[ -f "$templates_dir/homepage-custom.css.template" ]]; then
-            cp "$templates_dir/homepage-custom.css.template" "${JACKER_DIR}/data/homepage/custom.css"
+            cp "$templates_dir/homepage-custom.css.template" "${JACKER_DIR}/config/homepage/custom.css"
         fi
         if [[ -f "$templates_dir/homepage-custom.js.template" ]]; then
-            cp "$templates_dir/homepage-custom.js.template" "${JACKER_DIR}/data/homepage/custom.js"
+            cp "$templates_dir/homepage-custom.js.template" "${JACKER_DIR}/config/homepage/custom.js"
         fi
         
         # Alertmanager configuration
@@ -1040,12 +1041,12 @@ configure_alert_integrations() {
 # Configure Grafana alerting channels
 configure_grafana_alerting() {
     log_info "Configuring Grafana notification channels..."
-    
+
     # Create Grafana provisioning directory for notifiers
-    mkdir -p "${JACKER_DIR}/data/grafana/provisioning/notifiers"
-    
+    mkdir -p "${JACKER_DIR}/config/grafana/provisioning/notifiers"
+
     # Create notification channels configuration
-    cat > "${JACKER_DIR}/data/grafana/provisioning/notifiers/telegram.yaml" <<EOF
+    cat > "${JACKER_DIR}/config/grafana/provisioning/notifiers/telegram.yaml" <<EOF
 apiVersion: 1
 
 notifiers:
@@ -1053,7 +1054,7 @@ EOF
     
     # Add Telegram notifier if configured
     if [[ -n "${TELEGRAM_BOT_TOKEN}" ]] && [[ -n "${TELEGRAM_CHAT_ID}" ]]; then
-        cat >> "${JACKER_DIR}/data/grafana/provisioning/notifiers/telegram.yaml" <<EOF
+        cat >> "${JACKER_DIR}/config/grafana/provisioning/notifiers/telegram.yaml" <<EOF
   - name: Telegram
     type: telegram
     uid: telegram-notifier
@@ -1071,7 +1072,7 @@ EOF
     
     # Add Email notifier if configured
     if [[ -n "${SMTP_HOST}" ]]; then
-        cat >> "${JACKER_DIR}/data/grafana/provisioning/notifiers/telegram.yaml" <<EOF
+        cat >> "${JACKER_DIR}/config/grafana/provisioning/notifiers/telegram.yaml" <<EOF
   - name: Email
     type: email
     uid: email-notifier
@@ -1088,7 +1089,7 @@ EOF
     
     # Add Slack notifier if configured
     if [[ -n "${SLACK_WEBHOOK_URL}" ]]; then
-        cat >> "${JACKER_DIR}/data/grafana/provisioning/notifiers/telegram.yaml" <<EOF
+        cat >> "${JACKER_DIR}/config/grafana/provisioning/notifiers/telegram.yaml" <<EOF
   - name: Slack
     type: slack
     uid: slack-notifier
