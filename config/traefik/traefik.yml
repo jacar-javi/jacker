@@ -28,21 +28,17 @@ certificatesResolvers:
   # Production Let's Encrypt resolver
   http:
     acme:
-      email: ${LETSENCRYPT_EMAIL}
       storage: /acme/acme.json
       keyType: EC384  # Elliptic curve for performance
-      certificatesDuration: 2160h  # 90 days
+      # certificatesDuration removed in Traefik v3 - certificates auto-renewed at 30 days before expiry
       httpChallenge:
         entryPoint: web
       # Production server
       caServer: https://acme-v02.api.letsencrypt.org/directory
-      # Rate limiting protection
-      caServerTimeout: 30s
 
   # DNS Challenge resolver for wildcard certificates
   dns-cloudflare:
     acme:
-      email: ${LETSENCRYPT_EMAIL}
       storage: /acme/acme-dns.json
       keyType: EC384
       dnsChallenge:
@@ -56,7 +52,6 @@ certificatesResolvers:
   # Staging resolver for testing
   staging:
     acme:
-      email: ${LETSENCRYPT_EMAIL}
       storage: /acme/acme-staging.json
       keyType: RSA4096
       httpChallenge:
@@ -118,10 +113,6 @@ entryPoints:
       tls:
         options: tls-opts@file
         certResolver: http
-        domains:
-          - main: ${PUBLIC_FQDN}
-            sans:
-              - "*.${PUBLIC_FQDN}"
       middlewares:
         - crowdsec-bouncer@file
         - secure-headers@file
@@ -258,8 +249,7 @@ providers:
     defaultRule: "Host(`{{ normalize .Name }}.{{ env \"PUBLIC_FQDN\" }}`)"
     # Container constraints
     constraints: "Label(`traefik.enable`, `true`)"
-    # Throttle configuration changes
-    throttleDuration: 2s
+    # throttleDuration removed in Traefik v3
 
   # File Provider - Static Configuration
   file:
@@ -321,26 +311,15 @@ metrics:
 # ====================================================================
 # TRACING - OPENTELEMETRY
 # ====================================================================
-tracing:
-  serviceName: traefik
-  spanNameLimit: 128
-  otlp:
-    http:
-      endpoint: http://jaeger:4318/v1/traces
-      headers:
-        x-service-name: traefik
-      tls:
-        insecureSkipVerify: false
-    grpc:
-      endpoint: jaeger:4317
-      insecure: true
-      headers:
-        x-service-name: traefik
-  # Sampling configuration
-  sampling:
-    type: adaptive
-    param: 0.5
-    maxTracesPerSecond: 200
+# Tracing disabled temporarily - Traefik v3 changed tracing configuration significantly
+# TODO: Reconfigure tracing for Traefik v3 compatibility
+# tracing:
+#   serviceName: traefik
+#   otlp:
+#     http:
+#       endpoint: http://jaeger:4318/v1/traces
+#     grpc:
+#       endpoint: jaeger:4317
 
 # ====================================================================
 # PILOT - TRAEFIK PILOT (OPTIONAL CLOUD FEATURES)

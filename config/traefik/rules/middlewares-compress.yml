@@ -1,6 +1,6 @@
 http:
   middlewares:
-    middlewares-compress:
+    compress:
       compress:
         minResponseBodyBytes: 1024  # Only compress responses > 1KB
         excludedContentTypes:

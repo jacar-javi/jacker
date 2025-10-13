@@ -1,6 +1,6 @@
 http:
   middlewares:
-    middlewares-secure-headers:
+    secure-headers:
       headers:
         # CORS Headers
         accessControlAllowMethods:
