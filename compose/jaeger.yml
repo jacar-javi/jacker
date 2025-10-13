@@ -3,7 +3,7 @@ services:
   # OPTIONAL: Enable this service only if TRAEFIK_TRACING_ENABLED=true
   # Jaeger provides distributed tracing to monitor and troubleshoot microservices
   jaeger:
-    image: jaegertracing/all-in-one:1.62
+    image: jaegertracing/all-in-one:latest
     container_name: jaeger
 
     security_opt:
