@@ -115,7 +115,7 @@ services:
       - ${DATADIR}/crowdsec/scenarios:/etc/crowdsec/scenarios:ro
 
       # Acquisition configuration
-      - ${DATADIR}/crowdsec/acquis.d:/etc/crowdsec/acquis.d:ro
+      - ${CONFIGDIR}/crowdsec/acquis.d:/etc/crowdsec/acquis.d:ro
 
       # Hub cache
       - ${DATADIR}/crowdsec/hub:/etc/crowdsec/hub:rw

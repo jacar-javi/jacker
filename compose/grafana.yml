@@ -67,15 +67,15 @@ services:
       - ${DATADIR}/grafana/data:/var/lib/grafana:rw
 
       # Provisioning (read-only)
-      - ${DATADIR}/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ${DATADIR}/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-      - ${DATADIR}/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
-      - ${DATADIR}/grafana/provisioning/plugins:/etc/grafana/provisioning/plugins:ro
-      - ${DATADIR}/grafana/provisioning/notifiers:/etc/grafana/provisioning/notifiers:ro
-      - ${DATADIR}/grafana/provisioning/access-control:/etc/grafana/provisioning/access-control:ro
+      - ${CONFIGDIR}/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ${CONFIGDIR}/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ${CONFIGDIR}/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
+      - ${CONFIGDIR}/grafana/provisioning/plugins:/etc/grafana/provisioning/plugins:ro
+      - ${CONFIGDIR}/grafana/provisioning/notifiers:/etc/grafana/provisioning/notifiers:ro
+      - ${CONFIGDIR}/grafana/provisioning/access-control:/etc/grafana/provisioning/access-control:ro
 
       # Custom configuration
-      - ${DATADIR}/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ${CONFIGDIR}/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
 
       # TLS certificates
       - ${DATADIR}/grafana/certs:/etc/grafana/certs:ro
@@ -84,7 +84,7 @@ services:
       - ${DATADIR}/grafana/plugins:/var/lib/grafana/plugins:rw
 
       # Dashboards
-      - ${DATADIR}/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ${CONFIGDIR}/grafana/provisioning/dashboards:/var/lib/grafana/dashboards:ro
 
       # Timezone
       - /etc/localtime:/etc/localtime:ro
