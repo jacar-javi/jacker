@@ -135,10 +135,13 @@ EOF
     # shellcheck source=assets/lib/setup.sh
     source "$JACKER_ROOT/assets/lib/setup.sh"
 
+    # Set JACKER_DIR environment variable for setup.sh
+    export JACKER_DIR="$JACKER_ROOT"
+
     if [[ "$auto_mode" == "true" ]]; then
-        run_auto_setup
+        setup_jacker "quick"
     else
-        run_interactive_setup
+        setup_jacker "interactive"
     fi
 }
 

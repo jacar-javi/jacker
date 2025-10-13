@@ -9,6 +9,13 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # shellcheck source=/dev/null
 source "${SCRIPT_DIR}/common.sh"
 
+# Map log functions to common.sh functions
+log_info() { info "$@"; }
+log_success() { success "$@"; }
+log_warn() { warning "$@"; }
+log_error() { error "$@"; }
+log_section() { section "$@"; }
+
 #########################################
 # Configuration Detection
 #########################################
