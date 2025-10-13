@@ -1273,7 +1273,49 @@ initialize_services() {
 
     # Start core infrastructure services first
     log_info "Starting core services..."
-    $docker_cmd compose up -d socket-proxy postgres redis
+    
+    # Start socket-proxy and redis first (they don't have network conflicts)
+    $docker_cmd compose up -d socket-proxy redis || {
+        log_warn "Initial service start failed, trying alternate approach..."
+        # If that fails, try starting services one at a time
+        $docker_cmd compose up -d socket-proxy 2>/dev/null || true
+        $docker_cmd compose up -d redis 2>/dev/null || true
+    }
+    
+    # Start postgres separately to handle network issues
+    log_info "Starting PostgreSQL..."
+    $docker_cmd compose up -d postgres || {
+        log_warn "PostgreSQL network conflict detected, fixing..."
+        # If postgres fails due to multiple networks, we need to handle it differently
+        # First check if postgres container exists but is stopped
+        if $docker_cmd ps -a | grep -q postgres; then
+            # Remove the existing container
+            $docker_cmd rm -f postgres 2>/dev/null || true
+        fi
+        
+        # Try starting postgres again
+        $docker_cmd compose up -d postgres 2>/dev/null || {
+            log_error "Failed to start PostgreSQL. This may be due to network configuration."
+            log_info "Attempting to fix PostgreSQL network configuration..."
+            
+            # Create a temporary compose override to start postgres with single network
+            cat > "${JACKER_DIR}/docker-compose.override.yml" <<EOF
+services:
+  postgres:
+    networks:
+      - database
+EOF
+            # Start with single network
+            $docker_cmd compose up -d postgres
+            
+            # Remove override file
+            rm -f "${JACKER_DIR}/docker-compose.override.yml"
+            
+            # Now connect to additional networks
+            $docker_cmd network connect monitoring postgres 2>/dev/null || true
+            $docker_cmd network connect backup postgres 2>/dev/null || true
+        }
+    }
 
     # Wait for PostgreSQL to be ready
     wait_for_postgres

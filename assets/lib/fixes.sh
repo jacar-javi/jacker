@@ -235,6 +235,20 @@ fix_permissions() {
     success "All permissions fixed"
 }
 
+# Fix Docker network configuration issues
+fix_network() {
+    section "Fixing Docker Network Issues"
+    
+    # Source network fix functions
+    # shellcheck source=/dev/null
+    source "$JACKER_ROOT/assets/lib/network-fix.sh"
+    
+    # Fix PostgreSQL network issues
+    fix_postgres_networks
+    
+    success "Network issues fixed"
+}
+
 # Fix all known issues
 fix_all() {
     section "Running All Fixes"
@@ -270,4 +284,73 @@ fix_all() {
     else
         "$JACKER_ROOT/assets/lib/health-check.sh"
     fi
+}
+
+# Interactive fix menu
+select_fix_component() {
+    section "Fix Component Selection"
+    
+    echo "Select component to fix:"
+    echo "1. All (run all fixes)"
+    echo "2. Network (Docker network issues)"
+    echo "3. Loki"
+    echo "4. Traefik"
+    echo "5. CrowdSec"
+    echo "6. PostgreSQL"
+    echo "7. Permissions (all directories)"
+    echo "8. Alertmanager"
+    echo "9. Cancel"
+    echo
+    read -rp "Choice [1-9]: " choice
+    
+    case "$choice" in
+        1) fix_all ;;
+        2) fix_network ;;
+        3) fix_loki ;;
+        4) fix_traefik ;;
+        5) fix_crowdsec ;;
+        6) fix_postgres ;;
+        7) fix_permissions ;;
+        8) fix_alertmanager ;;
+        9) info "Fix cancelled" ;;
+        *) error "Invalid choice"; return 1 ;;
+    esac
+}
+
+# Run a specific fix
+run_fix() {
+    local component="${1}"
+    local force="${2:-false}"
+    
+    case "$component" in
+        all)
+            fix_all
+            ;;
+        network)
+            fix_network
+            ;;
+        loki)
+            fix_loki
+            ;;
+        traefik)
+            fix_traefik
+            ;;
+        crowdsec)
+            fix_crowdsec
+            ;;
+        postgres)
+            fix_postgres
+            ;;
+        permissions)
+            fix_permissions
+            ;;
+        alertmanager)
+            fix_alertmanager
+            ;;
+        *)
+            error "Unknown component: $component"
+            echo "Valid components: all, network, loki, traefik, crowdsec, postgres, permissions, alertmanager"
+            return 1
+            ;;
+    esac
 }
