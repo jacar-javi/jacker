@@ -26,7 +26,7 @@ certificatesResolvers:
   # Production Let's Encrypt resolver
   http:
     acme:
-      email: javi@jacar.es
+      email: ${LETSENCRYPT_EMAIL}
       storage: /acme/acme.json
       keyType: EC384 # Elliptic curve for performance
       # certificatesDuration removed in Traefik v3 - certificates auto-renewed at 30 days before expiry
@@ -35,30 +35,16 @@ certificatesResolvers:
       # Production server
       caServer: https://acme-v02.api.letsencrypt.org/directory
 
-  # DNS Challenge resolver for wildcard certificates
-  dns-cloudflare:
-    acme:
-      email: javi@jacar.es
-      storage: /acme/acme-dns.json
-      keyType: EC384
-      dnsChallenge:
-        provider: cloudflare
-        delayBeforeCheck: 10s
-        resolvers:
-          - "1.1.1.1:53"
-          - "1.0.0.1:53"
-      caServer: https://acme-v02.api.letsencrypt.org/directory
-
   # Staging resolver for testing
   staging:
     acme:
-      email: javi@jacar.es
+      email: ${LETSENCRYPT_EMAIL}
       storage: /acme/acme-staging.json
       keyType: RSA4096
       httpChallenge:
         entryPoint: web
       # Staging server (no rate limits)
-      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      # caServer: https://acme-staging-v02.api.letsencrypt.org/directory
 
 # ====================================================================
 # ENTRY POINTS - NETWORK LISTENERS
