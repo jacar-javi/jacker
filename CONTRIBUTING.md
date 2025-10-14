@@ -148,13 +148,43 @@ esac
 
 ### Shell Scripts
 
-When creating new library modules:
+All shell scripts must follow production-ready standards:
 
+**Required Standards:**
 - Use `#!/usr/bin/env bash` shebang
+- Include error handling: `set -euo pipefail` (main scripts only, not sourced libraries)
+- **Quote all variable expansions**: `"$var"` not `$var`
+- Use array-safe patterns for loops (avoid word-splitting)
 - Add ShellCheck directives when needed
-- Include error handling (`set -euo pipefail`)
 - Add comments for complex logic
 - Follow existing patterns
+
+**Example of Proper Variable Quoting:**
+```bash
+# Good - properly quoted
+echo "Value: $variable"
+docker exec "$container_name" echo "test"
+if [[ "$count" -gt 0 ]]; then
+
+# Bad - unquoted (causes word-splitting)
+echo "Value: $variable"
+docker exec $container_name echo "test"
+if [[ $count -gt 0 ]]; then
+```
+
+**Array-Safe Loop Pattern:**
+```bash
+# Good - array-safe iteration
+mapfile -t services < <(docker ps --format '{{.Names}}')
+for service in "${services[@]}"; do
+    echo "Processing: $service"
+done
+
+# Bad - word-splitting vulnerable
+for service in $(docker ps --format '{{.Names}}'); do
+    echo "Processing: $service"
+done
+```
 
 Example library module:
 
@@ -187,46 +217,95 @@ your_function() {
 - Include health checks
 - Document the service in `compose/README.md`
 
+**Network Configuration:**
+- Assign services to appropriate networks (see `docs/architecture/OVERVIEW.md`)
+- Use existing networks when possible:
+  - `traefik_proxy` - Web-accessible services
+  - `database` - Database services
+  - `monitoring` - Monitoring stack
+  - `cache` - Redis and cache services
+  - `socket_proxy` - Docker API access
+  - `backup` - Backup utilities
+  - `default` - General services
+- Add IPAM configuration if creating new networks (192.168.76-254.x available)
+
+**Example Service Definition:**
+```yaml
+services:
+  myservice:
+    image: myimage:latest
+    networks:
+      - traefik_proxy
+      - monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.myservice.rule=Host(`myservice.${PUBLIC_FQDN}`)"
+```
+
 ### Documentation
 
 - Update README.md for significant changes
 - Add service documentation to `compose/README.md`
+- Update CHANGELOG.md for all user-facing changes
+- Add architecture notes to `docs/architecture/` if needed
 - Keep documentation clear, concise, and up-to-date
+- Cross-reference related documentation
 
 ### Testing
 
 Before submitting a pull request:
 
-1. **Lint the jacker CLI and libraries**:
+1. **Run Pre-Deployment Validation**:
+   ```bash
+   ./validate.sh
+   ```
+   All 12 checks must pass before deployment.
+
+2. **Lint the jacker CLI and libraries**:
    ```bash
    shellcheck jacker
    shellcheck assets/lib/*.sh
    ```
+   Must have zero critical warnings.
 
-2. **Test installation**: Fresh install on clean system
+3. **Test installation**: Fresh install on clean system
    ```bash
+   # Ensure DNS configured first
    ./jacker init
    ```
 
-3. **Check health**: Ensure all services are healthy
+4. **Check health**: Ensure all services are healthy
    ```bash
    ./jacker health
    ```
 
-4. **Test affected commands**:
+5. **Test affected commands**:
    ```bash
    ./jacker status
    ./jacker config validate
    ./jacker logs
    ```
 
-5. **Verify functionality**: Manual testing of affected features
+6. **Verify functionality**: Manual testing of affected features
+
+7. **Test SSL certificates** (if init script modified):
+   ```bash
+   # Verify certificates obtained
+   ls -lh data/traefik/acme/acme.json
+   # Should be > 100 bytes
+   ```
 
 ## Project Structure
 
 ```
 jacker/
 ├── jacker              # Unified CLI (main entry point)
+├── validate.sh         # Pre-deployment validation (12 checks)
 ├── assets/             # Support files
 │   ├── lib/           # Library modules
 │   │   ├── common.sh      # Core utilities
@@ -237,14 +316,19 @@ jacker/
 │   │   ├── maintenance.sh # Backup/restore/updates
 │   │   └── fixes.sh       # Problem resolution
 │   └── templates/     # Configuration templates
-├── compose/           # Modular service definitions
+├── compose/           # Modular service definitions (26 services)
 ├── config/            # Service configurations
 ├── data/              # Persistent data (gitignored)
 ├── secrets/           # Docker secrets (gitignored)
+├── docs/              # Documentation
+│   ├── architecture/  # System architecture docs
+│   ├── guides/        # How-to guides
+│   └── archive/       # Historical phase reports
 ├── .github/           # GitHub workflows and configs
 ├── docker-compose.yml # Main compose file with includes
-├── Makefile          # Backward compatibility wrapper
-└── README.md         # User documentation
+├── CHANGELOG.md       # Version history
+├── CONTRIBUTING.md    # This file
+└── README.md          # User documentation
 ```
 
 ## Getting Help

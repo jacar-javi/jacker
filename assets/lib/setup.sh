@@ -638,10 +638,27 @@ generate_all_secrets() {
 #########################################
 
 create_directory_structure() {
-    # Set specific permissions
+    # Load environment to check staging mode
+    if [[ -f "${JACKER_DIR}/.env" ]]; then
+        set -a
+        source "${JACKER_DIR}/.env"
+        set +a
+    fi
+    
+    local staging_mode="${LETSENCRYPT_STAGING:-false}"
+    
+    # Create acme.json for production mode (default)
     touch "${JACKER_DIR}/data/traefik/acme/acme.json" 2>/dev/null || \
         { sudo touch "${JACKER_DIR}/data/traefik/acme/acme.json" && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/traefik/acme/acme.json"; }
     chmod 600 "${JACKER_DIR}/data/traefik/acme/acme.json"
+    
+    # Create acme-staging.json if in staging mode
+    if [[ "$staging_mode" == "true" ]]; then
+        log_info "Creating staging certificate file (LETSENCRYPT_STAGING=true)..."
+        touch "${JACKER_DIR}/data/traefik/acme/acme-staging.json" 2>/dev/null || \
+            { sudo touch "${JACKER_DIR}/data/traefik/acme/acme-staging.json" && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/traefik/acme/acme-staging.json"; }
+        chmod 600 "${JACKER_DIR}/data/traefik/acme/acme-staging.json"
+    fi
 
     # Loki data directory - needs UID 10001 permissions
     log_info "Creating Loki data directories with correct permissions..."
@@ -1506,6 +1523,102 @@ configure_crowdsec() {
 # Main Setup Function
 #########################################
 
+#########################################
+# DNS and SSL Validation
+#########################################
+
+validate_dns_prerequisites() {
+    log_section "Validating DNS Configuration"
+    
+    # Load environment variables
+    set -a
+    source "${JACKER_DIR}/.env"
+    set +a
+    
+    local domain="${DOMAINNAME}"
+    local hostname="${HOSTNAME}"
+    local public_fqdn="${PUBLIC_FQDN}"
+    
+    log_info "Checking DNS configuration for Let's Encrypt SSL..."
+    echo
+    
+    # Validate main domain resolves
+    if ! validate_dns_resolution "${public_fqdn}" "primary domain"; then
+        log_error "DNS validation failed for ${public_fqdn}"
+        log_error ""
+        log_error "Please configure DNS before running init:"
+        log_error "  1. Create A record: ${public_fqdn} -> $(get_public_ip)"
+        log_error "  2. Wait for DNS propagation (5-30 minutes)"
+        log_error "  3. Verify with: host ${public_fqdn}"
+        log_error "  4. Run './jacker init' again"
+        return 1
+    fi
+    
+    # Validate DNS points to this server
+    if ! validate_dns_points_to_server "${public_fqdn}" "primary domain"; then
+        return 1
+    fi
+    
+    # Check wildcard DNS (optional but recommended)
+    log_info "Checking wildcard DNS configuration..."
+    local test_subdomain="traefik.${domain}"
+    if validate_dns_resolution "${test_subdomain}" "wildcard subdomain" 2>/dev/null; then
+        local wildcard_ip
+        wildcard_ip=$(get_dns_ip "${test_subdomain}")
+        local server_ip
+        server_ip=$(get_public_ip)
+        
+        if [[ "$wildcard_ip" == "$server_ip" ]]; then
+            log_success "Wildcard DNS configured correctly"
+        else
+            log_warn "Wildcard DNS not configured or incorrect"
+            log_warn "Individual subdomain A records will be needed for each service"
+        fi
+    else
+        log_warn "Wildcard DNS not detected - this is OK if using individual subdomains"
+    fi
+    
+    echo
+    log_success "DNS configuration validated successfully"
+    echo
+    
+    return 0
+}
+
+wait_for_ssl_certificates_wrapper() {
+    log_section "SSL Certificate Acquisition"
+    
+    # Check if we're in staging mode
+    set -a
+    source "${JACKER_DIR}/.env"
+    set +a
+    
+    local staging_mode="${LETSENCRYPT_STAGING:-false}"
+    
+    if [[ "$staging_mode" == "true" ]]; then
+        log_warn "LETSENCRYPT_STAGING=true - Using Let's Encrypt staging server"
+        log_warn "Staging certificates will show as INVALID in browsers"
+        log_info "This is useful for testing - set LETSENCRYPT_STAGING=false for production"
+        echo
+    fi
+    
+    # Wait for certificates using common.sh function
+    if ! wait_for_ssl_certificates "${JACKER_DIR}" 120 5; then
+        log_error "SSL certificate acquisition failed"
+        log_error ""
+        log_error "Troubleshooting steps:"
+        log_error "  1. Check Traefik logs: ./jacker logs traefik --tail=100"
+        log_error "  2. Verify DNS is correct: host ${PUBLIC_FQDN}"
+        log_error "  3. Check ports 80/443 are accessible from internet"
+        log_error "  4. Reset SSL: ./jacker stop && rm data/traefik/acme/*.json && ./jacker start"
+        echo
+        
+        # Don't fail completely - services are running
+        log_warn "Services are running but SSL certificates may not be ready"
+        log_info "Certificates may still be acquired - monitor with: ./jacker logs traefik -f"
+    fi
+}
+
 setup_jacker() {
     local mode="${1:-interactive}"
     local preserve_existing=false
@@ -1558,12 +1671,21 @@ setup_jacker() {
     # Create configuration files
     create_configuration_files
 
+    # Validate DNS before proceeding
+    validate_dns_prerequisites || {
+        log_error "DNS validation failed - cannot continue"
+        log_error "Please configure DNS and try again"
+        return 1
+    }
 
     # Prepare system
     prepare_system
 
     # Initialize services
     initialize_services
+
+    # Wait for SSL certificates to be issued
+    wait_for_ssl_certificates_wrapper
 
     # Install bash completion
     install_bash_completion
@@ -1652,30 +1774,120 @@ show_completion_message() {
     echo
     echo "Jacker has been successfully installed!"
     echo
-    echo "Access your services at:"
-    echo "  Dashboard:    https://homepage.${PUBLIC_FQDN}"
-    echo "  Traefik:      https://traefik.${PUBLIC_FQDN}"
-    echo "  Grafana:      https://grafana.${PUBLIC_FQDN}"
-    echo "  Prometheus:   https://prometheus.${PUBLIC_FQDN}"
-    echo "  Portainer:    https://portainer.${PUBLIC_FQDN}"
-
-    if [[ -n "${AUTHENTIK_SECRET_KEY}" ]]; then
-        echo "  Authentik:    https://auth.${PUBLIC_FQDN}"
-    fi
+    
+    # Check SSL certificate status
+    local ssl_status
+    ssl_status=$(get_ssl_certificate_status "${JACKER_DIR}")
+    local staging_mode="${LETSENCRYPT_STAGING:-false}"
+    
+    echo "=== System Status ==="
+    echo
+    
+    # Display SSL status with color-coded indicators
+    case "$ssl_status" in
+        active)
+            echo -e "  ${GREEN}✓ SSL Certificates:${NC} Active (Production)"
+            echo -e "  ${GREEN}✓ Services:${NC} Running"
+            echo -e "  ${GREEN}✓ Monitoring:${NC} Active"
+            if [[ -n "${OAUTH_CLIENT_ID}" ]] || [[ -n "${AUTHENTIK_SECRET_KEY}" ]]; then
+                echo -e "  ${GREEN}✓ OAuth:${NC} Configured"
+            fi
+            echo
+            echo "Access your services at:"
+            echo "  Dashboard:    https://homepage.${PUBLIC_FQDN}"
+            echo "  Traefik:      https://traefik.${PUBLIC_FQDN}"
+            echo "  Grafana:      https://grafana.${PUBLIC_FQDN}"
+            echo "  Prometheus:   https://prometheus.${PUBLIC_FQDN}"
+            echo "  Portainer:    https://portainer.${PUBLIC_FQDN}"
+            if [[ -n "${AUTHENTIK_SECRET_KEY}" ]]; then
+                echo "  Authentik:    https://auth.${PUBLIC_FQDN}"
+            fi
+            ;;
+            
+        staging)
+            echo -e "  ${YELLOW}⚠ SSL Certificates:${NC} Staging (Test Mode)"
+            echo -e "  ${GREEN}✓ Services:${NC} Running"
+            echo -e "  ${GREEN}✓ Monitoring:${NC} Active"
+            if [[ -n "${OAUTH_CLIENT_ID}" ]] || [[ -n "${AUTHENTIK_SECRET_KEY}" ]]; then
+                echo -e "  ${GREEN}✓ OAuth:${NC} Configured"
+            fi
+            echo
+            echo -e "${YELLOW}WARNING: Using Let's Encrypt STAGING certificates${NC}"
+            echo "Browsers will show certificate warnings - this is expected."
+            echo "Staging mode is for testing. For production certificates:"
+            echo "  1. Edit .env and set: LETSENCRYPT_STAGING=false"
+            echo "  2. Remove staging certs: rm data/traefik/acme/acme-staging.json"
+            echo "  3. Restart: ./jacker restart traefik"
+            echo
+            echo "Services accessible at (with certificate warnings):"
+            echo "  Dashboard:    https://homepage.${PUBLIC_FQDN}"
+            echo "  Traefik:      https://traefik.${PUBLIC_FQDN}"
+            echo "  Grafana:      https://grafana.${PUBLIC_FQDN}"
+            ;;
+            
+        pending)
+            echo -e "  ${YELLOW}⏳ SSL Certificates:${NC} Pending"
+            echo -e "  ${GREEN}✓ Services:${NC} Running"
+            echo -e "  ${GREEN}✓ Monitoring:${NC} Active"
+            if [[ -n "${OAUTH_CLIENT_ID}" ]] || [[ -n "${AUTHENTIK_SECRET_KEY}" ]]; then
+                echo -e "  ${YELLOW}⏳ OAuth:${NC} Waiting for SSL"
+            fi
+            echo
+            echo -e "${YELLOW}SSL certificates are still being acquired...${NC}"
+            echo "This usually takes 30-90 seconds. Monitor progress with:"
+            echo "  ./jacker logs traefik -f | grep -i acme"
+            echo
+            echo "Once certificates are ready, services will be available at:"
+            echo "  Dashboard:    https://homepage.${PUBLIC_FQDN}"
+            echo "  Traefik:      https://traefik.${PUBLIC_FQDN}"
+            echo "  Grafana:      https://grafana.${PUBLIC_FQDN}"
+            echo
+            echo "If certificates don't arrive within 5 minutes, check:"
+            echo "  1. DNS is correct: host ${PUBLIC_FQDN}"
+            echo "  2. Ports 80/443 accessible from internet"
+            echo "  3. Traefik logs: ./jacker logs traefik --tail=100"
+            ;;
+    esac
 
     echo
-    echo "Management commands:"
+    echo "=== Management Commands ==="
     echo "  ./jacker start     - Start all services"
     echo "  ./jacker stop      - Stop all services"
+    echo "  ./jacker restart   - Restart all services"
     echo "  ./jacker status    - Check service status"
     echo "  ./jacker health    - Run health check"
+    echo "  ./jacker logs      - View service logs"
     echo "  ./jacker help      - Show all commands"
     echo
 
+    # Security warnings
     if [[ -z "${OAUTH_CLIENT_ID}" ]] && [[ -z "${AUTHENTIK_SECRET_KEY}" ]]; then
+        echo "=== Security Warning ==="
         log_warn "No authentication configured - services are publicly accessible!"
-        echo "Run './jacker config oauth' to configure authentication"
+        echo "Configure OAuth to protect your services:"
+        echo "  ./jacker config oauth"
+        echo
     fi
+    
+    # Additional tips based on staging mode
+    if [[ "$staging_mode" == "true" ]]; then
+        echo "=== Production Deployment ==="
+        echo "When ready for production with valid SSL certificates:"
+        echo "  1. Edit .env: LETSENCRYPT_STAGING=false"
+        echo "  2. Remove staging certs: rm data/traefik/acme/acme-staging.json"
+        echo "  3. Touch new cert file: touch data/traefik/acme/acme.json && chmod 600 data/traefik/acme/acme.json"
+        echo "  4. Restart Traefik: ./jacker restart traefik"
+        echo
+    fi
+    
+    # Final helpful links
+    echo "=== Documentation ==="
+    echo "  Configuration: less .env"
+    echo "  Traefik Dashboard: https://traefik.${PUBLIC_FQDN}/dashboard/"
+    echo "  Grafana Dashboards: https://grafana.${PUBLIC_FQDN}"
+    echo
+    
+    log_success "Setup complete! Your Jacker platform is ready."
 }
 
 # Export functions for use by jacker CLI

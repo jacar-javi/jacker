@@ -19,15 +19,27 @@ networks:
   database:
     name: database
     driver: bridge
+    ipam:
+      config:
+        - subnet: ${DATABASE_SUBNET}
   monitoring:
     name: monitoring
     driver: bridge
+    ipam:
+      config:
+        - subnet: ${MONITORING_SUBNET}
   cache:
     name: cache
     driver: bridge
+    ipam:
+      config:
+        - subnet: ${CACHE_SUBNET}
   backup:
     name: backup
     driver: bridge
+    ipam:
+      config:
+        - subnet: ${BACKUP_SUBNET}
 
 secrets:
   # OAuth secrets
@@ -163,6 +175,7 @@ include:
 
   # MONITORING
   - compose/node-exporter.yml
+  - compose/blackbox-exporter.yml
   - compose/prometheus.yml
   - compose/loki.yml
   - compose/promtail.yml

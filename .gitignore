@@ -177,3 +177,32 @@ obsolete/
 deprecated/
 archive/
 config/oauth2-proxy/oauth2-proxy.cfg
+
+# ============================================
+# Data Files (beyond .gitkeep)
+# ============================================
+data/*/data/*
+!data/*/data/.gitkeep
+data/*/db/*
+!data/*/db/.gitkeep
+data/postgres/pg_*
+data/grafana/*.db
+data/prometheus/data/*
+!data/prometheus/data/.gitkeep
+
+# ============================================
+# Log Files
+# ============================================
+*.log
+logs/
+*.log.*
+data/*/logs/*
+!data/*/logs/.gitkeep
+
+# ============================================
+# Archive Documentation (moved to docs/)
+# ============================================
+docs/archive/
+
+# Working documentation (temporary)
+docs/working/

@@ -1,0 +1,47 @@
+[
+  {
+    "targets": ["homepage:3000"],
+    "labels": {
+      "job": "homepage",
+      "instance": "homepage",
+      "component": "infrastructure",
+      "service_type": "dashboard"
+    }
+  },
+  {
+    "targets": ["vscode:8443"],
+    "labels": {
+      "job": "vscode",
+      "instance": "vscode",
+      "component": "infrastructure",
+      "service_type": "development"
+    }
+  },
+  {
+    "targets": ["portainer:9000"],
+    "labels": {
+      "job": "portainer",
+      "instance": "portainer",
+      "component": "infrastructure",
+      "service_type": "container-management"
+    }
+  },
+  {
+    "targets": ["socket-proxy:2375"],
+    "labels": {
+      "job": "socket-proxy",
+      "instance": "socket-proxy",
+      "component": "infrastructure",
+      "service_type": "security-proxy"
+    }
+  },
+  {
+    "targets": ["authentik-postgres:5432"],
+    "labels": {
+      "job": "authentik-postgres",
+      "instance": "authentik-postgres",
+      "component": "infrastructure",
+      "service_type": "database"
+    }
+  }
+]

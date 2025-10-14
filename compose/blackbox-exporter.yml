@@ -1,0 +1,122 @@
+services:
+  # ====================================================================
+  # Blackbox Exporter - Endpoint Health Monitoring
+  # Official Image: https://hub.docker.com/r/prom/blackbox-exporter
+  # ====================================================================
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    container_name: blackbox-exporter
+
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
+    security_opt:
+      - no-new-privileges=true
+      - apparmor=unconfined
+      - seccomp=unconfined
+
+    # Run as nobody user
+    user: "65534:65534"
+
+    # Read-only root filesystem
+    read_only: true
+
+    # Restart policy
+    restart: unless-stopped
+
+    # ====================================================================
+    # NETWORK CONFIGURATION
+    # ====================================================================
+    networks:
+      - monitoring
+      - traefik_proxy
+
+    # Port exposure for Prometheus scraping
+    ports:
+      - "127.0.0.1:9115:9115"
+
+    # ====================================================================
+    # RESOURCE LIMITS
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
+    volumes:
+      # Configuration file
+      - ${CONFIGDIR}/blackbox-exporter/blackbox.yml:/config/blackbox.yml:ro
+
+      # Timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # ====================================================================
+    # COMMAND CONFIGURATION
+    # ====================================================================
+    command:
+      - "--config.file=/config/blackbox.yml"
+      - "--web.listen-address=:9115"
+      - "--timeout-offset=0.5s"
+      - "--log.level=${BLACKBOX_LOG_LEVEL:-info}"
+      - "--log.format=${BLACKBOX_LOG_FORMAT:-logfmt}"
+
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
+    environment:
+      TZ: ${TZ}
+
+    # ====================================================================
+    # HEALTH CHECK
+    # ====================================================================
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:9115/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+    # ====================================================================
+    # LABELS
+    # ====================================================================
+    labels:
+      # Traefik routing
+      - "traefik.enable=true"
+      - "traefik.http.routers.blackbox-exporter.entrypoints=websecure"
+      - "traefik.http.routers.blackbox-exporter.rule=Host(`blackbox.${PUBLIC_FQDN}`)"
+      - "traefik.http.routers.blackbox-exporter.middlewares=chain-oauth@file"
+      - "traefik.http.routers.blackbox-exporter.service=blackbox-exporter"
+      - "traefik.http.services.blackbox-exporter.loadbalancer.server.port=9115"
+
+      # Homepage Integration
+      - "homepage.group=Monitoring"
+      - "homepage.name=Blackbox Exporter"
+      - "homepage.icon=mdi-shield-check"
+      - "homepage.href=https://blackbox.${PUBLIC_FQDN}"
+      - "homepage.description=Endpoint Health Monitoring"
+      - "homepage.weight=430"
+      - "homepage.widget.type=generic"
+      - "homepage.widget.url=http://blackbox-exporter:9115"
+      - "homepage.widget.label=Health"
+
+      # Service Discovery
+      - "com.centurylinklabs.watchtower.enable=false"
+      - "diun.enable=true"
+      - "diun.watch_repo=true"
+
+      # Prometheus scraping
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=9115"
+      - "prometheus.io/path=/metrics"

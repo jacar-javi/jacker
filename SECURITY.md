@@ -129,11 +129,38 @@ Jacker includes multiple security layers:
 
 ### OAuth Security
 
-1. **Whitelist Users** - Configure `OAUTH_WHITELIST` with specific emails
-2. **Rotate Secrets** - Periodically rotate OAuth credentials
-3. **Use Strong Secrets** - Generate secure `OAUTH_SECRET`
-4. **Review Sessions** - Monitor active sessions via Redis
-5. **Emergency Access** - Keep emergency access procedure documented
+**WARNING: TEST CREDENTIALS DETECTED**
+
+The repository contains test OAuth credentials in both `.env` and `secrets/oauth_client_secret`. These are **ONLY for development/testing** and must be replaced before production deployment.
+
+#### Required Actions Before Production:
+
+1. **Generate Production OAuth Credentials from Google Console**:
+   - Visit https://console.cloud.google.com/apis/credentials
+   - Create or select your project
+   - Create new OAuth 2.0 Client ID (Web application)
+   - Add authorized redirect URIs:
+     - `https://oauth.yourdomain.com/oauth2/callback`
+     - `https://yourdomain.com/oauth2/callback`
+   - Copy the Client ID and Client Secret
+
+2. **Update Credentials**:
+   ```bash
+   # Update .env file
+   OAUTH_CLIENT_ID=your-production-client-id.apps.googleusercontent.com
+   OAUTH_CLIENT_SECRET=your-production-client-secret
+
+   # Update secrets file
+   echo "your-production-client-secret" > secrets/oauth_client_secret
+   chmod 600 secrets/oauth_client_secret
+   ```
+
+3. **Security Best Practices**:
+   - **Whitelist Users** - Configure `OAUTH_WHITELIST` with specific emails
+   - **Rotate Secrets** - Periodically rotate OAuth credentials
+   - **Use Strong Secrets** - Generate secure `OAUTH_SECRET` and `OAUTH_COOKIE_SECRET`
+   - **Review Sessions** - Monitor active sessions via Redis
+   - **Emergency Access** - Keep emergency access procedure documented
 
 ### CrowdSec
 

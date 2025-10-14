@@ -13,6 +13,19 @@ http:
             - "redis:6379"
           db: 0
 
+    # Alias for consistent naming
+    middlewares-rate-limit:
+      rateLimit:
+        average: 50  # 50 requests per second on average
+        burst: 100   # Allow bursts up to 100 requests
+        period: 1s
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 0
+
     # Strict rate limit - for sensitive endpoints with Redis backend
     rate-limit-strict:
       rateLimit:
@@ -26,8 +39,34 @@ http:
             - "redis:6379"
           db: 0
 
+    # Alias for consistent naming
+    middlewares-rate-limit-strict:
+      rateLimit:
+        average: 10  # 10 requests per second
+        burst: 20    # Allow bursts up to 20 requests
+        period: 1s
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 0
+
     # API rate limit - for API endpoints with Redis backend
     rate-limit-api:
+      rateLimit:
+        average: 100  # 100 requests per minute
+        burst: 50     # Allow bursts up to 50 requests
+        period: 1m
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 0
+
+    # Alias for consistent naming
+    middlewares-rate-limit-api:
       rateLimit:
         average: 100  # 100 requests per minute
         burst: 50     # Allow bursts up to 50 requests

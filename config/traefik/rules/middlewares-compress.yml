@@ -1,6 +1,15 @@
 http:
   middlewares:
+    # Compression middleware
     compress:
+      compress:
+        minResponseBodyBytes: 1024  # Only compress responses > 1KB
+        excludedContentTypes:
+          - text/event-stream  # Don't compress SSE
+          - application/octet-stream
+
+    # Alias for consistent naming with other middlewares
+    middlewares-compress:
       compress:
         minResponseBodyBytes: 1024  # Only compress responses > 1KB
         excludedContentTypes:

@@ -2,6 +2,51 @@
 
 This directory stores sensitive data that should NEVER be committed to version control. All files except this README and .gitkeep are excluded via .gitignore.
 
+---
+
+## PRODUCTION WARNING
+
+**CRITICAL: TEST CREDENTIALS DETECTED**
+
+The `oauth_client_secret` file currently contains a test credential (`test-client-secret-abcdef`). This is **ONLY for development/testing purposes** and **MUST** be replaced with production credentials before deploying to a live environment.
+
+### How to Generate Production OAuth Client Secret:
+
+1. **Google Cloud Console**:
+   - Navigate to https://console.cloud.google.com/apis/credentials
+   - Select or create your project
+   - Click "Create Credentials" > "OAuth 2.0 Client ID"
+   - Choose "Web application" as the application type
+   - Configure authorized redirect URIs:
+     - `https://oauth.yourdomain.com/oauth2/callback`
+     - `https://yourdomain.com/oauth2/callback` (replace with your actual domain)
+   - Click "Create" and save both Client ID and Client Secret
+
+2. **Update the Secret**:
+   ```bash
+   # Replace the test secret with production secret
+   echo "YOUR-ACTUAL-CLIENT-SECRET-FROM-GOOGLE" > secrets/oauth_client_secret
+
+   # Ensure correct permissions
+   chmod 600 secrets/oauth_client_secret
+   ```
+
+3. **Update .env File**:
+   ```bash
+   # Also update the corresponding .env variables
+   OAUTH_CLIENT_ID=your-production-client-id.apps.googleusercontent.com
+   OAUTH_CLIENT_SECRET=your-production-client-secret-from-step-1
+   ```
+
+4. **Verify Setup**:
+   - Restart OAuth2-Proxy service: `docker compose restart oauth2-proxy`
+   - Test authentication flow with a whitelisted email
+   - Monitor logs for any authentication errors
+
+**Never use test credentials in production environments!**
+
+---
+
 ## Purpose
 
 Docker secrets provide a secure way to manage sensitive data such as:
@@ -23,16 +68,17 @@ secrets/
 
 ## Active Secrets
 
-| File | Purpose | Used By |
-|------|---------|---------|
-| `oauth_cookie_secret` | OAuth2-proxy cookie encryption | OAuth2-Proxy |
-| `postgres_password` | PostgreSQL root password | PostgreSQL, CrowdSec |
-| `redis_password` | Redis authentication | Redis, OAuth2-Proxy |
-| `crowdsec_lapi_key` | CrowdSec Local API key | CrowdSec LAPI |
-| `crowdsec_bouncer_key` | Traefik bouncer API key | Traefik Bouncer |
-| `grafana_admin_password` | Grafana admin password | Grafana |
-| `portainer_secret` | Portainer agent secret | Portainer |
-| `traefik_forward_oauth` | Traefik OAuth forward auth | Traefik |
+| File | Purpose | Used By | Status |
+|------|---------|---------|--------|
+| `oauth_client_secret` | **OAuth2 Client Secret** | **OAuth2-Proxy** | **TEST - REPLACE FOR PRODUCTION** |
+| `oauth_cookie_secret` | OAuth2-proxy cookie encryption | OAuth2-Proxy | Auto-generated |
+| `postgres_password` | PostgreSQL root password | PostgreSQL, CrowdSec | Auto-generated |
+| `redis_password` | Redis authentication | Redis, OAuth2-Proxy | Auto-generated |
+| `crowdsec_lapi_key` | CrowdSec Local API key | CrowdSec LAPI | Auto-generated |
+| `crowdsec_bouncer_key` | Traefik bouncer API key | Traefik Bouncer | Auto-generated |
+| `grafana_admin_password` | Grafana admin password | Grafana | Auto-generated |
+| `portainer_secret` | Portainer agent secret | Portainer | Auto-generated |
+| `traefik_forward_oauth` | Traefik OAuth forward auth | Traefik | Auto-generated |
 
 ### Optional Secrets (Authentik)
 

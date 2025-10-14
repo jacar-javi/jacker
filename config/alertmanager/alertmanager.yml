@@ -1,8 +1,15 @@
-# Alertmanager Basic Configuration
+# Alertmanager Configuration with Email Notifications
 # https://prometheus.io/docs/alerting/latest/configuration/
 
 global:
   resolve_timeout: 5m
+
+  # SMTP Configuration for email notifications
+  smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
+  smtp_from: '${SMTP_USERNAME}'
+  smtp_auth_username: '${SMTP_USERNAME}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
 
 # Templates for alerts
 templates:
@@ -22,27 +29,178 @@ route:
   # Wait before resending alerts
   repeat_interval: 12h
 
-  # Default receiver
-  receiver: 'default'
+  # Default receiver for all alerts
+  receiver: 'email-default'
 
-  # Child routes
+  # Child routes for different severity levels
   routes:
     # Null receiver for specific alerts to ignore
     - match:
         alertname: Watchdog
       receiver: 'null'
 
+    # Critical alerts - immediate notification, shorter repeat interval
+    - match:
+        severity: critical
+      receiver: 'email-critical'
+      group_wait: 10s
+      repeat_interval: 4h
+      continue: false
+
+    # Security alerts - immediate notification
+    - match:
+        severity: security
+      receiver: 'email-security'
+      group_wait: 10s
+      repeat_interval: 4h
+      continue: false
+
+    # Warning alerts - standard notification
+    - match:
+        severity: warning
+      receiver: 'email-warning'
+      repeat_interval: 24h
+      continue: false
+
+    # Info alerts - less frequent notifications
+    - match:
+        severity: info
+      receiver: 'email-info'
+      repeat_interval: 24h
+      continue: false
+
 # Receivers configuration
 receivers:
-  # Default receiver - logs only (no external notifications until configured)
-  - name: 'default'
-
   # Null receiver - silences alerts
   - name: 'null'
 
-# ====================================================================
-# NOTE: SMTP and other notification configs commented out
-# ====================================================================
-# To enable email notifications, see alertmanager.yml.enhanced.bak for full config
-# After configuration, replace this file with the enhanced version and update
-# environment variables in .env file.
+  # Default email receiver for general alerts
+  - name: 'email-default'
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        headers:
+          Subject: '[Jacker Alert] {{ .GroupLabels.alertname }} on {{ .GroupLabels.instance }}'
+        html: |
+          <h2>Alert: {{ .GroupLabels.alertname }}</h2>
+          <p><strong>Status:</strong> {{ .Status }}</p>
+          <p><strong>Summary:</strong> {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}</p>
+          <p><strong>Description:</strong> {{ range .Alerts }}{{ .Annotations.description }}{{ end }}</p>
+          <p><strong>Details:</strong></p>
+          <ul>
+          {{ range .Alerts }}
+            <li><strong>Instance:</strong> {{ .Labels.instance }}</li>
+            <li><strong>Severity:</strong> {{ .Labels.severity }}</li>
+            <li><strong>Starts:</strong> {{ .StartsAt }}</li>
+          {{ end }}
+          </ul>
+        send_resolved: true
+
+  # Critical alerts receiver
+  - name: 'email-critical'
+    email_configs:
+      - to: '${ALERT_EMAIL_CRITICAL}'
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }} - Immediate Action Required'
+          Priority: 'urgent'
+        html: |
+          <h1 style="color: red;">CRITICAL ALERT</h1>
+          <h2>{{ .GroupLabels.alertname }}</h2>
+          <p><strong>Status:</strong> <span style="color: red;">{{ .Status }}</span></p>
+          <p><strong>Summary:</strong> {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}</p>
+          <p><strong>Description:</strong> {{ range .Alerts }}{{ .Annotations.description }}{{ end }}</p>
+          <p><strong>Details:</strong></p>
+          <ul>
+          {{ range .Alerts }}
+            <li><strong>Instance:</strong> {{ .Labels.instance }}</li>
+            <li><strong>Severity:</strong> <span style="color: red;">{{ .Labels.severity }}</span></li>
+            <li><strong>Starts:</strong> {{ .StartsAt }}</li>
+            <li><strong>Labels:</strong> {{ .Labels }}</li>
+          {{ end }}
+          </ul>
+          <p style="color: red;"><strong>ACTION REQUIRED: This is a critical alert requiring immediate attention!</strong></p>
+        send_resolved: true
+
+  # Security alerts receiver
+  - name: 'email-security'
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        headers:
+          Subject: '[SECURITY] {{ .GroupLabels.alertname }} - Security Alert'
+          Priority: 'urgent'
+        html: |
+          <h1 style="color: orange;">SECURITY ALERT</h1>
+          <h2>{{ .GroupLabels.alertname }}</h2>
+          <p><strong>Status:</strong> <span style="color: orange;">{{ .Status }}</span></p>
+          <p><strong>Summary:</strong> {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}</p>
+          <p><strong>Description:</strong> {{ range .Alerts }}{{ .Annotations.description }}{{ end }}</p>
+          <p><strong>Details:</strong></p>
+          <ul>
+          {{ range .Alerts }}
+            <li><strong>Instance:</strong> {{ .Labels.instance }}</li>
+            <li><strong>Severity:</strong> {{ .Labels.severity }}</li>
+            <li><strong>Starts:</strong> {{ .StartsAt }}</li>
+            <li><strong>Labels:</strong> {{ .Labels }}</li>
+          {{ end }}
+          </ul>
+          <p style="color: orange;"><strong>SECURITY NOTICE: Potential security issue detected. Please investigate immediately.</strong></p>
+        send_resolved: true
+
+  # Warning alerts receiver
+  - name: 'email-warning'
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        headers:
+          Subject: '[WARNING] {{ .GroupLabels.alertname }}'
+        html: |
+          <h2 style="color: orange;">Warning Alert</h2>
+          <h3>{{ .GroupLabels.alertname }}</h3>
+          <p><strong>Status:</strong> {{ .Status }}</p>
+          <p><strong>Summary:</strong> {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}</p>
+          <p><strong>Description:</strong> {{ range .Alerts }}{{ .Annotations.description }}{{ end }}</p>
+          <p><strong>Details:</strong></p>
+          <ul>
+          {{ range .Alerts }}
+            <li><strong>Instance:</strong> {{ .Labels.instance }}</li>
+            <li><strong>Severity:</strong> {{ .Labels.severity }}</li>
+            <li><strong>Starts:</strong> {{ .StartsAt }}</li>
+          {{ end }}
+          </ul>
+        send_resolved: true
+
+  # Info alerts receiver
+  - name: 'email-info'
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        headers:
+          Subject: '[INFO] {{ .GroupLabels.alertname }}'
+        html: |
+          <h2 style="color: blue;">Informational Alert</h2>
+          <h3>{{ .GroupLabels.alertname }}</h3>
+          <p><strong>Status:</strong> {{ .Status }}</p>
+          <p><strong>Summary:</strong> {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}</p>
+          <p><strong>Description:</strong> {{ range .Alerts }}{{ .Annotations.description }}{{ end }}</p>
+          <p><strong>Details:</strong></p>
+          <ul>
+          {{ range .Alerts }}
+            <li><strong>Instance:</strong> {{ .Labels.instance }}</li>
+            <li><strong>Severity:</strong> {{ .Labels.severity }}</li>
+            <li><strong>Starts:</strong> {{ .StartsAt }}</li>
+          {{ end }}
+          </ul>
+        send_resolved: true
+
+# Inhibition rules - suppress certain alerts when others are active
+inhibit_rules:
+  # Suppress warning alerts if critical alert is firing for same instance
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+  # Suppress info alerts if warning or critical alert is firing
+  - source_match:
+      severity: 'warning'
+    target_match:
+      severity: 'info'
+    equal: ['alertname', 'instance']

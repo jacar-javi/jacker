@@ -1,0 +1,128 @@
+# ====================================================================
+# Blackbox Exporter Configuration
+# Probe modules for HTTP/HTTPS/SSL endpoint monitoring
+# ====================================================================
+
+modules:
+  # ====================================================================
+  # HTTP 2xx Probe - Standard HTTP endpoint monitoring
+  # ====================================================================
+  http_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      # 200 = Success, 401/403 = OAuth-protected (expected for authenticated endpoints)
+      valid_status_codes: [200, 401, 403]
+      method: GET
+      preferred_ip_protocol: "ip4"
+      ip_protocol_fallback: true
+      follow_redirects: true
+      max_redirects: 3
+      fail_if_ssl: false
+      fail_if_not_ssl: false
+
+  # ====================================================================
+  # HTTPS 2xx Probe - Secure HTTP with TLS verification
+  # ====================================================================
+  https_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200, 401, 403]
+      method: GET
+      preferred_ip_protocol: "ip4"
+      ip_protocol_fallback: true
+      tls_config:
+        insecure_skip_verify: false
+        # CA certificates will be loaded from system default location
+      follow_redirects: true
+      max_redirects: 3
+      fail_if_not_ssl: true
+
+  # ====================================================================
+  # HTTPS 2xx (No Redirect) - For OAuth endpoints that redirect to login
+  # ====================================================================
+  https_2xx_no_redirect:
+    prober: http
+    timeout: 5s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200, 301, 302, 401, 403]
+      method: GET
+      preferred_ip_protocol: "ip4"
+      ip_protocol_fallback: true
+      tls_config:
+        insecure_skip_verify: false
+      follow_redirects: false
+      fail_if_not_ssl: true
+
+  # ====================================================================
+  # SSL Certificate Expiry Probe - Monitor certificate validity
+  # ====================================================================
+  ssl_expiry:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      tls: true
+      tls_config:
+        insecure_skip_verify: false
+
+  # ====================================================================
+  # TCP Connect Probe - Basic port connectivity check
+  # ====================================================================
+  tcp_connect:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      preferred_ip_protocol: "ip4"
+
+  # ====================================================================
+  # ICMP Probe - Network layer ping test
+  # ====================================================================
+  icmp:
+    prober: icmp
+    timeout: 5s
+    icmp:
+      preferred_ip_protocol: "ip4"
+      ttl: 64
+
+  # ====================================================================
+  # DNS Probe - DNS resolution verification
+  # ====================================================================
+  dns_tcp:
+    prober: dns
+    timeout: 5s
+    dns:
+      transport_protocol: "tcp"
+      preferred_ip_protocol: "ip4"
+      query_name: "vps1.jacarsystems.net"
+      query_type: "A"
+
+  dns_udp:
+    prober: dns
+    timeout: 5s
+    dns:
+      transport_protocol: "udp"
+      preferred_ip_protocol: "ip4"
+      query_name: "vps1.jacarsystems.net"
+      query_type: "A"
+
+  # ====================================================================
+  # HTTP POST Probe - For API health checks
+  # ====================================================================
+  http_post_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200, 201, 202]
+      method: POST
+      preferred_ip_protocol: "ip4"
+      headers:
+        Content-Type: application/json
+      body: '{}'
+      fail_if_not_ssl: true
+      tls_config:
+        insecure_skip_verify: false

@@ -182,6 +182,271 @@ set_env_var() {
 # ============================================================================
 
 # Validate hostname
+# DNS and network validation
+validate_dns_resolution() {
+    local domain="${1}"
+    local description="${2:-domain}"
+    
+    info "Checking DNS for ${description}: ${domain}..."
+    
+    # Check if host command is available
+    if ! command -v host &>/dev/null && ! command -v dig &>/dev/null; then
+        warning "Neither 'host' nor 'dig' command available - skipping DNS check"
+        return 0
+    fi
+    
+    # Try to resolve the domain
+    local resolved=false
+    if command -v host &>/dev/null; then
+        if host "${domain}" >/dev/null 2>&1; then
+            resolved=true
+        fi
+    elif command -v dig &>/dev/null; then
+        if dig +short "${domain}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+            resolved=true
+        fi
+    fi
+    
+    if [[ "$resolved" == "false" ]]; then
+        error "DNS validation failed: ${domain} does not resolve"
+        return 1
+    fi
+    
+    success "DNS resolution verified for ${domain}"
+    return 0
+}
+
+get_public_ip() {
+    # Try multiple services to get public IP
+    local ip=""
+    
+    ip=$(curl -s --connect-timeout 5 ifconfig.me 2>/dev/null)
+    if [[ -z "$ip" ]]; then
+        ip=$(curl -s --connect-timeout 5 icanhazip.com 2>/dev/null)
+    fi
+    if [[ -z "$ip" ]]; then
+        ip=$(curl -s --connect-timeout 5 api.ipify.org 2>/dev/null)
+    fi
+    
+    echo "$ip"
+}
+
+get_dns_ip() {
+    local domain="${1}"
+    local ip=""
+    
+    if command -v host &>/dev/null; then
+        ip=$(host "${domain}" 2>/dev/null | grep "has address" | awk '{print $4}' | head -1)
+    elif command -v dig &>/dev/null; then
+        ip=$(dig +short "${domain}" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+    fi
+    
+    echo "$ip"
+}
+
+validate_dns_points_to_server() {
+    local domain="${1}"
+    local description="${2:-domain}"
+    
+    info "Validating that ${description} points to this server..."
+    
+    # Get server's public IP
+    local server_ip
+    server_ip=$(get_public_ip)
+    
+    if [[ -z "$server_ip" ]]; then
+        warning "Could not determine server's public IP - skipping DNS IP check"
+        return 0
+    fi
+    
+    # Get DNS resolved IP
+    local dns_ip
+    dns_ip=$(get_dns_ip "${domain}")
+    
+    if [[ -z "$dns_ip" ]]; then
+        error "Could not resolve ${domain} to an IP address"
+        return 1
+    fi
+    
+    # Compare IPs
+    if [[ "$server_ip" != "$dns_ip" ]]; then
+        warning "DNS mismatch detected:"
+        warning "  ${domain} resolves to: ${dns_ip}"
+        warning "  This server's public IP: ${server_ip}"
+        
+        if [[ "${JACKER_AUTO_MODE:-false}" == "true" ]]; then
+            error "DNS mismatch in auto mode - cannot continue"
+            return 1
+        fi
+        
+        echo
+        read -rp "Continue anyway? (y/N): " continue_setup
+        if [[ "${continue_setup,,}" != "y" ]]; then
+            error "Setup cancelled - please fix DNS first"
+            return 1
+        fi
+        warning "Continuing with DNS mismatch - SSL certificates may fail"
+    else
+        success "DNS correctly points to this server (${server_ip})"
+    fi
+    
+    return 0
+}
+
+check_ssl_certificate_file() {
+    local acme_file="${1}"
+    
+    if [[ ! -f "$acme_file" ]]; then
+        return 1
+    fi
+    
+    # Check file size - valid certificates will be > 100 bytes
+    local size
+    if command -v stat &>/dev/null; then
+        # Try GNU stat first (Linux)
+        size=$(stat -c "%s" "$acme_file" 2>/dev/null)
+        # Try BSD stat (macOS)
+        if [[ -z "$size" ]]; then
+            size=$(stat -f "%z" "$acme_file" 2>/dev/null)
+        fi
+    fi
+    
+    if [[ -n "$size" ]] && [[ "$size" -gt 100 ]]; then
+        return 0
+    fi
+    
+    return 1
+}
+
+wait_for_ssl_certificates() {
+    local jacker_dir="${1:-$(get_jacker_root)}"
+    local max_wait="${2:-120}"  # 2 minutes default
+    local check_interval="${3:-5}"  # 5 seconds default
+    
+    section "Waiting for SSL Certificates"
+    
+    # Load environment to check staging mode
+    local env_file="${jacker_dir}/.env"
+    if [[ -f "$env_file" ]]; then
+        set -a
+        # shellcheck source=/dev/null
+        source "$env_file"
+        set +a
+    fi
+    
+    local staging_mode="${LETSENCRYPT_STAGING:-false}"
+    local acme_file
+    
+    if [[ "$staging_mode" == "true" ]]; then
+        acme_file="${jacker_dir}/data/traefik/acme/acme-staging.json"
+        info "Running in STAGING mode - will request test certificates"
+        warning "Staging certificates will show as invalid in browsers"
+    else
+        acme_file="${jacker_dir}/data/traefik/acme/acme.json"
+        info "Running in PRODUCTION mode - requesting valid certificates"
+    fi
+    
+    info "Requesting SSL certificates from Let's Encrypt..."
+    info "This may take 30-90 seconds..."
+    echo
+    
+    local waited=0
+    local dot_count=0
+    local success_found=false
+    
+    while [[ $waited -lt $max_wait ]]; do
+        # Check if acme file has certificate data
+        if check_ssl_certificate_file "$acme_file"; then
+            echo  # New line after dots
+            success "SSL certificates obtained successfully!"
+            success_found=true
+            break
+        fi
+        
+        # Check Traefik logs for certificate obtained message
+        if docker compose -f "${jacker_dir}/docker-compose.yml" logs traefik 2>/dev/null | tail -100 | grep -qE "certificate.*obtained|certificateResource.*obtained"; then
+            echo
+            success "SSL certificates obtained successfully!"
+            success_found=true
+            break
+        fi
+        
+        # Check for errors in Traefik logs
+        if docker compose -f "${jacker_dir}/docker-compose.yml" logs traefik 2>/dev/null | tail -50 | grep -qi "acme.*error\|unable to obtain.*certificate"; then
+            echo
+            error "SSL certificate acquisition failed"
+            warning "Check Traefik logs for details:"
+            echo "  cd ${jacker_dir} && ./jacker logs traefik --tail=100 | grep -i acme"
+            return 1
+        fi
+        
+        # Show progress dots
+        echo -n "."
+        dot_count=$((dot_count + 1))
+        if [[ $dot_count -ge 20 ]]; then
+            echo " (${waited}s/${max_wait}s)"
+            dot_count=0
+        fi
+        
+        sleep "$check_interval"
+        waited=$((waited + check_interval))
+    done
+    
+    if [[ "$success_found" == "false" ]]; then
+        echo
+        warning "Certificate acquisition timeout after ${max_wait}s"
+        warning "Certificates may still be pending - check logs:"
+        info "  cd ${jacker_dir} && ./jacker logs traefik -f | grep -i acme"
+        echo
+        info "If DNS is configured correctly, certificates should arrive within a few minutes."
+        info "You can check status with: ./jacker logs traefik --tail=50"
+        
+        # Don't fail - certificates might still arrive
+        return 0
+    fi
+    
+    # Verify certificate file one more time
+    if check_ssl_certificate_file "$acme_file"; then
+        local size
+        size=$(stat -c "%s" "$acme_file" 2>/dev/null || stat -f "%z" "$acme_file" 2>/dev/null)
+        verbose "Certificate file size: ${size} bytes"
+    fi
+    
+    return 0
+}
+
+get_ssl_certificate_status() {
+    local jacker_dir="${1:-$(get_jacker_root)}"
+    
+    # Load environment to check staging mode
+    local env_file="${jacker_dir}/.env"
+    if [[ -f "$env_file" ]]; then
+        set -a
+        # shellcheck source=/dev/null
+        source "$env_file"
+        set +a
+    fi
+    
+    local staging_mode="${LETSENCRYPT_STAGING:-false}"
+    local acme_file
+    
+    if [[ "$staging_mode" == "true" ]]; then
+        acme_file="${jacker_dir}/data/traefik/acme/acme-staging.json"
+    else
+        acme_file="${jacker_dir}/data/traefik/acme/acme.json"
+    fi
+    
+    if check_ssl_certificate_file "$acme_file"; then
+        if [[ "$staging_mode" == "true" ]]; then
+            echo "staging"
+        else
+            echo "active"
+        fi
+    else
+        echo "pending"
+    fi
+}
+
 validate_hostname() {
     local hostname="$1"
 
@@ -345,6 +610,7 @@ start_services() {
 
     info "Starting services${services:+: $services}..."
 
+    # Note: $services intentionally unquoted to allow word splitting for multiple service names
     if docker compose up -d $services; then
         success "Services started successfully"
         return 0
@@ -360,6 +626,7 @@ stop_services() {
 
     info "Stopping services${services:+: $services}..."
 
+    # Note: $services intentionally unquoted to allow word splitting for multiple service names
     if docker compose down $services; then
         success "Services stopped successfully"
         return 0
@@ -375,6 +642,7 @@ restart_services() {
 
     info "Restarting services${services:+: $services}..."
 
+    # Note: $services intentionally unquoted to allow word splitting for multiple service names
     if docker compose restart $services; then
         success "Services restarted successfully"
         return 0
@@ -390,6 +658,7 @@ pull_images() {
 
     info "Pulling latest images${services:+: $services}..."
 
+    # Note: $services intentionally unquoted to allow word splitting for multiple service names
     if docker compose pull $services; then
         success "Images pulled successfully"
         return 0

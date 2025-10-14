@@ -26,7 +26,7 @@ certificatesResolvers:
   # Production Let's Encrypt resolver
   http:
     acme:
-      email: ${LETSENCRYPT_EMAIL}
+      email: javi@jacar.es
       storage: /acme/acme.json
       keyType: EC384 # Elliptic curve for performance
       # certificatesDuration removed in Traefik v3 - certificates auto-renewed at 30 days before expiry
@@ -38,13 +38,13 @@ certificatesResolvers:
   # Staging resolver for testing
   staging:
     acme:
-      email: ${LETSENCRYPT_EMAIL}
+      email: javi@jacar.es
       storage: /acme/acme-staging.json
       keyType: RSA4096
       httpChallenge:
         entryPoint: web
       # Staging server (no rate limits)
-      # caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
 
 # ====================================================================
 # ENTRY POINTS - NETWORK LISTENERS
@@ -90,7 +90,7 @@ entryPoints:
 api:
   dashboard: true
   debug: false # Set to true only for debugging
-  insecure: true # Allow internal API access for Homepage widget
+  insecure: false # Require authentication for API access
 
 # ====================================================================
 # PING - HEALTH CHECK ENDPOINT

@@ -25,28 +25,28 @@ scrape_configs:
   - job_name: infrastructure
     file_sd_configs:
       - files:
-        - '/etc/prometheus/targets.d/infrastructure/*.json'
+          - '/etc/prometheus/targets.d/infrastructure/*.json'
         refresh_interval: 30s
 
   # Application metrics
   - job_name: applications
     file_sd_configs:
       - files:
-        - '/etc/prometheus/targets.d/applications/*.json'
+          - '/etc/prometheus/targets.d/applications/*.json'
         refresh_interval: 30s
 
   # Exporter metrics
   - job_name: exporters
     file_sd_configs:
       - files:
-        - '/etc/prometheus/targets.d/exporters/*.json'
+          - '/etc/prometheus/targets.d/exporters/*.json'
         refresh_interval: 30s
 
   # Security metrics
   - job_name: security
     file_sd_configs:
       - files:
-        - '/etc/prometheus/targets.d/security/*.json'
+          - '/etc/prometheus/targets.d/security/*.json'
         refresh_interval: 30s
 
   # Self monitoring
@@ -56,6 +56,75 @@ scrape_configs:
         labels:
           service: prometheus
           component: monitoring
+
+  # Blackbox Exporter - HTTPS endpoint probing
+  - job_name: blackbox-https
+    metrics_path: /probe
+    params:
+      module: [https_2xx_no_redirect]
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/targets.d/exporters/blackbox-probes.json'
+        refresh_interval: 60s
+    relabel_configs:
+      # Only process targets with job=blackbox-https
+      - source_labels: [job]
+        regex: blackbox-https
+        action: keep
+      # Set __param_target to the target URL
+      - source_labels: [__address__]
+        target_label: __param_target
+      # Set the actual scrape target to blackbox-exporter
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+      # Set instance label to the target being probed
+      - source_labels: [__param_target]
+        target_label: instance
+      # Preserve the module label
+      - source_labels: [module]
+        target_label: module
+
+  # Blackbox Exporter - SSL certificate expiry monitoring
+  - job_name: blackbox-ssl
+    metrics_path: /probe
+    params:
+      module: [ssl_expiry]
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/targets.d/exporters/blackbox-probes.json'
+        refresh_interval: 60s
+    relabel_configs:
+      # Only process targets with job=blackbox-ssl
+      - source_labels: [job]
+        regex: blackbox-ssl
+        action: keep
+      # Set __param_target to the target hostname:port
+      - source_labels: [__address__]
+        target_label: __param_target
+      # Set the actual scrape target to blackbox-exporter
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+      # Set instance label to the target being probed
+      - source_labels: [__param_target]
+        target_label: instance
+      # Preserve the module label
+      - source_labels: [module]
+        target_label: module
+
+  # cAdvisor - Container metrics
+  - job_name: 'cadvisor'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: cadvisor
+          component: container-metrics
+    metric_relabel_configs:
+      # Drop excessive high-cardinality metrics
+      - source_labels: [__name__]
+        regex: 'container_memory_failures_total|container_memory_numa.*'
+        action: drop
 
 # Remote write configuration (optional)
 # remote_write:

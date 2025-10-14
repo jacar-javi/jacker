@@ -2,7 +2,7 @@
 # Jacker Monitoring Library
 # Health checks, metrics, and monitoring functions
 
-set -euo pipefail
+# Note: No 'set -euo pipefail' - this is a sourced library file
 
 # Source common functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -71,10 +71,10 @@ run_health_check() {
     echo "Failed:      $FAILURES"
     echo
 
-    if [[ $FAILURES -gt 0 ]]; then
+    if [[ "$FAILURES" -gt 0 ]]; then
         log_error "Health check failed with $FAILURES error(s)"
         return 1
-    elif [[ $WARNINGS -gt 0 ]]; then
+    elif [[ "$WARNINGS" -gt 0 ]]; then
         log_warn "Health check completed with $WARNINGS warning(s)"
         return 0
     else
@@ -120,10 +120,10 @@ check_containers() {
     log_subsection "Container Health"
 
     # Get expected containers from compose files
-    local expected_containers=$(get_expected_containers)
-    local running_containers=$(docker ps --format "{{.Names}}")
+    mapfile -t expected_containers < <(get_expected_containers)
+    mapfile -t running_containers < <(docker ps --format "{{.Names}}")
 
-    for container in $expected_containers; do
+    for container in "${expected_containers[@]}"; do
         health_check "Container $container is running" \
             "docker ps --format '{{.Names}}' | grep -q '^${container}$'"
 
@@ -137,9 +137,18 @@ check_containers() {
     done
 
     # Check for unexpected containers
-    for container in $running_containers; do
-        if [[ "$container" == jacker-* ]] && ! echo "$expected_containers" | grep -q "$container"; then
-            log_warn "Unexpected container running: $container"
+    for container in "${running_containers[@]}"; do
+        if [[ "$container" == jacker-* ]]; then
+            local found=false
+            for expected in "${expected_containers[@]}"; do
+                if [[ "$container" == "$expected" ]]; then
+                    found=true
+                    break
+                fi
+            done
+            if [[ "$found" == "false" ]]; then
+                log_warn "Unexpected container running: $container"
+            fi
         fi
     done
 }
@@ -157,6 +166,7 @@ get_expected_containers() {
     fi
 
     # Prefix with jacker- (default project name)
+    # Note: Word splitting is intentional here as services is a space-separated string
     for service in $services; do
         echo "jacker-${service}-1"
     done
@@ -192,10 +202,10 @@ check_networks() {
     fi
 
     # Check ports
-    local required_ports="80 443"
-    for port in $required_ports; do
+    local required_ports=(80 443)
+    for port in "${required_ports[@]}"; do
         health_check "Port $port is accessible" \
-            "! sudo lsof -i:$port &>/dev/null || netstat -tuln | grep -q :$port" \
+            "! sudo lsof -i:\"$port\" &>/dev/null || netstat -tuln | grep -q :\"$port\"" \
             "warning"
     done
 }
@@ -353,7 +363,7 @@ check_ssl() {
 
             # Check if certificates are present
             local cert_count=$(grep -c "certificate" "${JACKER_DIR}/data/traefik/acme/acme.json" 2>/dev/null || echo 0)
-            if [[ $cert_count -gt 0 ]]; then
+            if [[ "$cert_count" -gt 0 ]]; then
                 health_check "SSL certificates generated" "true"
             else
                 health_check "SSL certificates generated" "false" "warning"
@@ -380,7 +390,7 @@ check_ssl() {
             local current_epoch=$(date +%s)
             local days_until_expiry=$(( (expiry_epoch - current_epoch) / 86400 ))
 
-            if [[ $days_until_expiry -lt 7 ]]; then
+            if [[ "$days_until_expiry" -lt 7 ]]; then
                 health_check "SSL certificate not expiring soon" "false" "warning"
                 log_warn "Certificate expires in $days_until_expiry days!"
             else
@@ -558,7 +568,7 @@ show_logs() {
         docker_args="$docker_args -f"
     fi
 
-    docker compose logs $docker_args "$service"
+    docker compose logs "$docker_args" "$service"
 }
 
 show_error_logs() {

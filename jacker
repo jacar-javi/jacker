@@ -387,7 +387,7 @@ EOF
     check_env_exists
 
     if [[ "$watch_mode" == "true" ]]; then
-        watch -n 2 "docker compose ps --format $format"
+        watch -n 2 "docker compose ps --format \"$format\""
     else
         docker compose ps --format "$format"
     fi
@@ -544,7 +544,7 @@ EOF
     local args=()
     [[ -n "$user" ]] && args+=("--user" "$user")
 
-    info "Connecting to $service container..."
+    info "Connecting to \"$service\" container..."
     docker compose exec "${args[@]}" "$service" "$shell_cmd"
 }
 
@@ -1260,7 +1260,7 @@ EOF
         local total
         running=$(docker compose ps --services --filter "status=running" 2>/dev/null | wc -l)
         total=$(docker compose ps --services 2>/dev/null | wc -l)
-        echo "Running: $running / $total services"
+        echo "Running: \"$running\" / \"$total\" services"
     else
         echo "No services configured"
     fi

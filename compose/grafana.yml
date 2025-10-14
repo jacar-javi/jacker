@@ -216,6 +216,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.grafana.entrypoints=websecure"
       - "traefik.http.routers.grafana.rule=Host(`grafana.${PUBLIC_FQDN}`)"
+      - "traefik.http.routers.grafana.middlewares=chain-oauth@file"
       - "traefik.http.routers.grafana.service=grafana"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 

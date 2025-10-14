@@ -32,6 +32,7 @@ create_backup() {
 
     # Check if services should be stopped
     if confirm_action "Stop services during backup for consistency?" "N"; then
+        # shellcheck disable=SC2119
         stop_services
         local services_stopped=true
     else
@@ -59,6 +60,7 @@ create_backup() {
 
     # Restart services if they were stopped
     if [ "$services_stopped" = true ]; then
+        # shellcheck disable=SC2119
         start_services
     fi
 
@@ -253,7 +255,7 @@ cleanup_old_backups() {
     subsection "Cleaning old backups"
 
     # Find and remove backups older than keep_days
-    find "$backup_dir" -name "jacker-backup-*.tar.gz" -mtime +${keep_days} -delete 2>/dev/null || true
+    find "$backup_dir" -name "jacker-backup-*.tar.gz" -mtime +"${keep_days}" -delete 2>/dev/null || true
 
     # Count remaining backups
     local backup_count=$(find "$backup_dir" -name "jacker-backup-*.tar.gz" 2>/dev/null | wc -l)
@@ -390,6 +392,7 @@ restore_backup() {
 
     # Stop services
     info "Stopping services"
+    # shellcheck disable=SC2119
     stop_services
 
     # Extract backup
@@ -448,6 +451,7 @@ restore_backup() {
 
     # Start all services
     info "Starting services"
+    # shellcheck disable=SC2119
     start_services
 
     success "Restore completed successfully"

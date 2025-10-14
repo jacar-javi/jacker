@@ -1,0 +1,68 @@
+# ============================================
+# Jacker Project .gitattributes
+# Line ending and file type configuration
+# ============================================
+
+# Auto detect text files and normalize line endings
+* text=auto
+
+# ============================================
+# Scripts (must have LF)
+# ============================================
+*.sh text eol=lf
+jacker text eol=lf
+
+# ============================================
+# Configuration Files
+# ============================================
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
+*.conf text eol=lf
+
+# ============================================
+# Documentation
+# ============================================
+*.md text eol=lf
+*.txt text eol=lf
+*.adoc text eol=lf
+
+# ============================================
+# Docker Files
+# ============================================
+Dockerfile* text eol=lf
+docker-compose*.yml text eol=lf
+.dockerignore text eol=lf
+
+# ============================================
+# Environment Files
+# ============================================
+.env* text eol=lf
+*.env text eol=lf
+
+# ============================================
+# Git Files
+# ============================================
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.gitkeep text eol=lf
+
+# ============================================
+# Binary Files
+# ============================================
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.tgz binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary

@@ -264,14 +264,14 @@ fix_all() {
     local failed=0
     for fix in "${fixes[@]}"; do
         info "Running: $fix"
-        if ! $fix; then
+        if ! "$fix"; then
             warning "$fix failed"
             ((failed++))
         fi
         echo
     done
 
-    if [[ $failed -eq 0 ]]; then
+    if [[ "$failed" -eq 0 ]]; then
         success "All fixes completed successfully"
     else
         warning "$failed fix(es) failed"

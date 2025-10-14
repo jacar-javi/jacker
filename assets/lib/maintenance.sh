@@ -2,7 +2,7 @@
 # Jacker Maintenance Library
 # Backup, restore, updates, and maintenance operations
 
-set -euo pipefail
+# Note: No 'set -euo pipefail' - this is a sourced library file
 
 # Source common functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -239,9 +239,9 @@ backup_volumes() {
     mkdir -p "$backup_dir/volumes"
 
     # Get all Jacker volumes
-    local volumes=$(docker volume ls --format '{{.Name}}' | grep '^jacker_')
+    mapfile -t volumes < <(docker volume ls --format '{{.Name}}' | grep '^jacker_')
 
-    for volume in $volumes; do
+    for volume in "${volumes[@]}"; do
         log_info "Backing up volume: $volume"
 
         # Create temporary container to access volume
@@ -504,7 +504,7 @@ restore_postgres() {
     # Wait for PostgreSQL to be ready
     local max_attempts=30
     local attempt=0
-    while [[ $attempt -lt $max_attempts ]]; do
+    while [[ "$attempt" -lt "$max_attempts" ]]; do
         if docker compose exec -T postgres pg_isready -U "${POSTGRES_USER}" &>/dev/null; then
             break
         fi
@@ -649,7 +649,7 @@ check_updates() {
     local outdated_images=$(docker images --format "table {{.Repository}}:{{.Tag}}\t{{.CreatedSince}}" | \
                            grep -E "weeks ago|months ago" | wc -l)
 
-    if [[ $outdated_images -gt 0 ]]; then
+    if [[ "$outdated_images" -gt 0 ]]; then
         log_info "$outdated_images Docker images may have updates available"
     fi
 }
@@ -797,7 +797,7 @@ clean_docker_resources() {
 
     # Remove stopped containers
     local stopped=$(docker ps -aq -f status=exited | wc -l)
-    if [[ $stopped -gt 0 ]]; then
+    if [[ "$stopped" -gt 0 ]]; then
         log_info "Removing $stopped stopped containers..."
         docker container prune -f
     fi
@@ -824,8 +824,8 @@ clean_logs() {
     log_info "Cleaning logs..."
 
     # Clean container logs
-    local containers=$(docker ps -q)
-    for container in $containers; do
+    mapfile -t containers < <(docker ps -q)
+    for container in "${containers[@]}"; do
         local log_file=$(docker inspect --format='{{.LogPath}}' "$container")
         if [[ -f "$log_file" ]]; then
             local log_size=$(du -h "$log_file" | awk '{print $1}')
@@ -873,7 +873,7 @@ clean_old_backups() {
 
     for backup in "${backups[@]}"; do
         ((count++))
-        if [[ $count -gt $keep_count ]]; then
+        if [[ "$count" -gt "$keep_count" ]]; then
             log_info "Removing old backup: $backup"
             rm -rf "${backup_dir:?}/${backup}"
         fi

@@ -1,0 +1,20 @@
+[
+  {
+    "targets": ["authentik-server:9300"],
+    "labels": {
+      "job": "authentik-server",
+      "instance": "authentik-server",
+      "component": "authentication",
+      "service": "authentik"
+    }
+  },
+  {
+    "targets": ["authentik-worker:9300"],
+    "labels": {
+      "job": "authentik-worker",
+      "instance": "authentik-worker",
+      "component": "authentication",
+      "service": "authentik"
+    }
+  }
+]
