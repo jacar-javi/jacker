@@ -652,6 +652,17 @@ create_directory_structure() {
     sudo chown -R 10001:10001 "${JACKER_DIR}/data/loki" 2>/dev/null || \
         log_warn "Could not set Loki directory ownership (may need to run with sudo)"
 
+    # Jaeger data directory - needs PUID:PGID permissions (Jaeger runs as user from .env)
+    log_info "Creating Jaeger data directories with correct permissions..."
+    mkdir -p "${JACKER_DIR}/data/jaeger/badger" 2>/dev/null || \
+        { sudo mkdir -p "${JACKER_DIR}/data/jaeger/badger" && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/jaeger/badger"; }
+    mkdir -p "${JACKER_DIR}/data/jaeger/tmp" 2>/dev/null || \
+        { sudo mkdir -p "${JACKER_DIR}/data/jaeger/tmp" && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/jaeger/tmp"; }
+
+    # Set ownership to current user (matches PUID:PGID from .env)
+    sudo chown -R "$(id -u):$(id -g)" "${JACKER_DIR}/data/jaeger" 2>/dev/null || \
+        log_warn "Could not set Jaeger directory ownership (may need to run with sudo)"
+
     # Secrets directory should be restricted
     chmod 700 "${JACKER_DIR}/secrets" 2>/dev/null || \
         { sudo chmod 700 "${JACKER_DIR}/secrets"; }
@@ -701,9 +712,8 @@ create_configuration_files() {
                 { sudo bash -c "envsubst < '$templates_dir/oauth2-proxy.cfg.template' > '${JACKER_DIR}/config/oauth2-proxy/oauth2-proxy.cfg'" && \
                   sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/config/oauth2-proxy/oauth2-proxy.cfg"; }
 
-            # Append cookie_secret to config (OAuth2-Proxy reads it from config, not env _FILE in v7.7.1)
-            echo "" >> "${JACKER_DIR}/config/oauth2-proxy/oauth2-proxy.cfg"
-            echo "cookie_secret = \"${OAUTH_COOKIE_SECRET}\"" >> "${JACKER_DIR}/config/oauth2-proxy/oauth2-proxy.cfg"
+            # OAuth2-Proxy v7.7.1 reads secrets from files specified in config
+            # No need to append secrets - they're read from /run/secrets/ paths specified in template
         fi
 
         # CrowdSec configuration
