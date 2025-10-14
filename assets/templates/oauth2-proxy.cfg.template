@@ -6,7 +6,7 @@
 # Provider Configuration
 provider = "${OAUTH_PROVIDER}"
 client_id = "${OAUTH_CLIENT_ID}"
-client_secret_file = "/run/secrets/oauth_client_secret"
+# client_secret loaded via OAUTH2_PROXY_CLIENT_SECRET_FILE environment variable
 
 # Authentication
 email_domains = ["*"]
@@ -17,7 +17,7 @@ skip_provider_button = false
 
 # Cookie Configuration
 cookie_name = "_oauth2_proxy"
-cookie_secret_file = "/run/secrets/oauth_cookie_secret"
+# cookie_secret loaded via OAUTH2_PROXY_COOKIE_SECRET_FILE environment variable
 # cookie_domain is set via environment variable in docker-compose
 cookie_path = "/"
 cookie_expire = "168h"
