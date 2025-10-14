@@ -643,6 +643,15 @@ create_directory_structure() {
         { sudo touch "${JACKER_DIR}/data/traefik/acme/acme.json" && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/traefik/acme/acme.json"; }
     chmod 600 "${JACKER_DIR}/data/traefik/acme/acme.json"
 
+    # Loki data directory - needs UID 10001 permissions
+    log_info "Creating Loki data directories with correct permissions..."
+    mkdir -p "${JACKER_DIR}/data/loki" 2>/dev/null || \
+        { sudo mkdir -p "${JACKER_DIR}/data/loki" && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/loki"; }
+
+    # Set ownership to Loki UID (10001:10001)
+    sudo chown -R 10001:10001 "${JACKER_DIR}/data/loki" 2>/dev/null || \
+        log_warn "Could not set Loki directory ownership (may need to run with sudo)"
+
     # Secrets directory should be restricted
     chmod 700 "${JACKER_DIR}/secrets" 2>/dev/null || \
         { sudo chmod 700 "${JACKER_DIR}/secrets"; }

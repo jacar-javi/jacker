@@ -865,8 +865,281 @@ EOF
     fi
 }
 
+#########################################
+# Secrets Management
+#########################################
+
+list_secrets() {
+    log_section "Docker Secrets"
+
+    local secrets_dir="${JACKER_DIR}/secrets"
+
+    if [[ ! -d "$secrets_dir" ]]; then
+        log_error "Secrets directory not found: $secrets_dir"
+        return 1
+    fi
+
+    log_info "Secrets in $secrets_dir:"
+    echo ""
+
+    local secret_files=(
+        "postgres_password"
+        "redis_password"
+        "oauth_client_secret"
+        "oauth_cookie_secret"
+        "traefik_forward_oauth"
+        "crowdsec_lapi_key"
+        "crowdsec_bouncer_key"
+    )
+
+    local found=0
+    local missing=0
+
+    for secret in "${secret_files[@]}"; do
+        if [[ -f "$secrets_dir/$secret" ]]; then
+            local size=$(wc -c < "$secrets_dir/$secret")
+            local perms=$(stat -c %a "$secrets_dir/$secret")
+            if [[ "$perms" == "600" ]]; then
+                log_success "$secret (${size} bytes, permissions: $perms)"
+            else
+                log_warn "$secret (${size} bytes, permissions: $perms - should be 600)"
+            fi
+            ((found++))
+        else
+            log_error "$secret - MISSING"
+            ((missing++))
+        fi
+    done
+
+    echo ""
+    echo "Found: $found/$((found + missing)) secrets"
+
+    if [[ $missing -gt 0 ]]; then
+        log_warn "$missing secret(s) missing"
+        log_info "Run 'jacker secrets generate' to create missing secrets"
+        return 1
+    else
+        log_success "All secrets present"
+    fi
+}
+
+generate_secrets() {
+    log_section "Generating Docker Secrets"
+
+    local secrets_dir="${JACKER_DIR}/secrets"
+
+    # Ensure secrets directory exists
+    mkdir -p "$secrets_dir"
+
+    local secret_files=(
+        "postgres_password"
+        "redis_password"
+        "oauth_client_secret"
+        "oauth_cookie_secret"
+        "traefik_forward_oauth"
+        "crowdsec_lapi_key"
+        "crowdsec_bouncer_key"
+    )
+
+    local generated=0
+    local skipped=0
+
+    for secret in "${secret_files[@]}"; do
+        local secret_path="$secrets_dir/$secret"
+
+        if [[ -f "$secret_path" ]]; then
+            log_info "$secret - already exists (skipping)"
+            ((skipped++))
+        else
+            log_info "Generating $secret..."
+            openssl rand -base64 32 > "$secret_path"
+            chmod 600 "$secret_path"
+            log_success "$secret generated"
+            ((generated++))
+        fi
+    done
+
+    echo ""
+    if [[ $generated -gt 0 ]]; then
+        log_success "Generated $generated new secret(s)"
+    fi
+    if [[ $skipped -gt 0 ]]; then
+        log_info "Skipped $skipped existing secret(s)"
+    fi
+
+    # Verify all secrets have correct permissions
+    log_info "Verifying permissions..."
+    chmod 600 "$secrets_dir"/*
+
+    log_success "Secrets generation complete"
+}
+
+rotate_secrets() {
+    local target="${1:-}"
+
+    log_section "Rotating Docker Secrets"
+
+    if [[ -z "$target" ]]; then
+        log_error "Target secret required"
+        echo "Usage: jacker secrets rotate <secret|all>"
+        echo ""
+        echo "Available secrets:"
+        echo "  - postgres_password"
+        echo "  - redis_password"
+        echo "  - oauth_client_secret"
+        echo "  - oauth_cookie_secret"
+        echo "  - traefik_forward_oauth"
+        echo "  - crowdsec_lapi_key"
+        echo "  - crowdsec_bouncer_key"
+        echo "  - all"
+        return 1
+    fi
+
+    local secrets_dir="${JACKER_DIR}/secrets"
+
+    if [[ ! -d "$secrets_dir" ]]; then
+        log_error "Secrets directory not found: $secrets_dir"
+        return 1
+    fi
+
+    # Create backup directory
+    local backup_dir="${JACKER_DIR}/backups/secrets_$(date +%Y%m%d_%H%M%S)"
+    mkdir -p "$backup_dir"
+
+    if [[ "$target" == "all" ]]; then
+        log_warn "This will rotate ALL secrets!"
+        read -rp "Are you sure? (y/N): " confirm
+        if [[ "${confirm,,}" != "y" ]]; then
+            log_info "Rotation cancelled"
+            return 0
+        fi
+
+        log_info "Backing up existing secrets..."
+        cp -a "$secrets_dir"/* "$backup_dir/" 2>/dev/null || true
+        log_success "Backup created at: $backup_dir"
+
+        log_info "Rotating all secrets..."
+
+        local secret_files=(
+            "postgres_password"
+            "redis_password"
+            "oauth_client_secret"
+            "oauth_cookie_secret"
+            "traefik_forward_oauth"
+            "crowdsec_lapi_key"
+            "crowdsec_bouncer_key"
+        )
+
+        for secret in "${secret_files[@]}"; do
+            local secret_path="$secrets_dir/$secret"
+            log_info "Rotating $secret..."
+            openssl rand -base64 32 > "$secret_path"
+            chmod 600 "$secret_path"
+        done
+
+        log_success "All secrets rotated"
+        log_warn "You must restart services for changes to take effect:"
+        log_info "  jacker stop && jacker start"
+    else
+        # Rotate single secret
+        local secret_path="$secrets_dir/$target"
+
+        if [[ ! -f "$secret_path" ]]; then
+            log_error "Secret not found: $target"
+            return 1
+        fi
+
+        log_info "Backing up $target..."
+        cp "$secret_path" "$backup_dir/"
+        log_success "Backup created at: $backup_dir/$target"
+
+        log_info "Rotating $target..."
+        openssl rand -base64 32 > "$secret_path"
+        chmod 600 "$secret_path"
+
+        log_success "Secret rotated: $target"
+        log_warn "You must restart affected services for changes to take effect"
+    fi
+}
+
+verify_secrets() {
+    log_section "Verifying Docker Secrets"
+
+    local secrets_dir="${JACKER_DIR}/secrets"
+
+    if [[ ! -d "$secrets_dir" ]]; then
+        log_error "Secrets directory not found: $secrets_dir"
+        return 1
+    fi
+
+    local issues=0
+
+    # Check directory permissions
+    local dir_perms=$(stat -c %a "$secrets_dir")
+    if [[ "$dir_perms" != "755" ]] && [[ "$dir_perms" != "775" ]]; then
+        log_warn "Secrets directory permissions: $dir_perms (should be 755 or 775)"
+        ((issues++))
+    else
+        log_success "Secrets directory permissions OK"
+    fi
+
+    # Check each secret
+    local secret_files=(
+        "postgres_password"
+        "redis_password"
+        "oauth_client_secret"
+        "oauth_cookie_secret"
+        "traefik_forward_oauth"
+        "crowdsec_lapi_key"
+        "crowdsec_bouncer_key"
+    )
+
+    for secret in "${secret_files[@]}"; do
+        local secret_path="$secrets_dir/$secret"
+
+        if [[ ! -f "$secret_path" ]]; then
+            log_error "$secret - MISSING"
+            ((issues++))
+            continue
+        fi
+
+        # Check file permissions
+        local perms=$(stat -c %a "$secret_path")
+        if [[ "$perms" != "600" ]]; then
+            log_warn "$secret - incorrect permissions: $perms (should be 600)"
+            ((issues++))
+        fi
+
+        # Check file size (should be non-empty)
+        local size=$(wc -c < "$secret_path")
+        if [[ $size -eq 0 ]]; then
+            log_error "$secret - empty file"
+            ((issues++))
+        elif [[ $size -lt 20 ]]; then
+            log_warn "$secret - suspiciously small (${size} bytes)"
+            ((issues++))
+        else
+            log_success "$secret - OK (${size} bytes)"
+        fi
+    done
+
+    echo ""
+    if [[ $issues -eq 0 ]]; then
+        log_success "All secrets verified successfully"
+    else
+        log_error "Found $issues issue(s) with secrets"
+        log_info "Run 'jacker secrets generate' to fix missing secrets"
+        log_info "Run 'chmod 600 $secrets_dir/*' to fix permissions"
+        return 1
+    fi
+}
+
 # Export functions for use by jacker CLI
 export -f manage_crowdsec
 export -f manage_firewall
 export -f run_security_scan
 export -f harden_security
+export -f list_secrets
+export -f generate_secrets
+export -f rotate_secrets
+export -f verify_secrets
