@@ -67,7 +67,7 @@ entryPoints:
     # TLS Configuration
     http:
       tls:
-        options: tls-opts@file
+        options: default
         certresolver: http
     # HTTP/3 Support
     http3:
