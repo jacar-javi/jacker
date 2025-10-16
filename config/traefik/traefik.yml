@@ -68,9 +68,8 @@ entryPoints:
     http:
       tls:
         certresolver: http
-        middlewares:
-          - tls-opts@file
-
+        options:
+          name: tls-opts@file
     # HTTP/3 Support
     http3:
       advertisedPort: 443
