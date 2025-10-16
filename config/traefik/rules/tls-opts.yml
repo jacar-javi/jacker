@@ -39,16 +39,16 @@ tls:
       # Elliptic Curve Preferences
       # Listed in order of preference (most secure/performant first)
       curvePreferences:
-        - X25519      # Fastest and most secure (Curve25519)
-        - CurveP384   # NIST P-384 (high security)
-        - CurveP256   # NIST P-256 (widely compatible)
+        - X25519 # Fastest and most secure (Curve25519)
+        - CurveP384 # NIST P-384 (high security)
+        - CurveP256 # NIST P-256 (widely compatible)
 
       # ALPN (Application-Layer Protocol Negotiation)
       # Enables HTTP/3, HTTP/2, and HTTP/1.1 negotiation
       alpnProtocols:
-        - h3          # HTTP/3 over QUIC (latest standard)
-        - h2          # HTTP/2 (modern browsers)
-        - http/1.1    # HTTP/1.1 (fallback)
+        - h3 # HTTP/3 over QUIC (latest standard)
+        - h2 # HTTP/2 (modern browsers)
+        - http/1.1 # HTTP/1.1 (fallback)
 
       # SNI Strict Mode
       # true: Reject requests without SNI or with unknown SNI (recommended)
@@ -68,7 +68,7 @@ tls:
     # Use for high-security services that don't need legacy support
     # May block connections from older clients (pre-2018 browsers)
 
-    tls-maximum:
+    default:
       minVersion: VersionTLS13
 
       # TLS 1.3 cipher suites are auto-negotiated, cannot be configured
@@ -124,7 +124,6 @@ tls:
 
       # Disabled for legacy compatibility
       sniStrict: false
-
 # ================================================================
 # USAGE EXAMPLES
 # ================================================================
