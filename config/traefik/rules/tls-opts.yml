@@ -1,43 +1,182 @@
+# Traefik v3 TLS Options Configuration
+# Documentation: https://doc.traefik.io/traefik/https/tls/
+#
+# TLS Options define security settings for HTTPS connections
+# These are applied via router labels or entrypoint configuration
+
 tls:
   options:
-    # Default TLS options - High security with TLS 1.3
+    # ================================================================
+    # DEFAULT TLS OPTIONS - Balanced Security & Compatibility
+    # ================================================================
+    # Suitable for most modern applications and browsers
+    # Enforces TLS 1.2+ with strong cipher suites
+    # Includes HTTP/3 (QUIC) support via ALPN
+
     tls-opts:
-      minVersion: VersionTLS13
-      # TLS 1.3 cipher suites (automatic selection)
-      # TLS 1.2 fallback cipher suites for older clients
+      # Minimum TLS Version
+      # VersionTLS12: Allows TLS 1.2 and 1.3 (recommended for compatibility)
+      # VersionTLS13: TLS 1.3 only (maximum security, may block older clients)
+      minVersion: VersionTLS12
+
+      # Maximum TLS Version (optional, usually omitted to allow latest)
+      # maxVersion: VersionTLS13
+
+      # Cipher Suites for TLS 1.2
+      # Note: TLS 1.3 cipher suites are NOT configurable - automatically managed
+      # Listed in order of preference (most secure first)
       cipherSuites:
-        # TLS 1.3 (these are always preferred when available)
-        - TLS_AES_256_GCM_SHA384
-        - TLS_AES_128_GCM_SHA256
-        - TLS_CHACHA20_POLY1305_SHA256
-        # TLS 1.2 fallback (only if client doesn't support 1.3)
+        # ECDHE with AES-GCM (AEAD) - Best performance and security
         - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
         - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
-        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
         - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
         - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-      curvePreferences:
-        - X25519    # Most secure and performant
-        - CurveP384
-        - CurveP256
-      sniStrict: true
-      alpnProtocols:
-        - h3        # HTTP/3
-        - h2        # HTTP/2
-        - http/1.1  # HTTP/1.1
 
-    # Compatibility mode for legacy clients (use sparingly)
+        # ECDHE with ChaCha20-Poly1305 (AEAD) - Good for mobile devices
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+
+      # Elliptic Curve Preferences
+      # Listed in order of preference (most secure/performant first)
+      curvePreferences:
+        - X25519      # Fastest and most secure (Curve25519)
+        - CurveP384   # NIST P-384 (high security)
+        - CurveP256   # NIST P-256 (widely compatible)
+
+      # ALPN (Application-Layer Protocol Negotiation)
+      # Enables HTTP/3, HTTP/2, and HTTP/1.1 negotiation
+      alpnProtocols:
+        - h3          # HTTP/3 over QUIC (latest standard)
+        - h2          # HTTP/2 (modern browsers)
+        - http/1.1    # HTTP/1.1 (fallback)
+
+      # SNI Strict Mode
+      # true: Reject requests without SNI or with unknown SNI (recommended)
+      # false: Allow connections without proper SNI (legacy compatibility)
+      sniStrict: true
+
+      # Client Authentication (mutual TLS)
+      # Uncomment to require client certificates
+      # clientAuth:
+      #   caFiles:
+      #     - /path/to/ca.crt
+      #   clientAuthType: RequireAndVerifyClientCert
+
+    # ================================================================
+    # MAXIMUM SECURITY - TLS 1.3 Only
+    # ================================================================
+    # Use for high-security services that don't need legacy support
+    # May block connections from older clients (pre-2018 browsers)
+
+    tls-maximum:
+      minVersion: VersionTLS13
+
+      # TLS 1.3 cipher suites are auto-negotiated, cannot be configured
+      # The following are supported by default:
+      # - TLS_AES_256_GCM_SHA384
+      # - TLS_AES_128_GCM_SHA256
+      # - TLS_CHACHA20_POLY1305_SHA256
+
+      curvePreferences:
+        - X25519
+        - CurveP384
+
+      alpnProtocols:
+        - h3
+        - h2
+        - http/1.1
+
+      sniStrict: true
+
+    # ================================================================
+    # LEGACY COMPATIBILITY - TLS 1.2 with Broader Support
+    # ================================================================
+    # Use sparingly for services requiring legacy client support
+    # Includes additional cipher suites for older systems
+
     tls-legacy:
       minVersion: VersionTLS12
+
       cipherSuites:
-        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        # Modern ciphers (prioritized)
         - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
         - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
         - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
         - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+
+        # Legacy ciphers (for older clients)
+        - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+        - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+
       curvePreferences:
+        - X25519
         - CurveP384
         - CurveP256
+
+      alpnProtocols:
+        - h3
+        - h2
+        - http/1.1
+
+      # Disabled for legacy compatibility
       sniStrict: false
+
+# ================================================================
+# USAGE EXAMPLES
+# ================================================================
+#
+# 1. Apply to specific router via Docker labels:
+#    labels:
+#      - "traefik.http.routers.myservice.tls.options=tls-opts@file"
+#
+# 2. Apply to specific router via file provider:
+#    http:
+#      routers:
+#        myrouter:
+#          rule: "Host(`example.com`)"
+#          tls:
+#            options: tls-opts@file
+#
+# 3. Apply at entrypoint level (affects all routes):
+#    entryPoints:
+#      websecure:
+#        http:
+#          tls:
+#            options: tls-opts@file
+#
+# ================================================================
+# SECURITY NOTES
+# ================================================================
+#
+# - TLS 1.3 is always preferred when both client and server support it
+# - TLS 1.2 ciphers are only used as fallback for older clients
+# - AEAD ciphers (GCM, ChaCha20-Poly1305) are mandatory for security
+# - CBC ciphers are vulnerable to timing attacks - avoid if possible
+# - X25519 curve provides best performance and security
+# - HTTP/3 (h3) requires UDP port 443 and QUIC protocol
+# - SNI strict mode prevents domain fronting attacks
+#
+# ================================================================
+# COMPATIBILITY MATRIX
+# ================================================================
+#
+# tls-opts (VersionTLS12):
+#   ✅ All modern browsers (Chrome 70+, Firefox 63+, Safari 12+)
+#   ✅ Mobile apps and API clients (2018+)
+#   ✅ HTTP/3 (QUIC) support
+#   ✅ TLS 1.3 when supported
+#   ⚠️  May block very old clients (pre-2016)
+#
+# tls-maximum (VersionTLS13):
+#   ✅ Latest browsers only (Chrome 70+, Firefox 63+, Safari 12.1+)
+#   ✅ Maximum security and performance
+#   ❌ Blocks older clients (pre-2018)
+#
+# tls-legacy (VersionTLS12 + CBC):
+#   ✅ Very broad compatibility
+#   ⚠️  Includes legacy ciphers (use only when necessary)
+#
