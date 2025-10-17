@@ -18,7 +18,6 @@ modules:
       preferred_ip_protocol: "ip4"
       ip_protocol_fallback: true
       follow_redirects: true
-      max_redirects: 3
       fail_if_ssl: false
       fail_if_not_ssl: false
 
@@ -38,7 +37,6 @@ modules:
         insecure_skip_verify: false
         # CA certificates will be loaded from system default location
       follow_redirects: true
-      max_redirects: 3
       fail_if_not_ssl: true
 
   # ====================================================================
