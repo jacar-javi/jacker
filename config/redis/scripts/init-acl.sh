@@ -34,12 +34,12 @@ user default on >${DEFAULT_PASSWORD} +@all ~* &*
 # ====================================================================
 # OAuth2-Proxy User - Session Storage
 # ====================================================================
-user oauth_user on >\$(cat /run/secrets/redis_oauth_password 2>/dev/null || echo "changeme") +@read +@write +@string +@hash +@keyspace +@connection ~oauth:* resetchannels -@all
+user oauth_user on >\$(cat /run/secrets/redis_oauth_password) ~* +get +set +del +exists +expire +ttl +ping +scan +keys +info resetchannels -@all
 
 # ====================================================================
 # Rate Limiting User - Traefik Rate Limiter
 # ====================================================================
-user ratelimit_user on >${RATELIMIT_PASSWORD} +@read +@write +@string +@keyspace +@connection ~ratelimit:* resetchannels -@all
+user ratelimit_user on >${RATELIMIT_PASSWORD} ~* +@all -@dangerous +select resetchannels
 
 # ====================================================================
 # Monitoring User - Read-Only Access for Metrics

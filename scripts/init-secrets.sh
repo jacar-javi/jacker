@@ -204,11 +204,14 @@ create_secret "oauth_client_secret" "$(get_env_or_generate "OAUTH_CLIENT_SECRET"
 create_secret "oauth_cookie_secret" "$(get_env_or_generate "OAUTH_COOKIE_SECRET")"
 create_secret "traefik_forward_oauth" "$(get_env_or_generate "OAUTH_SECRET")"
 
-# Database Secrets
+# Database & Cache Secrets
 log_info ""
-log_info "--- Database Secrets ---"
+log_info "--- Database & Cache Secrets ---"
 create_secret "postgres_password" "$(get_env_or_generate "POSTGRES_PASSWORD")"
 create_secret "redis_password" "$(get_env_or_generate "REDIS_PASSWORD")"
+create_secret "redis_oauth_password" "$(get_env_or_generate "REDIS_OAUTH_PASSWORD")"
+create_secret "redis_ratelimit_password" "$(get_env_or_generate "REDIS_RATELIMIT_PASSWORD")"
+create_secret "redis_exporter_password" "$(get_env_or_generate "REDIS_EXPORTER_PASSWORD")"
 
 # CrowdSec Secrets
 log_info ""
