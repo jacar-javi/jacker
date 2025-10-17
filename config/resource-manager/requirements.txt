@@ -12,7 +12,7 @@ docker==7.0.0
 pyyaml==6.0.1
 
 # HTTP requests for API calls
-requests==2.31.0
+requests==2.32.4
 
 # Additional utilities
 python-dateutil==2.8.2
