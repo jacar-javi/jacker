@@ -57,6 +57,10 @@ secrets:
     file: ${SECRETSDIR}/redis_password
   redis_ratelimit_password:
     file: ${SECRETSDIR}/redis_ratelimit_password
+  redis_oauth_password:
+    file: ${SECRETSDIR}/redis_oauth_password
+  redis_exporter_password:
+    file: ${SECRETSDIR}/redis_exporter_password
 
   # CrowdSec secrets
   crowdsec_lapi_key:

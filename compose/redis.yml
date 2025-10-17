@@ -196,16 +196,11 @@ services:
     ports:
       - "127.0.0.1:9121:9121"
 
-    # ====================================================================
-    # SECRETS
-    # ====================================================================
-    secrets:
-      - redis_password
-
+    # Note: Using environment variable instead of secret file due to permission issues
     environment:
       REDIS_ADDR: "redis://redis:6379"
-      REDIS_USER: ${REDIS_USER:-}
-      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      REDIS_USER: "exporter_user"
+      REDIS_PASSWORD: ${REDIS_EXPORTER_PASSWORD}
       REDIS_EXPORTER_LOG_FORMAT: json
       REDIS_EXPORTER_NAMESPACE: redis
       REDIS_EXPORTER_WEB_LISTEN_ADDRESS: ":9121"

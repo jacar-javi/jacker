@@ -28,7 +28,7 @@ services:
     secrets:
       - oauth_client_secret
       - oauth_cookie_secret
-      - redis_password
+      - redis_oauth_password
 
     configs:
       - source: oauth2_proxy_cfg
@@ -42,11 +42,11 @@ services:
     environment:
       # Secrets loaded from files (more secure than env vars)
       - OAUTH2_PROXY_CLIENT_SECRET_FILE=/run/secrets/oauth_client_secret
-      - OAUTH2_PROXY_COOKIE_SECRET_FILE=/run/secrets/oauth_cookie_secret
-      - OAUTH2_PROXY_REDIS_PASSWORD_FILE=/run/secrets/redis_password
+      # Cookie secret directly from environment variable (Docker secret file caching issue)
+      - OAUTH2_PROXY_COOKIE_SECRET=${OAUTH_COOKIE_SECRET}
 
       # Redis connection with authentication
-      # Uses oauth_user with password from secret file
+      # Password directly in URL (base64 password from environment variable)
       - OAUTH2_PROXY_REDIS_CONNECTION_URL=redis://oauth_user:${REDIS_OAUTH_PASSWORD}@redis:6379/0
 
       # Cookie domain and security settings (override config file)
