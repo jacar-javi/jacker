@@ -1,0 +1,198 @@
+# ====================================================================
+# Trivy Configuration
+# Documentation: https://trivy.dev/latest/docs/configuration/
+# ====================================================================
+
+# Scan settings
+scan:
+  # Security check types to enable
+  security-checks:
+    - vuln       # Vulnerabilities (CVEs)
+    - secret     # Exposed secrets
+    - config     # Misconfigurations
+
+  # Vulnerability types to scan
+  vuln-type:
+    - os         # OS packages
+    - library    # Application dependencies
+
+  # Minimum severity to report
+  severity:
+    - CRITICAL
+    - HIGH
+    - MEDIUM
+
+  # Skip files with these patterns
+  skip-files:
+    - "*.md"
+    - "*.txt"
+    - "LICENSE"
+    - "CHANGELOG"
+
+  # Skip directories
+  skip-dirs:
+    - "/tmp"
+    - "/var/tmp"
+    - "/test"
+    - "/tests"
+    - "/__pycache__"
+    - "/node_modules"
+
+  # Offline mode (use cached DB only)
+  offline-scan: false
+
+  # Timeout for each scan
+  timeout: 10m
+
+# Database settings
+db:
+  # Automatically update vulnerability database
+  skip-update: false
+
+  # Database repository
+  repository: ghcr.io/aquasecurity/trivy-db
+
+  # Java database repository
+  java-db-repository: ghcr.io/aquasecurity/trivy-java-db
+
+# Output settings
+format: json
+
+# Report settings
+report:
+  # Output format for reports
+  format: table
+
+  # Template for custom reports (optional)
+  # template: "@contrib/html.tpl"
+
+  # Include summary in reports
+  summary: true
+
+# Cache settings
+cache:
+  # Cache directory
+  dir: /root/.cache/trivy
+
+  # Clear cache on start
+  clear: false
+
+# Vulnerability settings
+vulnerability:
+  # Vulnerability types
+  type:
+    - os
+    - library
+
+  # Ignore unfixed vulnerabilities (optional)
+  # ignore-unfixed: true
+
+  # Ignore vulnerabilities listed in .trivyignore
+  ignore-file: /config/.trivyignore
+
+# Secret scanning settings
+secret:
+  # Enable secret scanning
+  enabled: true
+
+  # Config file for secret patterns (optional)
+  # config: /config/secret-config.yaml
+
+# Misconfiguration scanning
+misconfiguration:
+  # Enable misconfiguration scanning
+  enabled: true
+
+  # Severity threshold
+  severity:
+    - CRITICAL
+    - HIGH
+
+  # Include non-failures in report
+  include-non-failures: false
+
+  # Policy bundle repository (optional)
+  # policy-bundle-repository: ghcr.io/aquasecurity/trivy-policies
+
+# License scanning (optional)
+license:
+  # Enable license scanning
+  enabled: false
+
+  # Full license scanning (slower but more accurate)
+  full: false
+
+# Registry settings (for scanning images from private registries)
+registry:
+  # Credentials for Docker registries
+  # token: ""
+  # username: ""
+  # password: ""
+
+  # Insecure registry (skip TLS verification)
+  insecure: false
+
+# Compliance settings (optional)
+# compliance:
+#   # Compliance spec to use
+#   spec: docker-cis-1.6.0
+
+# Ignore settings
+# Vulnerabilities to ignore (use .trivyignore file instead)
+
+# Exit codes
+exit-code: 0  # Don't fail on vulnerabilities (for continuous scanning)
+
+# Quiet mode
+quiet: false
+
+# Debug mode
+debug: false
+
+# ====================================================================
+# Jacker-specific settings
+# ====================================================================
+
+# Container scanning targets
+# These are managed by the scanning script
+targets:
+  # Scan all running containers
+  scan-running: true
+
+  # Scan stopped containers
+  scan-stopped: false
+
+  # Excluded containers (by name pattern)
+  exclude-containers:
+    - "trivy"              # Don't scan self
+    - "socket-proxy"       # Minimal proxy container
+
+# Alert thresholds
+alerts:
+  # Send alert if CRITICAL vulnerabilities found
+  critical-threshold: 1
+
+  # Send alert if HIGH vulnerabilities found
+  high-threshold: 5
+
+  # Send alert if secrets found
+  secrets-threshold: 1
+
+  # Alertmanager webhook URL
+  alertmanager-url: http://alertmanager:9093/api/v2/alerts
+
+# Report retention
+retention:
+  # Keep reports for this many days
+  days: 30
+
+  # Maximum number of reports to keep per container
+  max-reports: 10
+
+# Scheduling (handled by external cron/script)
+schedule:
+  # Full scan schedule (cron format)
+  full-scan: "0 2 * * *"  # Daily at 2 AM
+
+  # Quick scan on container events
+  on-container-start: true

@@ -94,11 +94,20 @@ services:
     labels:
       # Traefik routing
       - "traefik.enable=true"
-      - "traefik.http.routers.blackbox-exporter.entrypoints=websecure"
-      - "traefik.http.routers.blackbox-exporter.rule=Host(`blackbox.${PUBLIC_FQDN}`)"
-      - "traefik.http.routers.blackbox-exporter.middlewares=chain-oauth@file"
-      - "traefik.http.routers.blackbox-exporter.service=blackbox-exporter"
-      - "traefik.http.services.blackbox-exporter.loadbalancer.server.port=9115"
+      - "traefik.http.routers.blackbox-exporter-rtr.entrypoints=websecure"
+      - "traefik.http.routers.blackbox-exporter-rtr.rule=Host(`blackbox.${PUBLIC_FQDN}`)"
+
+      # TLS Configuration
+      - "traefik.http.routers.blackbox-exporter-rtr.tls=true"
+      - "traefik.http.routers.blackbox-exporter-rtr.tls.certresolver=http"
+      - "traefik.http.routers.blackbox-exporter-rtr.tls.options=tls-opts@file"
+
+      # Middleware
+      - "traefik.http.routers.blackbox-exporter-rtr.middlewares=chain-oauth@file"
+
+      # Service
+      - "traefik.http.routers.blackbox-exporter-rtr.service=blackbox-exporter-svc"
+      - "traefik.http.services.blackbox-exporter-svc.loadbalancer.server.port=9115"
 
       # Homepage Integration
       - "homepage.group=Monitoring"

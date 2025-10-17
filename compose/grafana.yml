@@ -7,6 +7,13 @@ services:
     image: grafana/grafana-enterprise:12.2.0 # Enterprise includes all OSS features
     container_name: grafana
 
+    # Entrypoint wrapper to inject Redis password from secret
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "REDIS_PASSWORD=$$(cat /run/secrets/redis_password) &&
+      export GF_REMOTE_CACHE_CONNSTR=\"addr=redis:6379,pool_size=100,db=0,ssl=false,password=$$REDIS_PASSWORD\" &&
+      exec /run.sh"
+
     # ====================================================================
     # SECURITY CONFIGURATION
     # ====================================================================
@@ -58,6 +65,13 @@ services:
       - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
 
     # ====================================================================
+    # SECRETS
+    # ====================================================================
+    secrets:
+      - grafana_admin_password
+      - redis_password
+
+    # ====================================================================
     # VOLUME MOUNTS
     # ====================================================================
     volumes:
@@ -80,9 +94,6 @@ services:
 
       # Plugins
       - ${DATADIR}/grafana/plugins:/var/lib/grafana/plugins:rw
-
-      # Dashboards
-      - ${CONFIGDIR}/grafana/provisioning/dashboards:/var/lib/grafana/dashboards:ro
 
       # Timezone
       - /etc/localtime:/etc/localtime:ro
@@ -120,7 +131,7 @@ services:
 
       # Security configuration
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
       GF_SECURITY_ADMIN_EMAIL: ${GRAFANA_ADMIN_EMAIL:-admin@localhost}
       GF_SECURITY_SECRET_KEY: ${GRAFANA_SECRET_KEY:-}
       GF_SECURITY_DISABLE_GRAVATAR: ${GRAFANA_DISABLE_GRAVATAR:-false}
@@ -181,8 +192,9 @@ services:
       GF_FEATURE_TOGGLES_ENABLE: ${GF_FEATURE_TOGGLES:-}
 
       # Remote cache (Redis) - for query caching
+      # Note: Grafana doesn't support password file for Redis, use entrypoint wrapper
       GF_REMOTE_CACHE_TYPE: ${GF_REMOTE_CACHE_TYPE:-redis}
-      GF_REMOTE_CACHE_CONNSTR: "addr=redis:6379,pool_size=100,db=0,ssl=false"
+      GF_REMOTE_CACHE_CONNSTR: "addr=redis:6379,pool_size=100,db=0,ssl=false,password="
 
       # Live HA Engine (Redis) - for real-time updates and session storage
       GF_LIVE_HA_ENGINE: ${GF_LIVE_HA_ENGINE:-redis}
@@ -214,11 +226,25 @@ services:
     labels:
       # Traefik routing
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.${PUBLIC_FQDN}`)"
-      - "traefik.http.routers.grafana.middlewares=chain-oauth@file"
-      - "traefik.http.routers.grafana.service=grafana"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.http.routers.grafana-rtr.entrypoints=websecure"
+      - "traefik.http.routers.grafana-rtr.rule=Host(`grafana.${PUBLIC_FQDN}`)"
+
+      # TLS Configuration
+      - "traefik.http.routers.grafana-rtr.tls=true"
+      - "traefik.http.routers.grafana-rtr.tls.certresolver=http"
+      - "traefik.http.routers.grafana-rtr.tls.options=tls-opts@file"
+
+      # Middleware
+      - "traefik.http.routers.grafana-rtr.middlewares=chain-oauth@file"
+
+      # Service
+      - "traefik.http.routers.grafana-rtr.service=grafana-svc"
+      - "traefik.http.services.grafana-svc.loadbalancer.server.port=3000"
+
+      # Health check
+      - "traefik.http.services.grafana-svc.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.grafana-svc.loadbalancer.healthcheck.interval=30s"
+      - "traefik.http.services.grafana-svc.loadbalancer.healthcheck.timeout=5s"
 
       # Homepage Integration
       - "homepage.group=Monitoring"

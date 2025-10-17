@@ -1,0 +1,38 @@
+http:
+  middlewares:
+    # ====================================================================
+    # STRICT CSP CHAINS
+    # ====================================================================
+    # Use for: APIs, static sites, modern SPAs with no inline scripts
+    # Maximum security with no unsafe directives
+
+    # OAuth-protected with strict CSP
+    chain-oauth-strict:
+      chain:
+        middlewares:
+          - crowdsec-bouncer@file         # CrowdSec IPS protection via Traefik plugin
+          - middlewares-rate-limit-strict
+          - secure-headers-strict         # STRICT CSP - No unsafe directives
+          - middlewares-oauth
+          - middlewares-cache-none
+          - middlewares-compress
+
+    # Public with strict CSP
+    chain-public-strict:
+      chain:
+        middlewares:
+          - middlewares-rate-limit
+          - secure-headers-strict         # STRICT CSP - No unsafe directives
+          - middlewares-cache-static
+          - middlewares-compress
+
+    # API with strict CSP
+    chain-api-strict:
+      chain:
+        middlewares:
+          - crowdsec-bouncer@file
+          - middlewares-rate-limit-api
+          - middlewares-cors-restrict
+          - secure-headers-strict         # STRICT CSP - No unsafe directives
+          - middlewares-cache-api
+          - middlewares-compress

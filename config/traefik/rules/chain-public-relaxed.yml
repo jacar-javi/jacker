@@ -1,0 +1,14 @@
+http:
+  middlewares:
+    # ====================================================================
+    # PUBLIC CHAIN WITH RELAXED CSP
+    # ====================================================================
+    # Use for: Public-facing services that require inline scripts
+    # but don't need OAuth authentication
+    chain-public-relaxed:
+      chain:
+        middlewares:
+          - middlewares-rate-limit
+          - secure-headers-relaxed        # RELAXED CSP for legacy compatibility
+          - middlewares-cache-none
+          - middlewares-compress

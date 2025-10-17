@@ -39,5 +39,14 @@
       "component": "monitoring",
       "service_type": "tracing"
     }
+  },
+  {
+    "targets": ["diun:8080"],
+    "labels": {
+      "job": "diun",
+      "instance": "diun",
+      "component": "monitoring",
+      "service_type": "image-monitor"
+    }
   }
 ]

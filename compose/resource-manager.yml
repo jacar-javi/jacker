@@ -1,0 +1,176 @@
+services:
+  # ====================================================================
+  # Resource Manager - Automated Resource Monitoring & Management
+  # ====================================================================
+  resource-manager:
+    image: resource-manager:latest
+    container_name: resource-manager
+    hostname: resource-manager
+
+    # Build from local Dockerfile
+    build:
+      context: ${CONFIGDIR}/resource-manager
+      dockerfile: Dockerfile
+
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
+    security_opt:
+      - no-new-privileges=true
+
+    # Read-only root filesystem
+    read_only: true
+
+    # Restart policy
+    restart: unless-stopped
+
+    # ====================================================================
+    # RESOURCE LIMITS
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+    # ====================================================================
+    # DEPENDENCIES
+    # ====================================================================
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      docker-socket-proxy:
+        condition: service_started
+
+    # ====================================================================
+    # NETWORK CONFIGURATION
+    # ====================================================================
+    networks:
+      - monitoring
+      - traefik_proxy
+      - socket_proxy
+
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
+    environment:
+      # Timezone
+      TZ: ${TZ}
+
+      # Prometheus Configuration
+      PROMETHEUS_URL: http://prometheus:9090
+
+      # Docker Socket Proxy
+      DOCKER_HOST: tcp://docker-socket-proxy:2375
+
+      # Monitoring Configuration
+      CHECK_INTERVAL: ${RESOURCE_MANAGER_CHECK_INTERVAL:-300}  # 5 minutes
+
+      # Thresholds
+      CPU_HIGH_THRESHOLD: ${RESOURCE_MANAGER_CPU_HIGH:-0.8}    # 80%
+      CPU_LOW_THRESHOLD: ${RESOURCE_MANAGER_CPU_LOW:-0.3}      # 30%
+      MEMORY_HIGH_THRESHOLD: ${RESOURCE_MANAGER_MEMORY_HIGH:-0.8}
+      MEMORY_LOW_THRESHOLD: ${RESOURCE_MANAGER_MEMORY_LOW:-0.3}
+
+      # Adjustment Settings
+      INCREASE_FACTOR: ${RESOURCE_MANAGER_INCREASE_FACTOR:-1.25}  # +25%
+      DECREASE_FACTOR: ${RESOURCE_MANAGER_DECREASE_FACTOR:-0.75}  # -25%
+
+      # Blue-Green Deployment
+      BLUE_GREEN_ENABLED: ${RESOURCE_MANAGER_BLUE_GREEN:-true}
+      BLUE_GREEN_SCRIPT: /scripts/blue-green-deploy.sh
+
+      # Logging
+      LOG_LEVEL: ${RESOURCE_MANAGER_LOG_LEVEL:-info}
+      LOG_FILE: /logs/resource-manager.log
+
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
+    volumes:
+      # Configuration
+      - ${CONFIGDIR}/resource-manager/config.yml:/config/config.yml:ro
+
+      # Scripts directory (for blue-green deployments)
+      - ${DOCKERDIR}/scripts:/scripts:ro
+
+      # Docker compose files (for service configuration)
+      - ${DOCKERDIR}/compose:/compose:ro
+      - ${DOCKERDIR}/docker-compose.yml:/docker-compose.yml:ro
+
+      # Logs (writable)
+      - ${DATADIR}/resource-manager/logs:/logs:rw
+
+      # Temporary filesystem for runtime data
+      - /tmp
+
+      # Timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # Temporary filesystems
+    tmpfs:
+      - /tmp:size=64M
+      - /run:size=16M
+
+    # ====================================================================
+    # HEALTH CHECK
+    # ====================================================================
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=5)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # ====================================================================
+    # LABELS
+    # ====================================================================
+    labels:
+      # Traefik routing (health endpoint only)
+      - "traefik.enable=true"
+      - "traefik.http.routers.resource-manager-rtr.entrypoints=websecure"
+      - "traefik.http.routers.resource-manager-rtr.rule=Host(`resource-manager.${PUBLIC_FQDN}`)"
+
+      # TLS Configuration
+      - "traefik.http.routers.resource-manager-rtr.tls=true"
+      - "traefik.http.routers.resource-manager-rtr.tls.certresolver=http"
+      - "traefik.http.routers.resource-manager-rtr.tls.options=tls-opts@file"
+
+      # Middleware
+      - "traefik.http.routers.resource-manager-rtr.middlewares=chain-oauth@file"
+
+      # Service
+      - "traefik.http.routers.resource-manager-rtr.service=resource-manager-svc"
+      - "traefik.http.services.resource-manager-svc.loadbalancer.server.port=8000"
+
+      # Health check
+      - "traefik.http.services.resource-manager-svc.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.resource-manager-svc.loadbalancer.healthcheck.interval=60s"
+
+      # Homepage Integration
+      - "homepage.group=Monitoring"
+      - "homepage.name=Resource Manager"
+      - "homepage.icon=memory.svg"
+      - "homepage.href=https://resource-manager.${PUBLIC_FQDN}"
+      - "homepage.description=Automated Resource Management"
+      - "homepage.weight=150"
+
+      # Service Discovery
+      - "com.centurylinklabs.watchtower.enable=false"
+      - "diun.enable=true"
+
+      # Prometheus metrics
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=8000"
+      - "prometheus.io/path=/metrics"
+
+# ====================================================================
+# CONFIGS (Optional - if using Docker configs)
+# ====================================================================
+configs:
+  resource_manager_config:
+    file: ${CONFIGDIR}/resource-manager/config.yml

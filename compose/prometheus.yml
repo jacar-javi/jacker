@@ -67,6 +67,7 @@ services:
       - ${DATADIR}/prometheus/data:/prometheus:rw
 
       # Additional rule files and targets (if needed for dynamic updates)
+      - ${CONFIGDIR}/prometheus/config/alerts:/etc/prometheus/alerts:ro
       - ${CONFIGDIR}/prometheus/config/rules:/etc/prometheus/rules:ro
       - ${CONFIGDIR}/prometheus/config/targets.d:/etc/prometheus/targets.d:ro
       - ${CONFIGDIR}/prometheus/config/file_sd:/etc/prometheus/file_sd:ro
@@ -165,10 +166,25 @@ services:
     labels:
       # Traefik routing
       - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.entrypoints=websecure"
-      - "traefik.http.routers.prometheus.rule=Host(`prometheus.${PUBLIC_FQDN}`)"
-      - "traefik.http.routers.prometheus.service=prometheus"
-      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+      - "traefik.http.routers.prometheus-rtr.entrypoints=websecure"
+      - "traefik.http.routers.prometheus-rtr.rule=Host(`prometheus.${PUBLIC_FQDN}`)"
+
+      # TLS Configuration
+      - "traefik.http.routers.prometheus-rtr.tls=true"
+      - "traefik.http.routers.prometheus-rtr.tls.certresolver=http"
+      - "traefik.http.routers.prometheus-rtr.tls.options=tls-opts@file"
+
+      # Middleware
+      - "traefik.http.routers.prometheus-rtr.middlewares=chain-oauth@file"
+
+      # Service
+      - "traefik.http.routers.prometheus-rtr.service=prometheus-svc"
+      - "traefik.http.services.prometheus-svc.loadbalancer.server.port=9090"
+
+      # Health check
+      - "traefik.http.services.prometheus-svc.loadbalancer.healthcheck.path=/-/healthy"
+      - "traefik.http.services.prometheus-svc.loadbalancer.healthcheck.interval=30s"
+      - "traefik.http.services.prometheus-svc.loadbalancer.healthcheck.timeout=5s"
 
       # Homepage Integration
       - "homepage.group=Monitoring"
@@ -266,10 +282,20 @@ services:
 
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.pushgateway.entrypoints=websecure"
-      - "traefik.http.routers.pushgateway.rule=Host(`pushgateway.${PUBLIC_FQDN}`)"
-      - "traefik.http.routers.pushgateway.service=pushgateway"
-      - "traefik.http.services.pushgateway.loadbalancer.server.port=9091"
+      - "traefik.http.routers.pushgateway-rtr.entrypoints=websecure"
+      - "traefik.http.routers.pushgateway-rtr.rule=Host(`pushgateway.${PUBLIC_FQDN}`)"
+
+      # TLS Configuration
+      - "traefik.http.routers.pushgateway-rtr.tls=true"
+      - "traefik.http.routers.pushgateway-rtr.tls.certresolver=http"
+      - "traefik.http.routers.pushgateway-rtr.tls.options=tls-opts@file"
+
+      # Middleware
+      - "traefik.http.routers.pushgateway-rtr.middlewares=chain-oauth@file"
+
+      # Service
+      - "traefik.http.routers.pushgateway-rtr.service=pushgateway-svc"
+      - "traefik.http.services.pushgateway-svc.loadbalancer.server.port=9091"
 
       - "prometheus.io/scrape=true"
       - "prometheus.io/port=9091"

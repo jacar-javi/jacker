@@ -1,0 +1,282 @@
+# ====================================================================
+# Resource Manager Configuration
+# ====================================================================
+# Automated resource monitoring and management for Jacker infrastructure
+# Queries Prometheus metrics and triggers resource adjustments
+
+# ====================================================================
+# MONITORING CONFIGURATION
+# ====================================================================
+monitoring:
+  # Prometheus connection
+  prometheus_url: "http://prometheus:9090"
+
+  # Check interval in seconds (default: 5 minutes)
+  check_interval: 300
+
+  # Metric query timeout
+  query_timeout: 30
+
+  # Historical data window for analysis (default: 5 minutes)
+  analysis_window: "5m"
+
+  # Lookback period for trend analysis (default: 1 hour)
+  trend_window: "1h"
+
+# ====================================================================
+# THRESHOLD CONFIGURATION
+# ====================================================================
+thresholds:
+  # CPU thresholds (0.0 - 1.0)
+  cpu_high: 0.8     # 80% usage triggers increase
+  cpu_low: 0.3      # 30% usage triggers decrease
+
+  # Memory thresholds (0.0 - 1.0)
+  memory_high: 0.8  # 80% usage triggers increase
+  memory_low: 0.3   # 30% usage triggers decrease
+
+  # Consecutive checks required before action (hysteresis)
+  consecutive_checks: 3
+
+  # Minimum uptime before adjustments (seconds)
+  min_uptime: 600   # 10 minutes
+
+# ====================================================================
+# ADJUSTMENT CONFIGURATION
+# ====================================================================
+adjustment:
+  # Adjustment factors
+  increase_factor: 1.25  # +25% increase
+  decrease_factor: 0.75  # -25% decrease
+
+  # Resource limits
+  min_cpu: 0.1           # Minimum CPU cores
+  max_cpu: 8.0           # Maximum CPU cores
+  min_memory: 64M        # Minimum memory
+  max_memory: 8192M      # Maximum memory
+
+  # Cooldown period between adjustments (seconds)
+  cooldown_period: 1800  # 30 minutes
+
+  # Maximum adjustments per day per service
+  max_adjustments_per_day: 6
+
+# ====================================================================
+# SERVICE CONFIGURATION
+# ====================================================================
+services:
+  # Services to monitor
+  monitored:
+    - traefik
+    - postgres
+    - redis
+    - prometheus
+    - grafana
+    - loki
+    - crowdsec
+    - oauth
+    - alertmanager
+    - jaeger
+    - portainer
+    - vscode
+
+  # Critical services (never reduce below baseline)
+  critical:
+    - traefik
+    - postgres
+    - redis
+    - prometheus
+
+  # Optional services (can be disabled if resources are low)
+  optional:
+    - jaeger
+    - vscode
+    - portainer
+
+  # Service priority levels (1=highest, 3=lowest)
+  priority:
+    traefik: 1
+    postgres: 1
+    redis: 1
+    prometheus: 1
+    crowdsec: 1
+    oauth: 1
+    grafana: 2
+    loki: 2
+    alertmanager: 2
+    jaeger: 3
+    portainer: 3
+    vscode: 3
+
+  # Baseline resource allocations (cannot go below these for critical services)
+  baseline:
+    traefik:
+      cpu: 0.5
+      memory: 256M
+    postgres:
+      cpu: 0.5
+      memory: 512M
+    redis:
+      cpu: 0.25
+      memory: 256M
+    prometheus:
+      cpu: 0.5
+      memory: 512M
+
+# ====================================================================
+# BLUE-GREEN DEPLOYMENT CONFIGURATION
+# ====================================================================
+blue_green:
+  # Enable blue-green deployments for zero-downtime updates
+  enabled: true
+
+  # Path to blue-green deployment script
+  script: "/scripts/blue-green-deploy.sh"
+
+  # Health check configuration
+  health_check_timeout: 120      # Maximum time to wait for health check
+  health_check_interval: 5       # Interval between health checks
+  health_check_retries: 10       # Number of retries
+
+  # Rollback configuration
+  rollback_on_failure: true      # Auto-rollback on deployment failure
+  rollback_timeout: 60           # Timeout for rollback operation
+
+  # Traffic shift configuration
+  traffic_shift_steps: 5         # Number of steps for gradual traffic shift
+  traffic_shift_interval: 10     # Seconds between traffic shift steps
+
+# ====================================================================
+# DOCKER CONFIGURATION
+# ====================================================================
+docker:
+  # Docker socket proxy connection
+  host: "tcp://docker-socket-proxy:2375"
+
+  # API version
+  api_version: "auto"
+
+  # Connection timeout
+  timeout: 30
+
+  # Use TLS
+  tls: false
+
+# ====================================================================
+# NOTIFICATION CONFIGURATION
+# ====================================================================
+notifications:
+  # Enable notifications
+  enabled: true
+
+  # Notification channels
+  channels:
+    # Prometheus Alertmanager
+    alertmanager:
+      enabled: true
+      url: "http://alertmanager:9093"
+
+    # Log file
+    logfile:
+      enabled: true
+      path: "/logs/resource-manager.log"
+      level: "info"
+
+    # Webhook (optional)
+    webhook:
+      enabled: false
+      url: ""
+      headers:
+        Content-Type: "application/json"
+
+  # Events to notify about
+  events:
+    - resource_adjustment
+    - blue_green_deployment
+    - deployment_failure
+    - service_critical
+    - threshold_breach
+
+# ====================================================================
+# METRICS CONFIGURATION
+# ====================================================================
+metrics:
+  # Enable metrics endpoint
+  enabled: true
+
+  # Metrics endpoint port
+  port: 8000
+
+  # Metrics endpoint path
+  path: "/metrics"
+
+  # Custom metrics to track
+  track:
+    - total_adjustments
+    - successful_adjustments
+    - failed_adjustments
+    - blue_green_deployments
+    - rollbacks
+    - services_monitored
+    - threshold_breaches
+
+# ====================================================================
+# AUTOMATION CONFIGURATION
+# ====================================================================
+automation:
+  # Enable automatic adjustments
+  enabled: true
+
+  # Dry-run mode (log actions without executing)
+  dry_run: false
+
+  # Require manual approval for adjustments
+  manual_approval: false
+
+  # Actions to perform
+  actions:
+    # Increase resources when high threshold is breached
+    increase_on_high: true
+
+    # Decrease resources when low threshold is breached
+    decrease_on_low: true
+
+    # Scale down optional services when system resources are low
+    scale_down_optional: true
+
+    # Restart unhealthy services
+    restart_unhealthy: false
+
+# ====================================================================
+# ADVANCED CONFIGURATION
+# ====================================================================
+advanced:
+  # Machine learning predictions (future feature)
+  ml_predictions:
+    enabled: false
+    model_path: "/config/models/resource-predictor.pkl"
+
+  # Cost optimization
+  cost_optimization:
+    enabled: false
+    target_utilization: 0.7  # 70% target utilization
+
+  # Multi-cluster support
+  multi_cluster:
+    enabled: false
+    clusters: []
+
+  # Integration with external systems
+  integrations:
+    # Kubernetes (future feature)
+    kubernetes:
+      enabled: false
+      config_path: ""
+
+    # Cloud providers (future feature)
+    aws:
+      enabled: false
+    gcp:
+      enabled: false
+    azure:
+      enabled: false

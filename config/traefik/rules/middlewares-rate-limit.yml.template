@@ -1,0 +1,106 @@
+http:
+  middlewares:
+    # Default rate limit - moderate protection with Redis backend
+    rate-limit-default:
+      rateLimit:
+        average: 50  # 50 requests per second on average
+        burst: 100   # Allow bursts up to 100 requests
+        period: 1s
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 1  # Use DB 1 for rate limiting (separate from session storage in DB 0)
+          username: "ratelimit_user"
+          password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"
+
+    # Alias for consistent naming
+    middlewares-rate-limit:
+      rateLimit:
+        average: 50  # 50 requests per second on average
+        burst: 100   # Allow bursts up to 100 requests
+        period: 1s
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 1  # Use DB 1 for rate limiting (separate from session storage in DB 0)
+          username: "ratelimit_user"
+          password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"
+
+    # Strict rate limit - for sensitive endpoints with Redis backend
+    rate-limit-strict:
+      rateLimit:
+        average: 10  # 10 requests per second
+        burst: 20    # Allow bursts up to 20 requests
+        period: 1s
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 1  # Use DB 1 for rate limiting (separate from session storage in DB 0)
+          username: "ratelimit_user"
+          password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"
+
+    # Alias for consistent naming
+    middlewares-rate-limit-strict:
+      rateLimit:
+        average: 10  # 10 requests per second
+        burst: 20    # Allow bursts up to 20 requests
+        period: 1s
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 1  # Use DB 1 for rate limiting (separate from session storage in DB 0)
+          username: "ratelimit_user"
+          password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"
+
+    # API rate limit - for API endpoints with Redis backend
+    rate-limit-api:
+      rateLimit:
+        average: 100  # 100 requests per minute
+        burst: 50     # Allow bursts up to 50 requests
+        period: 1m
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 1  # Use DB 1 for rate limiting (separate from session storage in DB 0)
+          username: "ratelimit_user"
+          password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"
+
+    # Alias for consistent naming
+    middlewares-rate-limit-api:
+      rateLimit:
+        average: 100  # 100 requests per minute
+        burst: 50     # Allow bursts up to 50 requests
+        period: 1m
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 1  # Use DB 1 for rate limiting (separate from session storage in DB 0)
+          username: "ratelimit_user"
+          password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"
+
+    # Login rate limit - prevent brute force with Redis backend
+    rate-limit-auth:
+      rateLimit:
+        average: 5   # 5 requests per minute
+        burst: 10    # Allow small bursts
+        period: 1m
+        sourceCriterion:
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 1  # Use DB 1 for rate limiting (separate from session storage in DB 0)
+          username: "ratelimit_user"
+          password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"

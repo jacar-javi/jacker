@@ -124,13 +124,14 @@ services:
       # Docker Socket Proxy
       DOCKER_HOST: tcp://socket-proxy:2375
 
-      # Database Configuration (PostgreSQL)
+      # Database Configuration (PostgreSQL with SSL)
       DATABASE_TYPE: postgresql
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_CROWDSEC_DB:-crowdsec_db}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_SSLMODE: require
 
       # Redis Cache Configuration
       REDIS_HOST: redis
@@ -227,10 +228,20 @@ services:
     labels:
       # Traefik Integration (Dashboard)
       - "traefik.enable=true"
-      - "traefik.http.routers.crowdsec.entrypoints=websecure"
-      - "traefik.http.routers.crowdsec.rule=Host(`crowdsec.${PUBLIC_FQDN}`)"
-      - "traefik.http.routers.crowdsec.service=crowdsec"
-      - "traefik.http.services.crowdsec.loadbalancer.server.port=8080"
+      - "traefik.http.routers.crowdsec-rtr.entrypoints=websecure"
+      - "traefik.http.routers.crowdsec-rtr.rule=Host(`crowdsec.${PUBLIC_FQDN}`)"
+
+      # TLS Configuration
+      - "traefik.http.routers.crowdsec-rtr.tls=true"
+      - "traefik.http.routers.crowdsec-rtr.tls.certresolver=http"
+      - "traefik.http.routers.crowdsec-rtr.tls.options=tls-opts@file"
+
+      # Middleware
+      - "traefik.http.routers.crowdsec-rtr.middlewares=chain-oauth@file"
+
+      # Service
+      - "traefik.http.routers.crowdsec-rtr.service=crowdsec-svc"
+      - "traefik.http.services.crowdsec-svc.loadbalancer.server.port=8080"
 
       # Homepage Integration
       - "homepage.group=Security"

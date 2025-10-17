@@ -253,12 +253,13 @@ tracing:
 # ====================================================================
 # EXPERIMENTAL FEATURES
 # ====================================================================
-experimental:
-  # Local plugins
-  localPlugins:
-    traefik-plugin-crowdsec:
-      moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
-    # Additional plugins can be added here
+# Plugin configuration moved to plugins.yml (file provider)
+# Using experimental.plugins (not localPlugins) for official Traefik catalog plugins
+# experimental:
+#   plugins:
+#     crowdsec:
+#       moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
+#       version: v1.4.5
 # ====================================================================
 # HUB - TRAEFIK HUB (OPTIONAL ENTERPRISE FEATURES)
 # ====================================================================

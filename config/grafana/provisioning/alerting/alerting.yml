@@ -1,0 +1,118 @@
+# ====================================================================
+# Grafana Unified Alerting Provisioning
+# ====================================================================
+# Configures Grafana to send alerts to Alertmanager
+# This enables a unified alerting pipeline: Prometheus → Alertmanager ← Grafana
+#
+# Documentation: https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/
+
+apiVersion: 1
+
+# ====================================================================
+# CONTACT POINTS (Notification Channels)
+# ====================================================================
+contactPoints:
+  # Send Grafana alerts to Alertmanager for unified alert routing
+  - orgId: 1
+    name: alertmanager
+    receivers:
+      - uid: grafana-alertmanager-contact
+        type: prometheus-alertmanager
+        settings:
+          url: http://alertmanager:9093
+          basicAuthUser: ''
+          basicAuthPassword: ''
+        disableResolveMessage: false
+
+  # Optional: Direct email contact point (bypasses Alertmanager)
+  # - orgId: 1
+  #   name: email-direct
+  #   receivers:
+  #     - uid: grafana-email-direct
+  #       type: email
+  #       settings:
+  #         addresses: ${ALERT_EMAIL_TO}
+  #         singleEmail: true
+
+# ====================================================================
+# NOTIFICATION POLICIES (Alert Routing)
+# ====================================================================
+policies:
+  # Root policy - applies to all alerts unless overridden
+  - orgId: 1
+    receiver: alertmanager
+    group_by:
+      - grafana_folder
+      - alertname
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 12h
+
+    # Child policies for specific routing
+    routes:
+      # Critical alerts - faster grouping and repeat
+      - receiver: alertmanager
+        object_matchers:
+          - ['severity', '=', 'critical']
+        group_wait: 10s
+        group_interval: 2m
+        repeat_interval: 4h
+        continue: false
+
+      # Security alerts - faster grouping
+      - receiver: alertmanager
+        object_matchers:
+          - ['category', '=', 'security']
+        group_wait: 10s
+        group_interval: 2m
+        repeat_interval: 4h
+        continue: false
+
+      # Warning alerts - standard timing
+      - receiver: alertmanager
+        object_matchers:
+          - ['severity', '=', 'warning']
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 24h
+        continue: false
+
+      # Info alerts - slower repeat
+      - receiver: alertmanager
+        object_matchers:
+          - ['severity', '=', 'info']
+        group_wait: 1m
+        group_interval: 10m
+        repeat_interval: 24h
+        continue: false
+
+# ====================================================================
+# MUTE TIMINGS (Maintenance Windows)
+# ====================================================================
+muteTimes:
+  # Example: Scheduled maintenance window
+  # - orgId: 1
+  #   name: maintenance-window
+  #   time_intervals:
+  #     - times:
+  #         - start_time: '02:00'
+  #           end_time: '04:00'
+  #       weekdays: ['sunday']
+  #       months: ['january:december']
+  #       years: ['2024:2030']
+
+# ====================================================================
+# NOTES
+# ====================================================================
+# - Alerts created in Grafana will be sent to Alertmanager
+# - Alertmanager will handle routing based on its own configuration
+# - This creates unified alerting: both Prometheus and Grafana → Alertmanager
+# - Alertmanager routes to email/webhook/other channels based on severity
+#
+# Alert Flow:
+#   Grafana Dashboard Alert → Contact Point (alertmanager) → Alertmanager → Email/Webhook
+#
+# To add more contact points:
+#   1. Add entry to contactPoints section
+#   2. Add routing policy to policies.routes section
+#   3. Restart Grafana: docker compose restart grafana

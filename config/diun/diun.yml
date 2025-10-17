@@ -1,0 +1,417 @@
+# ============================================
+# Diun Configuration - Docker Image Update Notifier
+# ============================================
+# https://crazymax.dev/diun/
+#
+# This configuration monitors Docker containers for available image updates
+# and sends notifications via multiple channels: Email, Webhook (Alertmanager), and Gotify
+
+# ============================================
+# Global Settings
+# ============================================
+db:
+  # Database path for storing image metadata
+  path: /data/diun.db
+
+# Watch configuration - defines when and how to check for updates
+watch:
+  # Cron schedule: Check every 6 hours (at 00:00, 06:00, 12:00, 18:00)
+  schedule: "0 */6 * * *"
+
+  # Number of parallel workers for checking images
+  workers: 20
+
+  # First check behavior
+  firstCheckNotif: false
+
+  # Compare tags mode
+  compareDigest: false
+
+# ============================================
+# Registry Options - Authentication
+# ============================================
+regopts:
+  # Docker Hub authentication (if credentials are provided)
+  - name: "docker.io"
+    username: ${DOCKERHUB_USERNAME}
+    password: ${DOCKERHUB_PASSWORD}
+    # Timeout for registry operations
+    timeout: 30s
+
+  # GitHub Container Registry (if used)
+  - name: "ghcr.io"
+    username: ${GHCR_USERNAME}
+    password: ${GHCR_TOKEN}
+    timeout: 30s
+
+  # Private registry (if configured)
+  - name: ${REGISTRY_URL}
+    username: ${REGISTRY_USERNAME}
+    password: ${REGISTRY_PASSWORD}
+    timeout: 30s
+    insecure: false
+
+# ============================================
+# Docker Provider Configuration
+# ============================================
+providers:
+  docker:
+    # Connect via socket-proxy for enhanced security
+    endpoint: "tcp://socket-proxy:2375"
+
+    # Watch all containers by default
+    watchByDefault: true
+
+    # Watch stopped containers
+    watchStopped: false
+
+    # Include swarm services
+    watchSwarm: false
+
+# ============================================
+# Notification Providers
+# ============================================
+notif:
+  # ============================================
+  # Email Notifications (Primary)
+  # ============================================
+  mail:
+    # SMTP server configuration
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT}
+
+    # SMTP authentication
+    username: ${SMTP_USERNAME}
+    password: ${SMTP_PASSWORD}
+
+    # SSL/TLS configuration
+    ssl: false
+    insecureSkipVerify: false
+    localName: ${HOSTNAME}.${DOMAINNAME}
+
+    # Email addresses
+    from: ${SMTP_FROM:-${SMTP_USERNAME}}
+    to: ${ALERT_EMAIL_TO}
+
+    # Email template configuration
+    templateTitle: |
+      [Diun] {{ .Entry.Image }} update available
+
+    templateBody: |
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 5px 5px 0 0; }
+          .content { background: #f4f4f4; padding: 20px; border-radius: 0 0 5px 5px; }
+          .info-box { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #667eea; }
+          .label { font-weight: bold; color: #667eea; }
+          .value { color: #333; }
+          .button { display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+          .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+          .status-new { color: #10b981; font-weight: bold; }
+          .status-old { color: #ef4444; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>🐋 Docker Image Update Available</h2>
+          </div>
+          <div class="content">
+            <div class="info-box">
+              <p><span class="label">Image:</span> <span class="value">{{ .Entry.Image.String }}</span></p>
+              <p><span class="label">Registry:</span> <span class="value">{{ .Entry.Image.Domain }}</span></p>
+            </div>
+
+            <div class="info-box">
+              <p><span class="label">Current Tag:</span> <span class="status-old">{{ range .Entry.Manifest.Tags }}{{ . }} {{ end }}</span></p>
+              <p><span class="label">New Tag Available:</span> <span class="status-new">{{ .Meta.Tag }}</span></p>
+            </div>
+
+            <div class="info-box">
+              <p><span class="label">Platform:</span> <span class="value">{{ .Entry.Manifest.Platform }}</span></p>
+              <p><span class="label">Created:</span> <span class="value">{{ .Entry.Manifest.Created }}</span></p>
+              <p><span class="label">Digest:</span> <span class="value" style="font-size: 10px; word-break: break-all;">{{ .Entry.Manifest.Digest }}</span></p>
+            </div>
+
+            <div style="text-align: center; margin: 20px 0;">
+              <a href="https://hub.docker.com/r/{{ .Entry.Image.Path }}" class="button">View on Docker Hub</a>
+            </div>
+
+            <div class="info-box">
+              <p><strong>Action Required:</strong></p>
+              <p>A new version of the <strong>{{ .Entry.Image.String }}</strong> container image is available.
+              Please review the changes and update your container when ready.</p>
+              <p style="margin-top: 10px;">
+                <strong>Update Command:</strong><br>
+                <code style="background: #e5e7eb; padding: 5px 10px; border-radius: 3px; display: inline-block; margin-top: 5px;">
+                  docker pull {{ .Entry.Image.String }}:{{ .Meta.Tag }}
+                </code>
+              </p>
+            </div>
+          </div>
+          <div class="footer">
+            <p>Notification generated by Diun (Docker Image Update Notifier)</p>
+            <p>Jacker Stack - {{ .Entry.Image.Domain }}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+
+  # ============================================
+  # Webhook Notifications (Alertmanager Integration)
+  # ============================================
+  webhook:
+    # Alertmanager API endpoint
+    endpoint: http://alertmanager:9093/api/v2/alerts
+    method: POST
+
+    # HTTP headers
+    headers:
+      Content-Type: application/json
+      User-Agent: Diun
+
+    # Request timeout
+    timeout: 10s
+
+    # Alertmanager-compatible payload template
+    templateBody: |
+      [{
+        "labels": {
+          "alertname": "DockerImageUpdate",
+          "severity": "info",
+          "service": "diun",
+          "image": "{{ .Entry.Image.Path }}",
+          "registry": "{{ .Entry.Image.Domain }}",
+          "current_tag": "{{ range .Entry.Manifest.Tags }}{{ . }}{{ end }}",
+          "new_tag": "{{ .Meta.Tag }}",
+          "instance": "{{ .Entry.Image.String }}",
+          "source": "diun"
+        },
+        "annotations": {
+          "summary": "Docker image update available: {{ .Entry.Image.String }}",
+          "description": "A new version of {{ .Entry.Image.String }} is available. Current: {{ range .Entry.Manifest.Tags }}{{ . }}{{ end }}, New: {{ .Meta.Tag }}",
+          "image_name": "{{ .Entry.Image.String }}",
+          "current_version": "{{ range .Entry.Manifest.Tags }}{{ . }}{{ end }}",
+          "new_version": "{{ .Meta.Tag }}",
+          "platform": "{{ .Entry.Manifest.Platform }}",
+          "created": "{{ .Entry.Manifest.Created }}",
+          "digest": "{{ .Entry.Manifest.Digest }}",
+          "registry_url": "https://hub.docker.com/r/{{ .Entry.Image.Path }}",
+          "update_command": "docker pull {{ .Entry.Image.String }}:{{ .Meta.Tag }}"
+        },
+        "startsAt": "{{ .Meta.Created }}",
+        "endsAt": "{{ .Meta.Created }}",
+        "generatorURL": "http://diun:8080"
+      }]
+
+  # ============================================
+  # Gotify Notifications (Optional Push Notifications)
+  # ============================================
+  gotify:
+    # Gotify server configuration (only if enabled)
+    endpoint: ${GOTIFY_URL}
+    token: ${GOTIFY_TOKEN}
+
+    # Notification priority (1-10, default: 5)
+    priority: 5
+
+    # Request timeout
+    timeout: 10s
+
+    # Message template
+    templateTitle: |
+      Docker Update: {{ .Entry.Image.String }}
+
+    templateBody: |
+      🐋 **Image Update Available**
+
+      **Image:** {{ .Entry.Image.String }}
+      **Current:** {{ range .Entry.Manifest.Tags }}{{ . }}{{ end }}
+      **New:** {{ .Meta.Tag }}
+      **Registry:** {{ .Entry.Image.Domain }}
+
+      **Platform:** {{ .Entry.Manifest.Platform }}
+      **Created:** {{ .Entry.Manifest.Created }}
+
+      **Action:** Pull the new image to update
+      ```
+      docker pull {{ .Entry.Image.String }}:{{ .Meta.Tag }}
+      ```
+
+  # ============================================
+  # Discord Notifications (Optional, if webhook configured)
+  # ============================================
+  # Uncomment and configure if using Discord webhooks
+  # discord:
+  #   webhookURL: ${DISCORD_WEBHOOK_URL}
+  #   mentions:
+  #     - "@here"
+  #   timeout: 10s
+  #   templateBody: |
+  #     :whale: **Docker Image Update Available**
+  #
+  #     **Image:** `{{ .Entry.Image.String }}`
+  #     **Current Tag:** `{{ range .Entry.Manifest.Tags }}{{ . }}{{ end }}`
+  #     **New Tag:** `{{ .Meta.Tag }}`
+  #     **Registry:** {{ .Entry.Image.Domain }}
+  #
+  #     **Update Command:**
+  #     ```bash
+  #     docker pull {{ .Entry.Image.String }}:{{ .Meta.Tag }}
+  #     ```
+  #
+  #     [View on Docker Hub](https://hub.docker.com/r/{{ .Entry.Image.Path }})
+
+  # ============================================
+  # Slack Notifications (Optional, if webhook configured)
+  # ============================================
+  # Uncomment and configure if using Slack webhooks
+  # slack:
+  #   webhookURL: ${SLACK_WEBHOOK_URL}
+  #   timeout: 10s
+  #   templateBody: |
+  #     {
+  #       "text": ":whale: Docker Image Update Available",
+  #       "blocks": [
+  #         {
+  #           "type": "header",
+  #           "text": {
+  #             "type": "plain_text",
+  #             "text": ":whale: Docker Image Update"
+  #           }
+  #         },
+  #         {
+  #           "type": "section",
+  #           "fields": [
+  #             {
+  #               "type": "mrkdwn",
+  #               "text": "*Image:*\n`{{ .Entry.Image.String }}`"
+  #             },
+  #             {
+  #               "type": "mrkdwn",
+  #               "text": "*Registry:*\n{{ .Entry.Image.Domain }}"
+  #             }
+  #           ]
+  #         },
+  #         {
+  #           "type": "section",
+  #           "fields": [
+  #             {
+  #               "type": "mrkdwn",
+  #               "text": "*Current Tag:*\n`{{ range .Entry.Manifest.Tags }}{{ . }}{{ end }}`"
+  #             },
+  #             {
+  #               "type": "mrkdwn",
+  #               "text": "*New Tag:*\n`{{ .Meta.Tag }}`"
+  #             }
+  #           ]
+  #         },
+  #         {
+  #           "type": "section",
+  #           "text": {
+  #             "type": "mrkdwn",
+  #             "text": "*Update Command:*\n```docker pull {{ .Entry.Image.String }}:{{ .Meta.Tag }}```"
+  #           }
+  #         },
+  #         {
+  #           "type": "actions",
+  #           "elements": [
+  #             {
+  #               "type": "button",
+  #               "text": {
+  #                 "type": "plain_text",
+  #                 "text": "View on Docker Hub"
+  #               },
+  #               "url": "https://hub.docker.com/r/{{ .Entry.Image.Path }}"
+  #             }
+  #           ]
+  #         }
+  #       ]
+  #     }
+
+# ============================================
+# Metrics Configuration (Prometheus Integration)
+# ============================================
+# Expose Prometheus metrics for monitoring
+metrics:
+  prometheus:
+    # Enable Prometheus metrics endpoint
+    enable: true
+
+    # Listen address and port
+    listenAddr: 0.0.0.0
+    listenPort: 8080
+
+    # Metrics endpoint path
+    path: /metrics
+
+# ============================================
+# Logging Configuration
+# ============================================
+log:
+  # Log level: panic, fatal, error, warn, info, debug, trace
+  level: info
+
+  # Log format: text, json
+  json: false
+
+# ============================================
+# Container-Specific Overrides
+# ============================================
+# You can override settings for specific containers using Docker labels:
+#
+# Labels:
+#   diun.enable=true                           # Enable/disable watching
+#   diun.regopt=docker.io                      # Registry option to use
+#   diun.watch_repo=true                       # Watch all tags of the repository
+#   diun.notify_on=new;update                  # Notification conditions
+#   diun.max_tags=10                           # Maximum number of tags to watch
+#   diun.include_tags=^\d+\.\d+\.\d+$          # Regex to include specific tags
+#   diun.exclude_tags=.*-rc.*                  # Regex to exclude specific tags
+#
+# Example in docker-compose.yml:
+#   labels:
+#     - "diun.enable=true"
+#     - "diun.watch_repo=true"
+#     - "diun.notify_on=new;update"
+#     - "diun.include_tags=^\\d+\\.\\d+\\.\\d+$"
+#     - "diun.exclude_tags=.*-beta.*"
+
+# ============================================
+# Notes and Best Practices
+# ============================================
+# 1. Registry Authentication:
+#    - Configure DOCKERHUB_USERNAME/PASSWORD for Docker Hub rate limits
+#    - Use GHCR_TOKEN for GitHub Container Registry
+#    - Configure private registry credentials as needed
+#
+# 2. Notification Channels:
+#    - Email: Primary notification method via existing SMTP
+#    - Webhook: Integration with Alertmanager for centralized alerting
+#    - Gotify: Optional push notifications to mobile devices
+#
+# 3. Update Schedule:
+#    - Default: Every 6 hours (00:00, 06:00, 12:00, 18:00)
+#    - Adjust 'schedule' field to change frequency
+#    - Use cron format for custom schedules
+#
+# 4. Metrics:
+#    - Prometheus metrics available at http://diun:8080/metrics
+#    - Add to Prometheus scrape configuration for monitoring
+#    - Track update check frequency, notification success, etc.
+#
+# 5. Security:
+#    - Uses socket-proxy for secure Docker API access
+#    - Registry credentials stored in environment variables
+#    - No direct Docker socket access required
+#
+# 6. Container Labels:
+#    - Use labels to customize behavior per container
+#    - Disable watching for specific containers
+#    - Filter tags using regex patterns
+#    - Control notification triggers

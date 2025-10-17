@@ -9,6 +9,13 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # shellcheck source=/dev/null
 source "${SCRIPT_DIR}/common.sh"
 
+# Source resource management library
+# shellcheck source=/dev/null
+source "${SCRIPT_DIR}/resources.sh" || {
+    error "Failed to source resources.sh"
+    exit 1
+}
+
 # Map log functions to common.sh functions
 log_info() { info "$@"; }
 log_success() { success "$@"; }
@@ -430,6 +437,40 @@ configure_advanced_options() {
 
     if [[ "${alerts,,}" == "y" ]]; then
         configure_alerting "$preserve_existing"
+    fi
+
+    # Performance Tuning
+    echo
+    log_section "Performance Tuning"
+    echo "Jacker can automatically optimize resource allocation based on your system capabilities."
+    echo ""
+    local default_tuning="Y"
+    read -rp "Enable automatic resource tuning? [Y/n]: " enable_tuning
+    enable_tuning=${enable_tuning:-${default_tuning}}
+
+    if [[ "${enable_tuning,,}" =~ ^y ]]; then
+        echo "ENABLE_RESOURCE_TUNING=true" >> "${JACKER_DIR}/.env.tmp"
+
+        # Offer profile selection
+        echo ""
+        echo "Available resource profiles:"
+        echo "  1) Auto-detect (recommended)"
+        echo "  2) Minimal (low-resource systems)"
+        echo "  3) Balanced (normal systems)"
+        echo "  4) Performance (high-end systems)"
+        echo ""
+        read -rp "Select profile [1-4, default: 1]: " profile_choice
+        profile_choice=${profile_choice:-1}
+
+        case $profile_choice in
+            1) echo "RESOURCE_PROFILE=auto" >> "${JACKER_DIR}/.env.tmp" ;;
+            2) echo "RESOURCE_PROFILE=minimal" >> "${JACKER_DIR}/.env.tmp" ;;
+            3) echo "RESOURCE_PROFILE=balanced" >> "${JACKER_DIR}/.env.tmp" ;;
+            4) echo "RESOURCE_PROFILE=performance" >> "${JACKER_DIR}/.env.tmp" ;;
+        esac
+    else
+        echo "ENABLE_RESOURCE_TUNING=false" >> "${JACKER_DIR}/.env.tmp"
+        echo "RESOURCE_PROFILE=default" >> "${JACKER_DIR}/.env.tmp"
     fi
 }
 
@@ -1404,6 +1445,9 @@ EOF
     # Configure CrowdSec
     configure_crowdsec
 
+    # Configure CrowdSec admin whitelist
+    configure_crowdsec_whitelist
+
     log_success "Services initialized"
 }
 
@@ -1517,6 +1561,30 @@ configure_crowdsec() {
     $docker_cmd compose exec -T crowdsec cscli reload 2>/dev/null || true
 
     log_success "CrowdSec configured"
+}
+
+# Configure CrowdSec Admin Whitelist
+configure_crowdsec_whitelist() {
+    log_info "Setting up CrowdSec admin whitelist..."
+
+    # Source the whitelist library
+    # shellcheck source=./whitelist.sh
+    source "${SCRIPT_DIR}/whitelist.sh" || {
+        log_error "Failed to source whitelist.sh"
+        return 1
+    }
+
+    # Determine if in auto mode (non-interactive)
+    local auto_mode="${JACKER_AUTO_MODE:-false}"
+
+    # Run the whitelist configuration wizard
+    if configure_admin_whitelist "${JACKER_DIR}" "$auto_mode"; then
+        log_success "CrowdSec whitelist configured"
+        return 0
+    else
+        log_warn "CrowdSec whitelist configuration skipped or failed"
+        return 0  # Don't fail the entire setup
+    fi
 }
 
 #########################################
@@ -1680,6 +1748,14 @@ setup_jacker() {
 
     # Prepare system
     prepare_system
+
+    # Optimize resource allocation based on system capabilities
+    log_info "Optimizing resource allocation for your system..."
+    if apply_resource_tuning "${JACKER_DIR}/docker-compose.override.yml"; then
+        log_success "Resource tuning applied successfully"
+    else
+        log_warn "Resource tuning failed, using default allocations"
+    fi
 
     # Initialize services
     initialize_services

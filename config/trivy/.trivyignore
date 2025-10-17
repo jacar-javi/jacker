@@ -1,0 +1,16 @@
+# ====================================================================
+# Trivy Ignore File
+# Documentation: https://trivy.dev/latest/docs/configuration/filtering/
+# ====================================================================
+# Format: CVE-ID [Reason/Expiration]
+# Example: CVE-2023-12345 # Fixed in next release, expires 2024-12-31
+# ====================================================================
+
+# Example ignored vulnerabilities (customize for your needs)
+# CVE-2023-XXXXX  # Low risk, patched in base image update
+# CVE-2024-YYYYY  # False positive, not applicable to our use case
+
+# Known false positives
+
+# Low risk vulnerabilities that are acceptable
+# (Add specific CVEs as needed after reviewing scan results)

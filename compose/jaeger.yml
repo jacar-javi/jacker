@@ -88,12 +88,20 @@ services:
       - "traefik.enable=true"
 
       # Jaeger UI Router
-      - "traefik.http.routers.jaeger.rule=Host(`jaeger.$PUBLIC_FQDN`)"
-      - "traefik.http.routers.jaeger.entrypoints=websecure"
-      - "traefik.http.routers.jaeger.service=jaeger-ui"
+      - "traefik.http.routers.jaeger-rtr.entrypoints=websecure"
+      - "traefik.http.routers.jaeger-rtr.rule=Host(`jaeger.$PUBLIC_FQDN`)"
+
+      # TLS Configuration
+      - "traefik.http.routers.jaeger-rtr.tls=true"
+      - "traefik.http.routers.jaeger-rtr.tls.certresolver=http"
+      - "traefik.http.routers.jaeger-rtr.tls.options=tls-opts@file"
+
+      # Middleware
+      - "traefik.http.routers.jaeger-rtr.middlewares=chain-oauth@file"
 
       # Jaeger UI Service
-      - "traefik.http.services.jaeger-ui.loadbalancer.server.port=16686"
+      - "traefik.http.routers.jaeger-rtr.service=jaeger-svc"
+      - "traefik.http.services.jaeger-svc.loadbalancer.server.port=16686"
 
       # Homepage Integration
       - "homepage.group=Monitoring"

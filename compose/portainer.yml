@@ -25,11 +25,19 @@ services:
     labels:
       # Traefik configuration
       - "traefik.enable=true"
+
       # HTTP Routers
       - "traefik.http.routers.portainer-rtr.entrypoints=websecure"
       - "traefik.http.routers.portainer-rtr.rule=Host(`portainer.$PUBLIC_FQDN`)"
+
+      # TLS Configuration
+      - "traefik.http.routers.portainer-rtr.tls=true"
+      - "traefik.http.routers.portainer-rtr.tls.certresolver=http"
+      - "traefik.http.routers.portainer-rtr.tls.options=tls-opts@file"
+
       # Middlewares
       - "traefik.http.routers.portainer-rtr.middlewares=chain-oauth@file"
+
       # HTTP Services
       - "traefik.http.routers.portainer-rtr.service=portainer-svc"
       - "traefik.http.services.portainer-svc.loadbalancer.server.port=9000"

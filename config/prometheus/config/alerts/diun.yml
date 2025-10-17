@@ -1,0 +1,337 @@
+# ====================================================================
+# Diun (Docker Image Update Notifier) - Alert Rules
+# ====================================================================
+# Monitors the health and operational status of Diun service
+# and alerts on image update detection events
+
+groups:
+  # ================================================================
+  # DIUN OPERATIONAL ALERTS
+  # ================================================================
+  - name: diun_operational
+    interval: 5m
+    rules:
+      # Diun service down
+      - alert: DiunServiceDown
+        expr: |
+          up{job="diun"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: operational
+          service: diun
+          component: image-monitor
+        annotations:
+          summary: "Diun service is down"
+          description: |
+            Diun Docker Image Update Notifier is not responding.
+
+            Impact: No image update notifications
+            Action: Check container status and logs
+          runbook_url: "https://crazymax.dev/diun/troubleshooting/"
+
+      # Diun high memory usage
+      - alert: DiunHighMemoryUsage
+        expr: |
+          (container_memory_usage_bytes{name="diun"}
+          / container_spec_memory_limit_bytes{name="diun"}) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          category: operational
+          service: diun
+          component: resources
+        annotations:
+          summary: "Diun using high memory ({{ $value | humanizePercentage }})"
+          description: |
+            Diun is using {{ $value | humanizePercentage }} of allocated memory.
+
+            Impact: Potential performance degradation or OOM
+            Action: Consider increasing memory limits or check for memory leaks
+          runbook_url: "https://crazymax.dev/diun/troubleshooting/"
+
+      # Diun high CPU usage
+      - alert: DiunHighCPUUsage
+        expr: |
+          rate(container_cpu_usage_seconds_total{name="diun"}[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: info
+          category: operational
+          service: diun
+          component: performance
+        annotations:
+          summary: "Diun high CPU usage ({{ $value | humanizePercentage }})"
+          description: |
+            Diun is using {{ $value | humanizePercentage }} CPU over the last 5 minutes.
+
+            Impact: Potential performance impact during scans
+            Action: Check scan configuration or worker count
+          runbook_url: "https://crazymax.dev/diun/config/"
+
+      # Diun container restart
+      - alert: DiunContainerRestarted
+        expr: |
+          rate(container_last_seen{name="diun"}[10m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          category: operational
+          service: diun
+          component: stability
+        annotations:
+          summary: "Diun container has restarted"
+          description: |
+            Diun container has restarted unexpectedly.
+
+            Impact: Potential missed image update checks
+            Action: Check container logs for errors
+          runbook_url: "https://crazymax.dev/diun/troubleshooting/"
+
+  # ================================================================
+  # DIUN NOTIFICATION ALERTS
+  # ================================================================
+  - name: diun_notifications
+    interval: 5m
+    rules:
+      # High notification failure rate
+      - alert: DiunHighNotificationFailureRate
+        expr: |
+          rate(diun_notification_errors_total[15m]) > 0.1
+        for: 15m
+        labels:
+          severity: warning
+          category: operational
+          service: diun
+          component: notifications
+        annotations:
+          summary: "Diun notification failure rate high"
+          description: |
+            Diun notification failure rate is {{ $value | humanizePercentage }} over the last 15 minutes.
+            Notifier: {{ $labels.notifier }}
+
+            Impact: Image update notifications not being delivered
+            Action: Check notification configuration and external service connectivity
+          runbook_url: "https://crazymax.dev/diun/notif/overview/"
+
+      # Notification queue building up
+      - alert: DiunNotificationQueueBuildup
+        expr: |
+          diun_notification_queue_length > 10
+        for: 30m
+        labels:
+          severity: warning
+          category: operational
+          service: diun
+          component: notifications
+        annotations:
+          summary: "Diun notification queue building up"
+          description: |
+            Diun has {{ $value }} notifications queued for more than 30 minutes.
+
+            Impact: Delayed image update notifications
+            Action: Check notification service availability and processing capacity
+          runbook_url: "https://crazymax.dev/diun/notif/overview/"
+
+  # ================================================================
+  # DIUN PROVIDER ALERTS
+  # ================================================================
+  - name: diun_providers
+    interval: 5m
+    rules:
+      # Docker provider connection errors
+      - alert: DiunDockerProviderError
+        expr: |
+          rate(diun_provider_errors_total{provider="docker"}[15m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          category: operational
+          service: diun
+          component: docker-provider
+        annotations:
+          summary: "Diun Docker provider experiencing errors"
+          description: |
+            Diun Docker provider has {{ $value }} errors per second over the last 15 minutes.
+
+            Impact: Cannot monitor Docker containers for image updates
+            Action: Check socket-proxy connectivity and Docker API availability
+          runbook_url: "https://crazymax.dev/diun/providers/docker/"
+
+      # Registry authentication failures
+      - alert: DiunRegistryAuthFailure
+        expr: |
+          rate(diun_registry_auth_errors_total[15m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          category: operational
+          service: diun
+          component: registry-auth
+        annotations:
+          summary: "Diun registry authentication failures"
+          description: |
+            Diun is experiencing authentication failures with registry {{ $labels.registry }}.
+
+            Impact: Cannot check updates for images from this registry
+            Action: Verify registry credentials in configuration
+          runbook_url: "https://crazymax.dev/diun/config/regopts/"
+
+      # High registry rate limiting
+      - alert: DiunRegistryRateLimited
+        expr: |
+          rate(diun_registry_rate_limit_hits_total[15m]) > 0.5
+        for: 15m
+        labels:
+          severity: warning
+          category: operational
+          service: diun
+          component: registry-api
+        annotations:
+          summary: "Diun hitting registry rate limits"
+          description: |
+            Diun is hitting rate limits for registry {{ $labels.registry }} at {{ $value }} hits/second.
+
+            Impact: Delayed or missed image update checks
+            Action: Consider registry authentication or reduce check frequency
+          runbook_url: "https://crazymax.dev/diun/config/regopts/"
+
+  # ================================================================
+  # DIUN IMAGE UPDATE ALERTS
+  # ================================================================
+  - name: diun_image_updates
+    interval: 30m
+    rules:
+      # No image checks performed recently
+      - alert: DiunNoRecentImageChecks
+        expr: |
+          time() - diun_last_check_timestamp_seconds > 28800
+        for: 1h
+        labels:
+          severity: warning
+          category: operational
+          service: diun
+          component: image-checker
+        annotations:
+          summary: "Diun has not checked images recently"
+          description: |
+            Diun has not performed image checks in {{ $value | humanizeDuration }}.
+            Expected check interval: 6 hours
+
+            Impact: Potentially missing image updates
+            Action: Check Diun service status and schedule configuration
+          runbook_url: "https://crazymax.dev/diun/config/watch/"
+
+      # High number of outdated images
+      - alert: DiunMultipleOutdatedImages
+        expr: |
+          diun_images_outdated_total > 5
+        for: 24h
+        labels:
+          severity: info
+          category: maintenance
+          service: diun
+          component: image-updates
+        annotations:
+          summary: "Multiple container images are outdated"
+          description: |
+            Diun has detected {{ $value }} outdated container images for more than 24 hours.
+
+            Impact: Running potentially vulnerable or buggy images
+            Action: Review pending updates and schedule maintenance window
+          runbook_url: "https://crazymax.dev/diun/"
+
+      # Critical service image outdated
+      - alert: DiunCriticalServiceImageOutdated
+        expr: |
+          diun_image_outdated{service=~"traefik|authentik|crowdsec|postgres"} == 1
+        for: 7d
+        labels:
+          severity: warning
+          category: maintenance
+          service: diun
+          component: image-updates
+        annotations:
+          summary: "Critical service {{ $labels.service }} has outdated image"
+          description: |
+            Critical service {{ $labels.service }} has been running an outdated image for 7 days.
+            Current: {{ $labels.current_tag }}
+            Available: {{ $labels.latest_tag }}
+
+            Impact: Missing security patches and bug fixes for critical service
+            Action: Review changelog and schedule update during maintenance window
+          runbook_url: "https://crazymax.dev/diun/"
+
+  # ================================================================
+  # DIUN DATABASE ALERTS
+  # ================================================================
+  - name: diun_database
+    interval: 5m
+    rules:
+      # Database errors
+      - alert: DiunDatabaseError
+        expr: |
+          rate(diun_db_errors_total[15m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          category: operational
+          service: diun
+          component: database
+        annotations:
+          summary: "Diun database experiencing errors"
+          description: |
+            Diun database has {{ $value }} errors per second over the last 15 minutes.
+
+            Impact: Cannot track image state or update history
+            Action: Check database file permissions and disk space
+          runbook_url: "https://crazymax.dev/diun/troubleshooting/"
+
+      # Database size growing rapidly
+      - alert: DiunDatabaseSizeGrowing
+        expr: |
+          rate(diun_db_size_bytes[24h]) > 1048576
+        for: 24h
+        labels:
+          severity: info
+          category: operational
+          service: diun
+          component: database
+        annotations:
+          summary: "Diun database size growing rapidly"
+          description: |
+            Diun database is growing by {{ $value | humanizeBytes }}/day.
+
+            Impact: Increased disk usage
+            Action: Consider database cleanup or increased monitoring of image count
+          runbook_url: "https://crazymax.dev/diun/config/db/"
+
+# ====================================================================
+# NOTES
+# ====================================================================
+# Alert Severity Levels:
+#   - critical: Service down, immediate action required
+#   - warning: Performance degradation or operational issues
+#   - info: Informational, awareness needed
+#
+# Metric Assumptions:
+#   Some metrics like diun_notification_errors_total, diun_provider_errors_total,
+#   diun_last_check_timestamp_seconds may not exist if Diun doesn't expose
+#   Prometheus metrics. These alerts serve as a template and should be
+#   verified after deployment.
+#
+# Integration:
+#   - These alerts are sent to Alertmanager
+#   - Alertmanager routes based on severity (see alertmanager.yml)
+#   - Warning alerts: 24h repeat, email to ALERT_EMAIL_TO
+#   - Info alerts: 24h repeat, email to ALERT_EMAIL_TO
+#
+# Coverage:
+#   - Service health: 4 alerts (down, memory, CPU, restarts)
+#   - Notifications: 2 alerts (failures, queue buildup)
+#   - Providers: 3 alerts (Docker errors, auth failures, rate limits)
+#   - Image updates: 3 alerts (no checks, multiple outdated, critical outdated)
+#   - Database: 2 alerts (errors, size growth)
+#
+# Total Diun Alerts: 14
+# Total System Alerts (with Diun): 149

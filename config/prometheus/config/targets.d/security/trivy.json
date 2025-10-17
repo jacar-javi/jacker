@@ -1,0 +1,12 @@
+[
+  {
+    "targets": ["trivy:8080"],
+    "labels": {
+      "job": "trivy",
+      "service": "trivy",
+      "component": "vulnerability-scanner",
+      "category": "security",
+      "environment": "production"
+    }
+  }
+]

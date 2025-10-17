@@ -63,7 +63,12 @@ Jacker includes multiple security layers:
 - **Traefik v3** - Secure reverse proxy with automatic HTTPS
 - **Let's Encrypt** - Free SSL/TLS certificates with auto-renewal
 - **HTTP to HTTPS** - Automatic redirection
-- **Security Headers** - HSTS, CSP, X-Frame-Options, etc.
+- **Security Headers** - HSTS, CSP (hardened), X-Frame-Options, etc.
+  - **Content Security Policy (CSP)**: Three security levels to prevent XSS attacks
+    - **Strict**: No unsafe directives (for APIs, modern SPAs)
+    - **Default**: Hardened CSP without unsafe-inline/unsafe-eval in scripts
+    - **Relaxed**: Legacy support for applications requiring inline scripts
+  - See [CSP Implementation Guide](docs/guides/CSP_IMPLEMENTATION_GUIDE.md) for details
 
 ### Access Control
 

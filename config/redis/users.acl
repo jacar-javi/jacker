@@ -1,0 +1,116 @@
+# ====================================================================
+# Redis ACL Configuration (DEPRECATED - DO NOT USE)
+# ====================================================================
+# ⚠️  WARNING: This file is DEPRECATED and should NOT be used directly
+# ⚠️  It has been replaced by dynamic ACL generation from Docker secrets
+#
+# The ACL file is now generated at container startup by /scripts/init-acl.sh
+# which reads passwords from Docker secrets for enhanced security.
+#
+# This file is kept for reference only. The actual ACL is generated from:
+#   - /run/secrets/redis_password (default user)
+#   - /run/secrets/redis_ratelimit_password (ratelimit_user)
+#   - /run/secrets/redis_oauth_password (oauth_user)
+#   - /run/secrets/redis_exporter_password (exporter_user)
+#
+# Documentation: https://redis.io/docs/management/security/acl/
+# ====================================================================
+
+# ====================================================================
+# Default User - Administrative Access
+# ====================================================================
+# The default user has full administrative privileges
+# Syntax: user <username> <acl-rules>
+#
+# ACL Rules explained:
+#   on           - User is enabled
+#   >password    - Set password (plain text)
+#   #hash        - Set password (SHA256 hash)
+#   +@all        - Allow all commands from all categories
+#   ~*           - Allow access to all keys (key pattern)
+#   &*           - Allow access to all Pub/Sub channels
+#
+# SECURITY NOTE: Change this password immediately after deployment
+# Generate a secure password with: openssl rand -base64 32
+user default on >G5FqLwu9zUXiQMZBOTzYMiL3r05HezgMcljUjMis5BI= +@all ~* &*
+
+# ====================================================================
+# OAuth2-Proxy User - Session Storage
+# ====================================================================
+# Dedicated user for OAuth2-Proxy session management
+# Limited permissions for session storage operations
+#
+# Allowed command categories:
+#   @read        - Read operations (GET, MGET, etc.)
+#   @write       - Write operations (SET, MSET, etc.)
+#   @string      - String data type operations
+#   @hash        - Hash data type operations
+#   @keyspace    - Key management (DEL, EXISTS, EXPIRE, TTL, etc.)
+#   @connection  - Connection management (PING, ECHO, etc.)
+#
+# Key pattern: oauth:* - Only access keys prefixed with "oauth:"
+# Database: db 0 only
+user oauth_user on >9lisK7mvEL1HkLGzVFO72fbP9NaS11jXQl4ZecrkS84= +@read +@write +@string +@hash +@keyspace +@connection ~oauth:* resetchannels -@all
+
+# ====================================================================
+# Rate Limiting User - Traefik Rate Limiter
+# ====================================================================
+# Dedicated user for Traefik rate limiting middleware
+# Minimal permissions for counter operations
+#
+# Allowed command categories:
+#   @read        - Read operations
+#   @write       - Write operations
+#   @string      - String operations (for counters)
+#   @keyspace    - Key management (for expiration)
+#   @connection  - Basic connection commands
+#
+# Key pattern: ratelimit:* - Only access keys prefixed with "ratelimit:"
+# Database: db 1 for separation from session data
+user ratelimit_user on >oPn+x0exmxVMHBLH3f5lHnbCo3qgpBb2Buw8CY79CbY= +@read +@write +@string +@keyspace +@connection ~ratelimit:* resetchannels -@all
+
+# ====================================================================
+# Monitoring User - Read-Only Access for Metrics
+# ====================================================================
+# User for Redis Exporter and monitoring tools
+# Read-only access to gather metrics without modification capabilities
+#
+# Allowed command categories:
+#   @read        - All read operations
+#   @keyspace    - Key inspection (EXISTS, TTL, etc.)
+#   @connection  - Connection management
+#   @dangerous   - INFO, CONFIG GET (needed for metrics)
+#
+# Note: This user can read all keys but cannot modify data
+user exporter_user on >DvlRkS98Xxuy/TGAxE15pDUW4vS0Hscsv7uXPK7IZrA= +@read +@keyspace +@connection +info +config|get ~* resetchannels -@all
+
+# ====================================================================
+# ACL Categories Reference
+# ====================================================================
+# @admin       - Administrative commands (SAVE, SHUTDOWN, CONFIG, etc.)
+# @dangerous   - Potentially dangerous commands
+# @keyspace    - Key space operations
+# @read        - Read commands
+# @write       - Write commands
+# @string      - String type commands
+# @list        - List type commands
+# @set         - Set type commands
+# @sortedset   - Sorted set commands
+# @hash        - Hash type commands
+# @hyperloglog - HyperLogLog commands
+# @pubsub      - Pub/Sub commands
+# @stream      - Stream commands
+# @connection  - Connection management
+# @transaction - Transaction commands
+# @scripting   - Scripting commands
+# @geo         - Geo commands
+# @bitmap      - Bitmap commands
+#
+# Special Permissions:
+# +@all        - All commands
+# -@all        - No commands (then add specific ones)
+# allkeys      - Access to all keys (same as ~*)
+# allchannels  - Access to all Pub/Sub channels (same as &*)
+# resetchannels - Reset Pub/Sub channel permissions
+# nopass       - No password required (NOT RECOMMENDED)
+# ====================================================================

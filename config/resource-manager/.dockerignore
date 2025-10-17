@@ -1,0 +1,38 @@
+# Git files
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# Logs
+*.log
+
+# Backup files
+*.backup
+*.bak

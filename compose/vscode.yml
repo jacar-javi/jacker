@@ -25,22 +25,43 @@ services:
         ipv4_address: $CODE_TRAEFIK_SUBNET_IP
 
     volumes:
+      # Data directories
       - $DOCKERDIR:/data/jacker
       - $USERDIR:/data/home
       - $DATADIR/vscode/config:/config
+      # Custom shell configuration
+      - ./config/vscode/.bashrc:/config/.bashrc:ro
+      # SSH keys for passwordless authentication (read-only for security)
+      - ~/.ssh/id_rsa:/config/.ssh/id_rsa:ro
+      - ~/.ssh/id_rsa.pub:/config/.ssh/id_rsa.pub:ro
+      # SSH known_hosts (read-write so SSH can update it)
+      - ~/.ssh/known_hosts:/config/.ssh/known_hosts:rw
+      # Git configuration for SSH operations
+      - ~/.gitconfig:/config/.gitconfig:ro
 
     environment:
       TZ: $TZ
       PUID: $PUID
       PGID: $PGID
-      DEFAULT_WORKSPACE: /config/workspace
+      DEFAULT_WORKSPACE: /data/jacker
+      # Git SSH command configuration for using the mounted private key
+      GIT_SSH_COMMAND: ssh -i /config/.ssh/id_rsa
 
     labels:
       - "traefik.enable=true"
+
       # HTTP Routers
       - "traefik.http.routers.vscode-rtr.entrypoints=websecure"
       - "traefik.http.routers.vscode-rtr.rule=Host(`code.$PUBLIC_FQDN`)"
+
+      # TLS Configuration
+      - "traefik.http.routers.vscode-rtr.tls=true"
+      - "traefik.http.routers.vscode-rtr.tls.certresolver=http"
+      - "traefik.http.routers.vscode-rtr.tls.options=tls-opts@file"
+
       # Middlewares
+      - "traefik.http.routers.vscode-rtr.middlewares=chain-oauth@file"
+
       # HTTP Services
       - "traefik.http.routers.vscode-rtr.service=vscode-svc"
       - "traefik.http.services.vscode-svc.loadbalancer.server.port=8443"

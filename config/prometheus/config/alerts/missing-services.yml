@@ -1,0 +1,368 @@
+# ====================================================================
+# Missing Services Alert Rules
+# ====================================================================
+# Alerts for services that previously lacked monitoring coverage
+# Addresses gaps identified in alert coverage audit
+#
+# Services covered:
+#   - Grafana (visualization platform)
+#   - Jaeger (distributed tracing)
+#   - cAdvisor (container metrics)
+#   - Portainer (container management)
+#   - Homepage (dashboard)
+#   - VSCode (development environment)
+#   - Socket Proxy (Docker API security)
+#   - Postgres Exporter (metrics exporter)
+#   - Redis Exporter (metrics exporter)
+#   - Pushgateway (metrics gateway)
+
+groups:
+  # ================================================================
+  # GRAFANA ALERTS
+  # ================================================================
+  - name: grafana_alerts
+    interval: 30s
+    rules:
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: grafana
+          category: monitoring
+        annotations:
+          summary: "Grafana is down"
+          description: "Grafana has been unavailable for 2 minutes. Dashboard and alerting unavailable."
+
+      - alert: GrafanaHighMemoryUsage
+        expr: |
+          (container_memory_usage_bytes{name="grafana"}
+          / container_spec_memory_limit_bytes{name="grafana"}) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: grafana
+          category: monitoring
+        annotations:
+          summary: "Grafana high memory usage ({{ $value | humanizePercentage }})"
+          description: "Grafana is using {{ $value | humanizePercentage }} of its memory limit."
+
+      - alert: GrafanaDatasourceError
+        expr: grafana_datasource_request_errors_total > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: grafana
+          category: monitoring
+        annotations:
+          summary: "Grafana datasource errors detected"
+          description: "Grafana datasource {{ $labels.datasource }} has {{ $value }} errors."
+
+      - alert: GrafanaDashboardRenderingErrors
+        expr: rate(grafana_rendering_errors_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: grafana
+          category: monitoring
+        annotations:
+          summary: "Grafana dashboard rendering errors"
+          description: "Grafana has {{ $value }} dashboard rendering errors per second."
+
+  # ================================================================
+  # JAEGER ALERTS
+  # ================================================================
+  - name: jaeger_alerts
+    interval: 30s
+    rules:
+      - alert: JaegerDown
+        expr: up{job="jaeger"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: jaeger
+          category: tracing
+        annotations:
+          summary: "Jaeger is down"
+          description: "Jaeger tracing service has been unavailable for 5 minutes."
+
+      - alert: JaegerHighMemoryUsage
+        expr: |
+          (container_memory_usage_bytes{name="jaeger"}
+          / container_spec_memory_limit_bytes{name="jaeger"}) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: jaeger
+          category: tracing
+        annotations:
+          summary: "Jaeger high memory usage ({{ $value | humanizePercentage }})"
+          description: "Jaeger is using {{ $value | humanizePercentage }} of its memory limit."
+
+      - alert: JaegerStorageErrors
+        expr: rate(jaeger_storage_errors_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: jaeger
+          category: tracing
+        annotations:
+          summary: "Jaeger storage errors detected"
+          description: "Jaeger has {{ $value }} storage errors per second."
+
+  # ================================================================
+  # CADVISOR ALERTS
+  # ================================================================
+  - name: cadvisor_alerts
+    interval: 30s
+    rules:
+      - alert: CAdvisorDown
+        expr: up{job="cadvisor"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: cadvisor
+          category: monitoring
+        annotations:
+          summary: "cAdvisor is down"
+          description: "cAdvisor container metrics collector has been unavailable for 5 minutes."
+
+      - alert: CAdvisorHighMemoryUsage
+        expr: |
+          (container_memory_usage_bytes{name="cadvisor"}
+          / container_spec_memory_limit_bytes{name="cadvisor"}) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: cadvisor
+          category: monitoring
+        annotations:
+          summary: "cAdvisor high memory usage ({{ $value | humanizePercentage }})"
+          description: "cAdvisor is using {{ $value | humanizePercentage }} of its memory limit."
+
+  # ================================================================
+  # PORTAINER ALERTS
+  # ================================================================
+  - name: portainer_alerts
+    interval: 30s
+    rules:
+      - alert: PortainerDown
+        expr: up{job="portainer"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: portainer
+          category: management
+        annotations:
+          summary: "Portainer is down"
+          description: "Portainer container management UI has been unavailable for 5 minutes."
+
+      - alert: PortainerHighMemoryUsage
+        expr: |
+          (container_memory_usage_bytes{name="portainer"}
+          / container_spec_memory_limit_bytes{name="portainer"}) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: portainer
+          category: management
+        annotations:
+          summary: "Portainer high memory usage ({{ $value | humanizePercentage }})"
+          description: "Portainer is using {{ $value | humanizePercentage }} of its memory limit."
+
+  # ================================================================
+  # HOMEPAGE ALERTS
+  # ================================================================
+  - name: homepage_alerts
+    interval: 30s
+    rules:
+      - alert: HomepageDown
+        expr: |
+          probe_success{job="blackbox-https",
+          instance=~".*homepage.*|.*${PUBLIC_FQDN}"} == 0
+        for: 5m
+        labels:
+          severity: info
+          service: homepage
+          category: dashboard
+        annotations:
+          summary: "Homepage dashboard is down"
+          description: "Homepage dashboard at {{ $labels.instance }} has been unreachable for 5 minutes."
+
+      - alert: HomepageHighResponseTime
+        expr: |
+          probe_duration_seconds{job="blackbox-https",
+          instance=~".*homepage.*"} > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: homepage
+          category: dashboard
+        annotations:
+          summary: "Homepage slow response time ({{ $value }}s)"
+          description: "Homepage is responding in {{ $value }} seconds (threshold: 2s)."
+
+  # ================================================================
+  # VSCODE ALERTS
+  # ================================================================
+  - name: vscode_alerts
+    interval: 30s
+    rules:
+      - alert: VSCodeDown
+        expr: |
+          probe_success{job="blackbox-https",
+          instance=~".*code.*"} == 0
+        for: 10m
+        labels:
+          severity: info
+          service: vscode
+          category: development
+        annotations:
+          summary: "VSCode is down"
+          description: "VSCode development environment has been unreachable for 10 minutes."
+
+      - alert: VSCodeHighMemoryUsage
+        expr: |
+          (container_memory_usage_bytes{name="vscode"}
+          / container_spec_memory_limit_bytes{name="vscode"}) > 0.85
+        for: 10m
+        labels:
+          severity: info
+          service: vscode
+          category: development
+        annotations:
+          summary: "VSCode high memory usage ({{ $value | humanizePercentage }})"
+          description: "VSCode is using {{ $value | humanizePercentage }} of its memory limit."
+
+  # ================================================================
+  # DOCKER SOCKET PROXY ALERTS
+  # ================================================================
+  - name: socket_proxy_alerts
+    interval: 30s
+    rules:
+      - alert: SocketProxyDown
+        expr: up{job="socket-proxy"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: socket-proxy
+          category: security
+        annotations:
+          summary: "Docker Socket Proxy is down"
+          description: "Docker Socket Proxy has been unavailable for 1 minute. Services cannot access Docker API."
+
+      - alert: SocketProxyHighConnections
+        expr: |
+          (sum by (instance) (rate(container_network_receive_bytes_total{name="socket-proxy"}[5m]))
+          / 1024 / 1024) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: socket-proxy
+          category: security
+        annotations:
+          summary: "Socket Proxy high network activity ({{ $value }}MB/s)"
+          description: "Socket Proxy has unusually high network traffic: {{ $value }}MB/s."
+
+      - alert: SocketProxyHighMemoryUsage
+        expr: |
+          (container_memory_usage_bytes{name="socket-proxy"}
+          / container_spec_memory_limit_bytes{name="socket-proxy"}) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: socket-proxy
+          category: security
+        annotations:
+          summary: "Socket Proxy high memory usage ({{ $value | humanizePercentage }})"
+          description: "Socket Proxy is using {{ $value | humanizePercentage }} of its memory limit."
+
+  # ================================================================
+  # EXPORTER ALERTS
+  # ================================================================
+  - name: exporter_alerts
+    interval: 30s
+    rules:
+      - alert: PostgresExporterDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: postgres-exporter
+          category: monitoring
+        annotations:
+          summary: "PostgreSQL Exporter is down"
+          description: "PostgreSQL metrics exporter has been unavailable for 5 minutes. Database metrics unavailable."
+
+      - alert: RedisExporterDown
+        expr: up{job="redis-exporter"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: redis-exporter
+          category: monitoring
+        annotations:
+          summary: "Redis Exporter is down"
+          description: "Redis metrics exporter has been unavailable for 5 minutes. Redis metrics unavailable."
+
+      - alert: BlackboxExporterDown
+        expr: up{job="blackbox"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: blackbox-exporter
+          category: monitoring
+        annotations:
+          summary: "Blackbox Exporter is down"
+          description: "Blackbox probe exporter has been unavailable for 5 minutes. HTTP/HTTPS probes unavailable."
+
+      - alert: PushgatewayDown
+        expr: up{job="pushgateway"} == 0
+        for: 10m
+        labels:
+          severity: info
+          service: pushgateway
+          category: monitoring
+        annotations:
+          summary: "Pushgateway is down"
+          description: "Prometheus Pushgateway has been unavailable for 10 minutes. Batch job metrics may be lost."
+
+      - alert: PushgatewayHighMetrics
+        expr: |
+          sum(pushgateway_metrics_total) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: pushgateway
+          category: monitoring
+        annotations:
+          summary: "Pushgateway has too many metrics ({{ $value }})"
+          description: "Pushgateway has {{ $value }} metrics. Consider metric cleanup to avoid memory issues."
+
+# ====================================================================
+# NOTES
+# ====================================================================
+# Alert Severity Levels:
+#   - critical: Service down, immediate action required
+#   - warning: Performance degradation, action required soon
+#   - info: Informational, no immediate action required
+#
+# Integration:
+#   - These alerts are sent to Alertmanager
+#   - Alertmanager routes based on severity (see alertmanager.yml)
+#   - Critical alerts: 4h repeat, email to ALERT_EMAIL_CRITICAL
+#   - Warning alerts: 24h repeat, email to ALERT_EMAIL_TO
+#   - Info alerts: 24h repeat, email to ALERT_EMAIL_TO
+#
+# Coverage Summary:
+#   - Grafana: 4 alerts (availability, memory, datasource, rendering)
+#   - Jaeger: 3 alerts (availability, memory, storage)
+#   - cAdvisor: 2 alerts (availability, memory)
+#   - Portainer: 2 alerts (availability, memory)
+#   - Homepage: 2 alerts (availability, response time)
+#   - VSCode: 2 alerts (availability, memory)
+#   - Socket Proxy: 3 alerts (availability, network, memory) - CRITICAL SERVICE
+#   - Exporters: 5 alerts (availability for postgres/redis/blackbox/pushgateway)
+#
+# Total New Alerts: 23
+# Total System Alerts (including existing): 135

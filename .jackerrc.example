@@ -12,7 +12,7 @@
 # ============================================================================
 
 # Default editor for configuration files
-export EDITOR="${EDITOR:-vim}"
+export EDITOR="${EDITOR:-nano}"
 
 # Default backup location
 export JACKER_BACKUP_DIR="${JACKER_BACKUP_DIR:-$HOME/jacker-backups}"

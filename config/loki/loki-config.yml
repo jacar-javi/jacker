@@ -85,7 +85,7 @@ compactor:
 limits_config:
   # enforce_metric_name: false  # Removed in Loki 3.5.5
   reject_old_samples: true
-  reject_old_samples_max_age: 168h
+  reject_old_samples_max_age: 72h
   max_cache_freshness_per_query: 10m
   split_queries_by_interval: 30m
   ingestion_rate_mb: ${LOKI_INGESTION_RATE_MB:-4}

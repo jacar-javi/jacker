@@ -56,6 +56,13 @@ services:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
 
     # ====================================================================
+    # SECRETS
+    # ====================================================================
+    secrets:
+      - redis_password
+      - redis_ratelimit_password
+
+    # ====================================================================
     # VOLUME MOUNTS
     # ====================================================================
     volumes:
@@ -65,8 +72,8 @@ services:
       # Configuration file
       - ${CONFIGDIR}/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
 
-      # ACL file for user management
-      - ${CONFIGDIR}/redis/users.acl:/usr/local/etc/redis/users.acl:ro
+      # ACL initialization scripts
+      - ${CONFIGDIR}/redis/scripts:/scripts:ro
 
       # TLS certificates
       - ${DATADIR}/redis/certs:/tls:ro
@@ -78,11 +85,14 @@ services:
     # ====================================================================
     # COMMAND CONFIGURATION
     # ====================================================================
+    # NOTE: ACL file is generated from secrets by init-acl.sh entrypoint
+    # Using custom entrypoint to generate ACL from Docker secrets
+    entrypoint: ["/bin/sh", "-c"]
     command: >
-      redis-server /usr/local/etc/redis/redis.conf
+      "/scripts/init-acl.sh /usr/local/etc/redis/redis.conf
       --maxmemory ${REDIS_MAXMEMORY:-512mb}
       --maxmemory-policy ${REDIS_MAXMEMORY_POLICY:-allkeys-lru}
-      --save "${REDIS_SAVE:-60 1000 300 100 600 1}"
+      --save \"${REDIS_SAVE:-60 1000 300 100 600 1}\"
       --appendonly ${REDIS_AOF:-yes}
       --appendfsync ${REDIS_AOF_SYNC:-everysec}
       --tcp-backlog ${REDIS_TCP_BACKLOG:-511}
@@ -90,7 +100,7 @@ services:
       --timeout ${REDIS_TIMEOUT:-0}
       --databases ${REDIS_DATABASES:-16}
       --loglevel ${REDIS_LOGLEVEL:-notice}
-      --requirepass ${REDIS_PASSWORD:-}
+      --requirepass $$(cat /run/secrets/redis_password)
       --bind 0.0.0.0
       --protected-mode ${REDIS_PROTECTED_MODE:-yes}
       --port 6379
@@ -102,7 +112,7 @@ services:
       --lazyfree-lazy-server-del ${REDIS_LAZY_SERVER_DEL:-yes}
       --replica-lazy-flush ${REDIS_REPLICA_LAZY_FLUSH:-yes}
       --io-threads ${REDIS_IO_THREADS:-4}
-      --io-threads-do-reads ${REDIS_IO_THREADS_DO_READS:-yes}
+      --io-threads-do-reads ${REDIS_IO_THREADS_DO_READS:-yes}"
 
     # ====================================================================
     # ENVIRONMENT CONFIGURATION
@@ -134,7 +144,7 @@ services:
     # HEALTH CHECK
     # ====================================================================
     healthcheck:
-      test: ["CMD-SHELL", "if [ -n \"$$REDIS_PASSWORD\" ]; then redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep PONG; else redis-cli ping | grep PONG; fi"]
+      test: ["CMD-SHELL", "REDIS_PASSWORD=$$(cat /run/secrets/redis_password) && redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -186,10 +196,16 @@ services:
     ports:
       - "127.0.0.1:9121:9121"
 
+    # ====================================================================
+    # SECRETS
+    # ====================================================================
+    secrets:
+      - redis_password
+
     environment:
       REDIS_ADDR: "redis://redis:6379"
       REDIS_USER: ${REDIS_USER:-}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
       REDIS_EXPORTER_LOG_FORMAT: json
       REDIS_EXPORTER_NAMESPACE: redis
       REDIS_EXPORTER_WEB_LISTEN_ADDRESS: ":9121"
@@ -237,8 +253,20 @@ services:
       - cache
       - traefik_proxy
 
+    # ====================================================================
+    # SECRETS
+    # ====================================================================
+    secrets:
+      - redis_password
+
+    # Redis Commander doesn't support password files, use entrypoint wrapper
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "REDIS_PASSWORD=$$(cat /run/secrets/redis_password) &&
+      export REDIS_HOSTS=\"local:redis:6379:0:$$REDIS_PASSWORD\" &&
+      exec node /redis-commander/bin/redis-commander.js"
+
     environment:
-      REDIS_HOSTS: "local:redis:6379:0:${REDIS_PASSWORD}"
       HTTP_USER: ${REDIS_COMMANDER_USER:-admin}
       HTTP_PASSWORD: ${REDIS_COMMANDER_PASSWORD:-}
       PORT: 8081
@@ -251,10 +279,20 @@ services:
 
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.redis-commander.entrypoints=websecure"
-      - "traefik.http.routers.redis-commander.rule=Host(`redis.${PUBLIC_FQDN}`)"
-      - "traefik.http.routers.redis-commander.service=redis-commander"
-      - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"
+      - "traefik.http.routers.redis-commander-rtr.entrypoints=websecure"
+      - "traefik.http.routers.redis-commander-rtr.rule=Host(`redis.${PUBLIC_FQDN}`)"
+
+      # TLS Configuration
+      - "traefik.http.routers.redis-commander-rtr.tls=true"
+      - "traefik.http.routers.redis-commander-rtr.tls.certresolver=http"
+      - "traefik.http.routers.redis-commander-rtr.tls.options=tls-opts@file"
+
+      # Middleware
+      - "traefik.http.routers.redis-commander-rtr.middlewares=chain-oauth@file"
+
+      # Service
+      - "traefik.http.routers.redis-commander-rtr.service=redis-commander-svc"
+      - "traefik.http.services.redis-commander-svc.loadbalancer.server.port=8081"
 
       # Homepage Integration
       - "homepage.group=Tools"

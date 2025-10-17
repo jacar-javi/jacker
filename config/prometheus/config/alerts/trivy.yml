@@ -1,0 +1,225 @@
+# ====================================================================
+# Trivy Container Vulnerability Scanner - Alert Rules
+# ====================================================================
+
+groups:
+  - name: trivy_vulnerabilities
+    interval: 5m
+    rules:
+      # Critical vulnerabilities detected
+      - alert: TrivyCriticalVulnerabilities
+        expr: |
+          trivy_vulnerabilities_total{severity="CRITICAL"} > 0
+        for: 5m
+        labels:
+          severity: critical
+          category: security
+          service: trivy
+          component: vulnerability-scanner
+        annotations:
+          summary: "Critical vulnerabilities detected in {{ $labels.container }}"
+          description: |
+            Trivy has detected {{ $value }} CRITICAL vulnerabilities in container {{ $labels.container }}.
+            Immediate action required.
+
+            Impact: High security risk
+            Action: Review scan report and patch immediately
+          runbook_url: "https://trivy.dev/latest/docs/vulnerability/scanning/"
+
+      # High severity vulnerabilities
+      - alert: TrivyHighVulnerabilities
+        expr: |
+          trivy_vulnerabilities_total{severity="HIGH"} >= 5
+        for: 15m
+        labels:
+          severity: warning
+          category: security
+          service: trivy
+          component: vulnerability-scanner
+        annotations:
+          summary: "Multiple HIGH vulnerabilities in {{ $labels.container }}"
+          description: |
+            Trivy has detected {{ $value }} HIGH severity vulnerabilities in container {{ $labels.container }}.
+
+            Impact: Moderate security risk
+            Action: Review and plan patching within 48 hours
+          runbook_url: "https://trivy.dev/latest/docs/vulnerability/scanning/"
+
+      # Exposed secrets detected
+      - alert: TrivySecretsDetected
+        expr: |
+          trivy_secrets_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+          service: trivy
+          component: secret-scanner
+        annotations:
+          summary: "Exposed secrets detected in {{ $labels.container }}"
+          description: |
+            Trivy has detected {{ $value }} exposed secrets in container {{ $labels.container }}.
+            This could include API keys, passwords, or tokens.
+
+            Impact: Critical security breach risk
+            Action: Rotate secrets immediately and investigate exposure
+          runbook_url: "https://trivy.dev/latest/docs/secret/scanning/"
+
+      # Misconfiguration detected
+      - alert: TrivyMisconfiguration
+        expr: |
+          trivy_misconfigurations_total{severity=~"CRITICAL|HIGH"} > 0
+        for: 10m
+        labels:
+          severity: warning
+          category: security
+          service: trivy
+          component: config-scanner
+        annotations:
+          summary: "Misconfigurations detected in {{ $labels.container }}"
+          description: |
+            Trivy has detected {{ $value }} misconfigurations in container {{ $labels.container }}.
+
+            Impact: Potential security weakness
+            Action: Review configuration and apply best practices
+          runbook_url: "https://trivy.dev/latest/docs/misconfiguration/scanning/"
+
+  - name: trivy_operational
+    interval: 5m
+    rules:
+      # Trivy service down
+      - alert: TrivyServiceDown
+        expr: |
+          up{job="trivy"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: operational
+          service: trivy
+          component: service
+        annotations:
+          summary: "Trivy service is down"
+          description: |
+            Trivy vulnerability scanner is not responding.
+
+            Impact: No vulnerability scanning
+            Action: Check container status and logs
+          runbook_url: "https://trivy.dev/latest/docs/references/troubleshooting/"
+
+      # Vulnerability database outdated
+      - alert: TrivyDatabaseOutdated
+        expr: |
+          time() - trivy_db_age_seconds > 86400
+        for: 1h
+        labels:
+          severity: warning
+          category: operational
+          service: trivy
+          component: database
+        annotations:
+          summary: "Trivy vulnerability database is outdated"
+          description: |
+            Trivy vulnerability database has not been updated in {{ $value | humanizeDuration }}.
+            Scans may miss recent vulnerabilities.
+
+            Impact: Incomplete vulnerability detection
+            Action: Trigger database update manually or check update schedule
+          runbook_url: "https://trivy.dev/latest/docs/vulnerability/db/"
+
+      # High scan failure rate
+      - alert: TrivyScanFailureRate
+        expr: |
+          rate(trivy_scan_failures_total[15m]) > 0.3
+        for: 15m
+        labels:
+          severity: warning
+          category: operational
+          service: trivy
+          component: scanner
+        annotations:
+          summary: "High Trivy scan failure rate"
+          description: |
+            Trivy scan failure rate is {{ $value | humanizePercentage }} over the last 15 minutes.
+
+            Impact: Incomplete security coverage
+            Action: Check Trivy logs for errors and investigate failures
+          runbook_url: "https://trivy.dev/latest/docs/references/troubleshooting/"
+
+      # Scan duration too long
+      - alert: TrivyScanDurationHigh
+        expr: |
+          trivy_scan_duration_seconds > 600
+        for: 5m
+        labels:
+          severity: info
+          category: operational
+          service: trivy
+          component: performance
+        annotations:
+          summary: "Trivy scan taking too long"
+          description: |
+            Trivy scan for {{ $labels.container }} took {{ $value | humanizeDuration }}.
+
+            Impact: Delayed vulnerability detection
+            Action: Consider optimizing scan configuration or increasing resources
+          runbook_url: "https://trivy.dev/latest/docs/advanced/performance/"
+
+      # High memory usage
+      - alert: TrivyHighMemoryUsage
+        expr: |
+          container_memory_usage_bytes{name="trivy"} / container_spec_memory_limit_bytes{name="trivy"} > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          category: operational
+          service: trivy
+          component: resources
+        annotations:
+          summary: "Trivy using high memory"
+          description: |
+            Trivy is using {{ $value | humanizePercentage }} of allocated memory.
+
+            Impact: Potential performance degradation or OOM
+            Action: Consider increasing memory limits or optimizing scans
+          runbook_url: "https://trivy.dev/latest/docs/advanced/performance/"
+
+  - name: trivy_compliance
+    interval: 1h
+    rules:
+      # Unpatched vulnerabilities accumulating
+      - alert: TrivyUnpatchedVulnerabilitiesAccumulating
+        expr: |
+          increase(trivy_vulnerabilities_total{severity=~"CRITICAL|HIGH"}[7d]) > 10
+        for: 1h
+        labels:
+          severity: warning
+          category: compliance
+          service: trivy
+          component: vulnerability-management
+        annotations:
+          summary: "Unpatched vulnerabilities accumulating in {{ $labels.container }}"
+          description: |
+            The number of unpatched CRITICAL/HIGH vulnerabilities in {{ $labels.container }} has increased by {{ $value }} over the last 7 days.
+
+            Impact: Growing security debt
+            Action: Review patching process and prioritize vulnerability remediation
+          runbook_url: "https://trivy.dev/latest/docs/vulnerability/remediation/"
+
+      # Container not scanned recently
+      - alert: TrivyContainerNotScannedRecently
+        expr: |
+          time() - trivy_last_scan_timestamp_seconds > 172800
+        for: 1h
+        labels:
+          severity: info
+          category: compliance
+          service: trivy
+          component: coverage
+        annotations:
+          summary: "Container {{ $labels.container }} not scanned recently"
+          description: |
+            Container {{ $labels.container }} has not been scanned in {{ $value | humanizeDuration }}.
+
+            Impact: Unknown security posture
+            Action: Trigger manual scan or check scanning schedule
+          runbook_url: "https://trivy.dev/latest/docs/advanced/scheduling/"

@@ -1,0 +1,171 @@
+services:
+  # ====================================================================
+  # Trivy - Container Vulnerability Scanner
+  # Official Documentation: https://trivy.dev
+  # Official Image: https://hub.docker.com/r/aquasec/trivy
+  # ====================================================================
+  trivy:
+    image: aquasec/trivy:latest
+    container_name: trivy
+
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
+    security_opt:
+      - no-new-privileges:true
+
+    # Restart policy
+    restart: unless-stopped
+
+    # ====================================================================
+    # DEPENDENCIES
+    # ====================================================================
+    depends_on:
+      socket-proxy:
+        condition: service_healthy
+      alertmanager:
+        condition: service_healthy
+
+    # ====================================================================
+    # NETWORK CONFIGURATION
+    # ====================================================================
+    networks:
+      - socket_proxy   # For Docker API access via socket-proxy
+      - monitoring     # For Prometheus metrics and Alertmanager
+      - traefik_proxy  # For web UI access
+
+    # Port exposure (server mode)
+    ports:
+      - "127.0.0.1:${TRIVY_PORT:-8081}:8080"
+
+    # ====================================================================
+    # RESOURCE LIMITS
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
+    volumes:
+      # Vulnerability database cache
+      - ${DATADIR}/trivy/cache:/root/.cache/trivy:rw
+
+      # Scan reports output
+      - ${DATADIR}/trivy/reports:/reports:rw
+
+      # Configuration (read-only)
+      - ${CONFIGDIR}/trivy:/config:ro
+
+      # Timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
+    environment:
+      # Basic configuration
+      TZ: ${TZ}
+
+      # Docker API access via socket-proxy
+      DOCKER_HOST: tcp://socket-proxy:2375
+
+      # Database repositories
+      TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db
+      TRIVY_JAVA_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-java-db
+
+      # Cache configuration
+      TRIVY_CACHE_DIR: /root/.cache/trivy
+
+      # Server mode configuration
+      TRIVY_LISTEN: 0.0.0.0:8080
+      TRIVY_DEBUG: ${TRIVY_DEBUG:-false}
+
+      # Scanning defaults
+      TRIVY_SEVERITY: ${TRIVY_SEVERITY:-CRITICAL,HIGH,MEDIUM}
+      TRIVY_VULN_TYPE: ${TRIVY_VULN_TYPE:-os,library}
+      TRIVY_SCANNERS: ${TRIVY_SCANNERS:-vuln,secret,config}
+      TRIVY_TIMEOUT: ${TRIVY_TIMEOUT:-10m}
+
+      # Output configuration
+      TRIVY_FORMAT: ${TRIVY_FORMAT:-json}
+      TRIVY_NO_PROGRESS: ${TRIVY_NO_PROGRESS:-true}
+
+      # Security options
+      TRIVY_SKIP_DB_UPDATE: ${TRIVY_SKIP_DB_UPDATE:-false}
+      TRIVY_SKIP_JAVA_DB_UPDATE: ${TRIVY_SKIP_JAVA_DB_UPDATE:-false}
+      TRIVY_OFFLINE_SCAN: ${TRIVY_OFFLINE_SCAN:-false}
+
+      # Alertmanager integration
+      ALERTMANAGER_URL: ${ALERTMANAGER_URL:-http://alertmanager:9093}
+
+    # ====================================================================
+    # COMMAND CONFIGURATION
+    # ====================================================================
+    # Run in server mode for continuous availability
+    command:
+      - "server"
+      - "--listen"
+      - "0.0.0.0:8080"
+
+    # ====================================================================
+    # HEALTH CHECK
+    # ====================================================================
+    healthcheck:
+      test: ["CMD", "trivy", "version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # ====================================================================
+    # LABELS
+    # ====================================================================
+    labels:
+      # Traefik routing
+      - "traefik.enable=true"
+      - "traefik.http.routers.trivy-rtr.entrypoints=websecure"
+      - "traefik.http.routers.trivy-rtr.rule=Host(`trivy.${PUBLIC_FQDN}`)"
+
+      # TLS Configuration
+      - "traefik.http.routers.trivy-rtr.tls=true"
+      - "traefik.http.routers.trivy-rtr.tls.certresolver=http"
+      - "traefik.http.routers.trivy-rtr.tls.options=tls-opts@file"
+
+      # Middleware - OAuth protection
+      - "traefik.http.routers.trivy-rtr.middlewares=chain-oauth@file"
+
+      # Service
+      - "traefik.http.routers.trivy-rtr.service=trivy-svc"
+      - "traefik.http.services.trivy-svc.loadbalancer.server.port=8080"
+
+      # Health check
+      - "traefik.http.services.trivy-svc.loadbalancer.healthcheck.path=/healthz"
+      - "traefik.http.services.trivy-svc.loadbalancer.healthcheck.interval=30s"
+      - "traefik.http.services.trivy-svc.loadbalancer.healthcheck.timeout=5s"
+
+      # Prometheus metrics
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=8080"
+      - "prometheus.io/path=/metrics"
+
+      # Homepage Integration
+      - "homepage.group=Security"
+      - "homepage.name=Trivy"
+      - "homepage.icon=mdi-shield-bug"
+      - "homepage.href=https://trivy.${PUBLIC_FQDN}"
+      - "homepage.description=Container Vulnerability Scanner"
+      - "homepage.weight=300"
+
+      # Service Discovery
+      - "com.centurylinklabs.watchtower.enable=false"
+      - "diun.enable=true"
+      - "diun.watch_repo=true"
+      - "diun.notify.default=true"

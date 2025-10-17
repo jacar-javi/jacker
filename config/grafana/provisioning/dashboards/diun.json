@@ -1,0 +1,495 @@
+{
+  "dashboard": {
+    "title": "Diun - Docker Image Update Notifier",
+    "uid": "diun-monitoring",
+    "tags": ["diun", "docker", "images", "monitoring"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    },
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Diun Service Status",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "up{job=\"diun\"}",
+            "refId": "A",
+            "legendFormat": "Status"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "value": "0", "text": "DOWN", "color": "red"},
+              {"type": "value", "value": "1", "text": "UP", "color": "green"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            },
+            "unit": "none"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Total Monitored Images",
+        "type": "stat",
+        "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "diun_images_monitored_total",
+            "refId": "A",
+            "legendFormat": "Images"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "blue"}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Outdated Images",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "diun_images_outdated_total",
+            "refId": "A",
+            "legendFormat": "Outdated"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 5, "color": "orange"},
+                {"value": 10, "color": "red"}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Memory Usage",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "(container_memory_usage_bytes{name=\"diun\"} / container_spec_memory_limit_bytes{name=\"diun\"}) * 100",
+            "refId": "A",
+            "legendFormat": "Memory %"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 60, "color": "yellow"},
+                {"value": 80, "color": "red"}
+              ]
+            },
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Image Check Timeline",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(diun_checks_total[5m])",
+            "refId": "A",
+            "legendFormat": "Checks/sec"
+          },
+          {
+            "expr": "rate(diun_updates_detected_total[5m])",
+            "refId": "B",
+            "legendFormat": "Updates detected/sec"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": null, "logBase": 1, "show": true},
+          {"format": "short", "label": null, "logBase": 1, "show": true}
+        ],
+        "xaxis": {"mode": "time", "show": true},
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "pointradius": 5,
+        "legend": {"show": true, "alignAsTable": true, "avg": true, "max": true, "min": true, "current": true}
+      },
+      {
+        "id": 6,
+        "title": "Notification Status",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(diun_notifications_sent_total[5m])",
+            "refId": "A",
+            "legendFormat": "{{notifier}} - sent"
+          },
+          {
+            "expr": "rate(diun_notification_errors_total[5m])",
+            "refId": "B",
+            "legendFormat": "{{notifier}} - errors"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Rate", "logBase": 1, "show": true},
+          {"format": "short", "label": null, "logBase": 1, "show": true}
+        ],
+        "xaxis": {"mode": "time", "show": true},
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "legend": {"show": true, "alignAsTable": true, "avg": true, "max": true, "current": true}
+      },
+      {
+        "id": 7,
+        "title": "Registry Operations",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(diun_registry_requests_total[5m])",
+            "refId": "A",
+            "legendFormat": "{{registry}} - requests"
+          },
+          {
+            "expr": "rate(diun_registry_errors_total[5m])",
+            "refId": "B",
+            "legendFormat": "{{registry}} - errors"
+          },
+          {
+            "expr": "rate(diun_registry_rate_limit_hits_total[5m])",
+            "refId": "C",
+            "legendFormat": "{{registry}} - rate limited"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Requests", "logBase": 1, "show": true},
+          {"format": "short", "label": null, "logBase": 1, "show": true}
+        ],
+        "xaxis": {"mode": "time", "show": true},
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "legend": {"show": true, "alignAsTable": true, "avg": true, "max": true, "current": true}
+      },
+      {
+        "id": 8,
+        "title": "Container Resource Usage",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{name=\"diun\"}",
+            "refId": "A",
+            "legendFormat": "Memory Usage"
+          },
+          {
+            "expr": "container_spec_memory_limit_bytes{name=\"diun\"}",
+            "refId": "B",
+            "legendFormat": "Memory Limit"
+          },
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{name=\"diun\"}[5m]) * 100",
+            "refId": "C",
+            "legendFormat": "CPU Usage %"
+          }
+        ],
+        "yaxes": [
+          {"format": "bytes", "label": "Memory", "logBase": 1, "show": true},
+          {"format": "percent", "label": "CPU", "logBase": 1, "show": true}
+        ],
+        "xaxis": {"mode": "time", "show": true},
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "legend": {"show": true, "alignAsTable": true, "avg": true, "max": true, "current": true}
+      },
+      {
+        "id": 9,
+        "title": "Outdated Images by Service",
+        "type": "table",
+        "gridPos": {"x": 0, "y": 20, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "diun_image_outdated == 1",
+            "refId": "A",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [{"displayName": "service", "desc": false}]
+        },
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true, "Value": true, "__name__": true, "instance": false},
+              "indexByName": {"service": 0, "current_tag": 1, "latest_tag": 2, "registry": 3},
+              "renameByName": {
+                "service": "Service",
+                "current_tag": "Current Version",
+                "latest_tag": "Latest Version",
+                "registry": "Registry"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Provider Health",
+        "type": "table",
+        "gridPos": {"x": 12, "y": 20, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum by (provider) (rate(diun_provider_errors_total[5m]))",
+            "refId": "A",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [{"displayName": "Value", "desc": true}]
+        },
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true, "__name__": true},
+              "indexByName": {"provider": 0, "Value": 1},
+              "renameByName": {
+                "provider": "Provider",
+                "Value": "Error Rate"
+              }
+            }
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto"
+            },
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 0.01, "color": "yellow"},
+                {"value": 0.1, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "Last Check Time",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 28, "w": 8, "h": 4},
+        "targets": [
+          {
+            "expr": "time() - diun_last_check_timestamp_seconds",
+            "refId": "A",
+            "legendFormat": "Time since last check"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "none"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 21600, "color": "yellow"},
+                {"value": 28800, "color": "red"}
+              ]
+            },
+            "unit": "dtdurations"
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "Database Size",
+        "type": "stat",
+        "gridPos": {"x": 8, "y": 28, "w": 8, "h": 4},
+        "targets": [
+          {
+            "expr": "diun_db_size_bytes",
+            "refId": "A",
+            "legendFormat": "DB Size"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 10485760, "color": "yellow"},
+                {"value": 52428800, "color": "red"}
+              ]
+            },
+            "unit": "bytes"
+          }
+        }
+      },
+      {
+        "id": 13,
+        "title": "Notification Queue Length",
+        "type": "stat",
+        "gridPos": {"x": 16, "y": 28, "w": 8, "h": 4},
+        "targets": [
+          {
+            "expr": "diun_notification_queue_length",
+            "refId": "A",
+            "legendFormat": "Queue Length"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "area"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 5, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      }
+    ]
+  }
+}

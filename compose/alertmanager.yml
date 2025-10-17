@@ -180,10 +180,25 @@ services:
     labels:
       # Traefik routing
       - "traefik.enable=true"
-      - "traefik.http.routers.alertmanager.entrypoints=websecure"
-      - "traefik.http.routers.alertmanager.rule=Host(`alertmanager.${PUBLIC_FQDN}`)"
-      - "traefik.http.routers.alertmanager.service=alertmanager"
-      - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"
+      - "traefik.http.routers.alertmanager-rtr.entrypoints=websecure"
+      - "traefik.http.routers.alertmanager-rtr.rule=Host(`alertmanager.${PUBLIC_FQDN}`)"
+
+      # TLS Configuration
+      - "traefik.http.routers.alertmanager-rtr.tls=true"
+      - "traefik.http.routers.alertmanager-rtr.tls.certresolver=http"
+      - "traefik.http.routers.alertmanager-rtr.tls.options=tls-opts@file"
+
+      # Middleware
+      - "traefik.http.routers.alertmanager-rtr.middlewares=chain-oauth@file"
+
+      # Service
+      - "traefik.http.routers.alertmanager-rtr.service=alertmanager-svc"
+      - "traefik.http.services.alertmanager-svc.loadbalancer.server.port=9093"
+
+      # Health check
+      - "traefik.http.services.alertmanager-svc.loadbalancer.healthcheck.path=/-/healthy"
+      - "traefik.http.services.alertmanager-svc.loadbalancer.healthcheck.interval=30s"
+      - "traefik.http.services.alertmanager-svc.loadbalancer.healthcheck.timeout=5s"
 
       # Homepage Integration
       - "homepage.group=Monitoring"

@@ -64,6 +64,13 @@ services:
       start_period: 10s
 
     # ====================================================================
+    # ENTRYPOINT - Secret Initialization
+    # ====================================================================
+    # Use custom entrypoint to inject secrets into dynamic configuration
+    entrypoint: ["/scripts/init-secrets.sh"]
+    command: ["traefik"]
+
+    # ====================================================================
     # NETWORK CONFIGURATION
     # ====================================================================
     networks:
@@ -125,7 +132,11 @@ services:
       - ${DATADIR}/traefik/plugins:/plugins-storage:rw
 
       # Dynamic configuration rules (file provider watches this directory)
-      - ${CONFIGDIR}/traefik/rules:/rules:ro
+      # Note: Mounted as rw because init script generates files from templates
+      - ${CONFIGDIR}/traefik/rules:/rules:rw
+
+      # Initialization scripts for secret injection
+      - ${CONFIGDIR}/traefik/scripts:/scripts:ro
 
       # Timezone configuration
       - /etc/localtime:/etc/localtime:ro
@@ -138,6 +149,12 @@ services:
       # Main static configuration
       - source: traefik_yml
         target: /etc/traefik/traefik.yml
+
+    # ====================================================================
+    # DOCKER SECRETS
+    # ====================================================================
+    secrets:
+      - redis_ratelimit_password
 
     # ====================================================================
     # ENVIRONMENT CONFIGURATION
@@ -190,6 +207,9 @@ services:
       # - "traefik.http.routers.traefik-rtr.priority=100" # High priority for dashboard
 
       # TLS Configuration
+      - "traefik.http.routers.traefik-rtr.tls=true"
+      - "traefik.http.routers.traefik-rtr.tls.certresolver=http"
+      - "traefik.http.routers.traefik-rtr.tls.options=tls-opts@file"
 
       # Service Configuration
       - "traefik.http.routers.traefik-rtr.service=api@internal"

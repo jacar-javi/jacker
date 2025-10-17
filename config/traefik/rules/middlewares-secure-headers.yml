@@ -1,6 +1,91 @@
 http:
   middlewares:
-    # Secure headers middleware
+    # ====================================================================
+    # STRICT CSP - Maximum Security (No Unsafe Directives)
+    # ====================================================================
+    # Use for: Static sites, APIs, services with no inline scripts
+    # Compatible with: Most modern SPAs using bundled JavaScript
+    # NOT compatible with: Legacy apps, some admin panels (Grafana, Homepage with inline scripts)
+    secure-headers-strict:
+      headers:
+        # CORS Headers
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+          - HEAD
+        accessControlAllowHeaders:
+          - "*"
+        accessControlMaxAge: 100
+        addVaryHeader: true
+
+        # Proxy Headers
+        hostsProxyHeaders:
+          - X-Forwarded-Host
+        sslProxyHeaders:
+          X-Forwarded-Proto: https
+
+        # HSTS - 2 years with preload
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+
+        # Security Headers
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: strict-origin-when-cross-origin
+
+        # Content Security Policy - STRICT (No unsafe-inline, no unsafe-eval)
+        # Provides maximum XSS protection
+        # Applications MUST use nonce-based or hash-based CSP for inline scripts
+        contentSecurityPolicy: |
+          default-src 'self';
+          script-src 'self' https://cdn.jsdelivr.net https://unpkg.com;
+          style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net;
+          font-src 'self' data: https://fonts.gstatic.com;
+          img-src 'self' data: blob: https:;
+          connect-src 'self' wss: https:;
+          media-src 'self';
+          object-src 'none';
+          frame-ancestors 'self';
+          base-uri 'self';
+          form-action 'self';
+          upgrade-insecure-requests;
+
+        # Permissions Policy - Restrict browser features
+        permissionsPolicy: |
+          accelerometer=(),
+          camera=(),
+          geolocation=(),
+          gyroscope=(),
+          magnetometer=(),
+          microphone=(),
+          payment=(),
+          usb=(),
+          interest-cohort=()
+
+        # Custom Response Headers
+        customResponseHeaders:
+          X-Robots-Tag: "noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
+          X-Frame-Options: DENY
+          X-Content-Type-Options: nosniff
+          X-XSS-Protection: "1; mode=block"
+          X-Permitted-Cross-Domain-Policies: none
+          X-Download-Options: noopen
+          X-DNS-Prefetch-Control: off
+          server: ""  # Hide server header
+
+    # ====================================================================
+    # DEFAULT CSP - Balanced Security (Minimal Unsafe Directives)
+    # ====================================================================
+    # Use for: Most web applications that need inline styles
+    # Compatible with: Modern web apps with external scripts, inline CSS
+    # 'unsafe-inline' allowed ONLY for styles to support common CSS patterns
+    # Scripts: NO unsafe-inline, NO unsafe-eval - Use nonces/hashes instead
     secure-headers:
       headers:
         # CORS Headers
@@ -34,10 +119,18 @@ http:
         browserXssFilter: true
         referrerPolicy: strict-origin-when-cross-origin
 
-        # Content Security Policy - Strict but functional
+        # Content Security Policy - BALANCED
+        # ✅ Removed 'unsafe-inline' from script-src (SECURITY IMPROVEMENT)
+        # ✅ Removed 'unsafe-eval' from script-src (SECURITY IMPROVEMENT)
+        # ⚠️  'unsafe-inline' kept for style-src (common pattern, lower risk)
+        #
+        # If your app breaks:
+        # 1. Check browser console for CSP violations
+        # 2. Move inline scripts to external files
+        # 3. Or use 'secure-headers-relaxed' temporarily while refactoring
         contentSecurityPolicy: |
           default-src 'self';
-          script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com;
+          script-src 'self' https://cdn.jsdelivr.net https://unpkg.com;
           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
           font-src 'self' data: https://fonts.gstatic.com;
           img-src 'self' data: blob: https:;
@@ -72,8 +165,15 @@ http:
           X-DNS-Prefetch-Control: off
           server: ""  # Hide server header
 
-    # Alias for consistent naming with other middlewares
-    middlewares-secure-headers:
+    # ====================================================================
+    # RELAXED CSP - For Legacy Applications
+    # ====================================================================
+    # Use for: Grafana, Homepage, legacy admin panels
+    # Compatible with: Applications requiring inline scripts and eval
+    # ⚠️  WARNING: This includes unsafe-inline and unsafe-eval
+    # ⚠️  Only use for services that absolutely cannot function without it
+    # 🎯 Action: Migrate these services to nonce-based CSP over time
+    secure-headers-relaxed:
       headers:
         # CORS Headers
         accessControlAllowMethods:
@@ -101,21 +201,27 @@ http:
         forceSTSHeader: true
 
         # Security Headers
-        frameDeny: true
+        frameDeny: false  # Allow iframes for embedded dashboards
         contentTypeNosniff: true
         browserXssFilter: true
         referrerPolicy: strict-origin-when-cross-origin
 
-        # Content Security Policy - Strict but functional
+        # Content Security Policy - RELAXED (Legacy Support)
+        # ⚠️  Includes unsafe-inline and unsafe-eval
+        # Services using this profile:
+        # - Grafana (requires eval for dashboard rendering)
+        # - Homepage (uses inline scripts for widgets)
+        # - Legacy admin panels
         contentSecurityPolicy: |
           default-src 'self';
-          script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com;
+          script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com;
           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
           font-src 'self' data: https://fonts.gstatic.com;
           img-src 'self' data: blob: https:;
           connect-src 'self' wss: https:;
-          media-src 'self';
+          media-src 'self' blob: data:;
           object-src 'none';
+          frame-src 'self' https:;
           frame-ancestors 'self';
           base-uri 'self';
           form-action 'self';
@@ -143,3 +249,14 @@ http:
           X-Download-Options: noopen
           X-DNS-Prefetch-Control: off
           server: ""  # Hide server header
+
+    # ====================================================================
+    # ALIAS - For backwards compatibility
+    # ====================================================================
+    # This middleware name is kept for backward compatibility.
+    # All middleware chains should use 'secure-headers' instead.
+    # This alias points to the default balanced security profile.
+    middlewares-secure-headers:
+      chain:
+        middlewares:
+          - secure-headers

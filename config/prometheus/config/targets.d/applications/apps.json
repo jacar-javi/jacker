@@ -7,13 +7,5 @@
       "component": "authentication",
       "metrics_path": "/metrics"
     }
-  },
-  {
-    "targets": ["grafana:3000"],
-    "labels": {
-      "job": "grafana",
-      "service": "grafana",
-      "component": "monitoring"
-    }
   }
 ]

@@ -1,0 +1,135 @@
+services:
+  # ====================================================================
+  # Diun - Docker Image Update Notifier
+  # Official Image: https://hub.docker.com/r/crazymax/diun
+  # ====================================================================
+  diun:
+    image: crazymax/diun:latest
+    container_name: diun
+
+    # ====================================================================
+    # SECURITY CONFIGURATION
+    # ====================================================================
+    security_opt:
+      - no-new-privileges:true
+
+    # Restart policy
+    restart: unless-stopped
+
+    # ====================================================================
+    # DEPENDENCIES
+    # ====================================================================
+    depends_on:
+      socket-proxy:
+        condition: service_healthy
+      traefik:
+        condition: service_healthy
+
+    # ====================================================================
+    # NETWORK CONFIGURATION
+    # ====================================================================
+    networks:
+      - socket_proxy    # For Docker API access via socket-proxy
+      - monitoring      # For Prometheus metrics
+      - traefik_proxy   # For web UI access
+
+    # No external ports - access via Traefik only
+
+    # ====================================================================
+    # VOLUME MOUNTS
+    # ====================================================================
+    volumes:
+      # Data persistence
+      - ${DATADIR}/diun:/data:rw
+
+      # Configuration (read-only)
+      - ${CONFIGDIR}/diun:/config:ro
+
+      # Timezone
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+    # ====================================================================
+    # ENVIRONMENT CONFIGURATION
+    # ====================================================================
+    environment:
+      # Basic configuration
+      TZ: ${TZ}
+      PUID: ${PUID}
+      PGID: ${PGID}
+
+      # Logging
+      LOG_LEVEL: info
+      LOG_JSON: false
+
+      # Docker connection (CRITICAL - via socket-proxy, NOT direct socket)
+      DOCKER_HOST: tcp://socket-proxy:2375
+
+      # Watch configuration
+      DIUN_WATCH_WORKERS: 20
+      DIUN_WATCH_SCHEDULE: 0 */6 * * *  # Every 6 hours
+      DIUN_WATCH_FIRSTCHECKNOTIF: false
+      DIUN_WATCH_JITTER: 30s
+
+      # Provider configuration
+      DIUN_PROVIDERS_DOCKER: true
+      DIUN_PROVIDERS_DOCKER_ENDPOINT: tcp://socket-proxy:2375
+      DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT: true
+      DIUN_PROVIDERS_DOCKER_WATCHSTOPPED: false
+
+    # ====================================================================
+    # HEALTH CHECK
+    # ====================================================================
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/diun", "version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # ====================================================================
+    # LABELS
+    # ====================================================================
+    labels:
+      # Traefik routing
+      - "traefik.enable=true"
+      - "traefik.http.routers.diun-rtr.entrypoints=websecure"
+      - "traefik.http.routers.diun-rtr.rule=Host(`diun.${PUBLIC_FQDN}`)"
+
+      # TLS Configuration
+      - "traefik.http.routers.diun-rtr.tls=true"
+      - "traefik.http.routers.diun-rtr.tls.certresolver=http"
+      - "traefik.http.routers.diun-rtr.tls.options=tls-opts@file"
+
+      # Middleware
+      - "traefik.http.routers.diun-rtr.middlewares=chain-oauth@file"
+
+      # Service
+      - "traefik.http.routers.diun-rtr.service=diun-svc"
+      - "traefik.http.services.diun-svc.loadbalancer.server.port=8080"
+
+      # Health check
+      - "traefik.http.services.diun-svc.loadbalancer.healthcheck.path=/healthcheck"
+      - "traefik.http.services.diun-svc.loadbalancer.healthcheck.interval=30s"
+      - "traefik.http.services.diun-svc.loadbalancer.healthcheck.timeout=5s"
+
+      # Prometheus metrics
+      - "prometheus.io/scrape=true"
+      - "prometheus.io/port=8080"
+      - "prometheus.io/path=/metrics"
+
+      # Homepage Integration
+      - "homepage.group=Monitoring"
+      - "homepage.name=Diun"
+      - "homepage.icon=diun.svg"
+      - "homepage.href=https://diun.${PUBLIC_FQDN}"
+      - "homepage.description=Docker Image Update Notifier"
+      - "homepage.weight=400"
+
+      # Diun self-monitoring
+      - "diun.enable=true"
+      - "diun.watch_repo=true"
+      - "diun.notify.default=true"
+
+      # Service Discovery
+      - "com.centurylinklabs.watchtower.enable=false"

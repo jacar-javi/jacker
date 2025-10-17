@@ -223,7 +223,8 @@ services:
 
     environment:
       # Use separate environment variables to avoid URL encoding issues with special characters
-      DATA_SOURCE_URI: "postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      # SSL enabled for secure database connections
+      DATA_SOURCE_URI: "postgres:5432/${POSTGRES_DB}?sslmode=require"
       DATA_SOURCE_USER: ${POSTGRES_USER}
       DATA_SOURCE_PASS: ${POSTGRES_PASSWORD}
       PG_EXPORTER_WEB_LISTEN_ADDRESS: ":9187"

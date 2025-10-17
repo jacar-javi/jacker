@@ -47,11 +47,13 @@ ${YELLOW}Management Commands:${NC}
   update          Update Jacker and services
   clean           Clean up containers and data
   wipe-data       Wipe all data (preserves SSL certs)
+  tune            Optimize resource allocation
 
 ${YELLOW}Configuration Commands:${NC}
   config          Manage configuration
   secrets         Manage secrets
   security        Security operations
+  whitelist       Manage CrowdSec IP/DNS whitelist
   alerts          Manage and test alerts
 
 ${YELLOW}Information Commands:${NC}
@@ -1065,6 +1067,216 @@ EOF
 }
 
 # ============================================================================
+# Command: whitelist
+# ============================================================================
+cmd_whitelist() {
+    local subcommand="${1:-list}"
+    shift || true
+
+    case "$subcommand" in
+        add)
+            # Source required libraries
+            # shellcheck source=assets/lib/network.sh
+            source "$JACKER_ROOT/assets/lib/network.sh"
+            # shellcheck source=assets/lib/crowdsec.sh
+            source "$JACKER_ROOT/assets/lib/crowdsec.sh"
+
+            # Handle add command
+            if [[ $# -eq 0 ]]; then
+                # Interactive wizard
+                # shellcheck source=assets/lib/whitelist.sh
+                source "$JACKER_ROOT/assets/lib/whitelist.sh"
+                configure_admin_whitelist "$JACKER_ROOT" "false"
+            else
+                # Add specific entry
+                local entry="$1"
+                local reason="${2:-Manual entry via CLI}"
+
+                if crowdsec_whitelist_ip "$entry" "$reason" "$JACKER_ROOT"; then
+                    success "Added to whitelist: $entry"
+                    info "Restart CrowdSec to apply changes: jacker whitelist reload"
+                else
+                    error "Failed to add entry to whitelist"
+                    return 1
+                fi
+            fi
+            ;;
+
+        remove|rm)
+            # shellcheck source=assets/lib/network.sh
+            source "$JACKER_ROOT/assets/lib/network.sh"
+            # shellcheck source=assets/lib/crowdsec.sh
+            source "$JACKER_ROOT/assets/lib/crowdsec.sh"
+
+            if [[ $# -eq 0 ]]; then
+                error "Entry required"
+                echo "Usage: jacker whitelist remove <ip|cidr>"
+                return 1
+            fi
+
+            local entry="$1"
+            if crowdsec_remove_from_whitelist "$entry" "$JACKER_ROOT"; then
+                success "Removed from whitelist: $entry"
+                info "Restart CrowdSec to apply changes: jacker whitelist reload"
+            else
+                return 1
+            fi
+            ;;
+
+        list|show)
+            # shellcheck source=assets/lib/network.sh
+            source "$JACKER_ROOT/assets/lib/network.sh"
+            # shellcheck source=assets/lib/crowdsec.sh
+            source "$JACKER_ROOT/assets/lib/crowdsec.sh"
+
+            crowdsec_show_whitelist "$JACKER_ROOT"
+            ;;
+
+        init)
+            # shellcheck source=assets/lib/network.sh
+            source "$JACKER_ROOT/assets/lib/network.sh"
+            # shellcheck source=assets/lib/crowdsec.sh
+            source "$JACKER_ROOT/assets/lib/crowdsec.sh"
+
+            init_crowdsec_whitelist "$JACKER_ROOT"
+            success "Whitelist initialized"
+            ;;
+
+        reload|restart)
+            # shellcheck source=assets/lib/network.sh
+            source "$JACKER_ROOT/assets/lib/network.sh"
+            # shellcheck source=assets/lib/crowdsec.sh
+            source "$JACKER_ROOT/assets/lib/crowdsec.sh"
+
+            crowdsec_restart "$JACKER_ROOT"
+            ;;
+
+        current|test)
+            # shellcheck source=assets/lib/network.sh
+            source "$JACKER_ROOT/assets/lib/network.sh"
+            # shellcheck source=assets/lib/crowdsec.sh
+            source "$JACKER_ROOT/assets/lib/crowdsec.sh"
+            # shellcheck source=assets/lib/whitelist.sh
+            source "$JACKER_ROOT/assets/lib/whitelist.sh"
+
+            test_current_ip_whitelist
+            ;;
+
+        import)
+            # shellcheck source=assets/lib/network.sh
+            source "$JACKER_ROOT/assets/lib/network.sh"
+            # shellcheck source=assets/lib/crowdsec.sh
+            source "$JACKER_ROOT/assets/lib/crowdsec.sh"
+
+            if [[ $# -eq 0 ]]; then
+                error "File path required"
+                echo "Usage: jacker whitelist import <file>"
+                return 1
+            fi
+
+            local file="$1"
+            local reason="${2:-Imported via CLI}"
+
+            if crowdsec_import_whitelist "$file" "$reason" "$JACKER_ROOT"; then
+                info "Restart CrowdSec to apply changes: jacker whitelist reload"
+            else
+                return 1
+            fi
+            ;;
+
+        export)
+            # shellcheck source=assets/lib/network.sh
+            source "$JACKER_ROOT/assets/lib/network.sh"
+            # shellcheck source=assets/lib/crowdsec.sh
+            source "$JACKER_ROOT/assets/lib/crowdsec.sh"
+
+            local output_file="${1:-whitelist-export.txt}"
+            crowdsec_export_whitelist "$output_file" "$JACKER_ROOT"
+            ;;
+
+        validate)
+            # shellcheck source=assets/lib/network.sh
+            source "$JACKER_ROOT/assets/lib/network.sh"
+            # shellcheck source=assets/lib/crowdsec.sh
+            source "$JACKER_ROOT/assets/lib/crowdsec.sh"
+            # shellcheck source=assets/lib/whitelist.sh
+            source "$JACKER_ROOT/assets/lib/whitelist.sh"
+
+            validate_whitelist_config "$JACKER_ROOT"
+            ;;
+
+        cleanup)
+            # shellcheck source=assets/lib/network.sh
+            source "$JACKER_ROOT/assets/lib/network.sh"
+            # shellcheck source=assets/lib/crowdsec.sh
+            source "$JACKER_ROOT/assets/lib/crowdsec.sh"
+            # shellcheck source=assets/lib/whitelist.sh
+            source "$JACKER_ROOT/assets/lib/whitelist.sh"
+
+            info "Cleaning up whitelist..."
+            cleanup_whitelist_duplicates "$JACKER_ROOT"
+            cleanup_whitelist_invalid "$JACKER_ROOT"
+            info "Restart CrowdSec to apply changes: jacker whitelist reload"
+            ;;
+
+        help|--help|-h)
+            cat << EOF
+${GREEN}Usage:${NC} jacker whitelist <subcommand> [options]
+
+Manage CrowdSec IP/DNS whitelist to prevent blocking admin access.
+
+${YELLOW}Subcommands:${NC}
+  add [entry]         Add IP/CIDR/DNS to whitelist (interactive if no entry)
+  remove <entry>      Remove entry from whitelist
+  list                Show current whitelist
+  init                Initialize whitelist file
+  reload              Restart CrowdSec to apply changes
+  current             Test if current IP is whitelisted
+  import <file>       Import entries from file
+  export [file]       Export whitelist to file
+  validate            Validate whitelist configuration
+  cleanup             Remove duplicates and invalid entries
+
+${GREEN}Examples:${NC}
+  jacker whitelist add                    # Interactive wizard
+  jacker whitelist add 203.0.113.10       # Add specific IP
+  jacker whitelist add 198.51.100.0/24    # Add CIDR range
+  jacker whitelist remove 203.0.113.10    # Remove IP
+  jacker whitelist list                   # Show whitelist
+  jacker whitelist current                # Test current IP
+  jacker whitelist import ips.txt         # Import from file
+  jacker whitelist reload                 # Apply changes
+
+${YELLOW}File Format for Import:${NC}
+  One IP, CIDR, or DNS name per line
+  Lines starting with # are comments
+  Empty lines are ignored
+
+${YELLOW}Common Use Cases:${NC}
+  1. Whitelist your current IP:
+     jacker whitelist add
+
+  2. Whitelist office network:
+     jacker whitelist add 198.51.100.0/24 "Office network"
+
+  3. Whitelist dynamic DNS:
+     jacker whitelist add home.dyndns.org
+
+  4. Check if you're whitelisted:
+     jacker whitelist current
+
+For more information, see docs/CROWDSEC_WHITELIST.md
+EOF
+            ;;
+        *)
+            error "Unknown subcommand: $subcommand"
+            cmd_whitelist help
+            return 1
+            ;;
+    esac
+}
+
+# ============================================================================
 # Command: clean
 # ============================================================================
 cmd_clean() {
@@ -1267,6 +1479,88 @@ EOF
 }
 
 # ============================================================================
+# Command: tune
+# ============================================================================
+cmd_tune() {
+    local force=false
+
+    # Parse options
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --force|-f)
+                force=true
+                shift
+                ;;
+            --help|-h)
+                cat << EOF
+${GREEN}Usage:${NC} jacker tune [OPTIONS]
+
+Optimize resource allocation based on system capabilities
+
+${YELLOW}Options:${NC}
+  -f, --force    Force re-tuning even if already tuned
+  -h, --help     Show this help message
+
+${GREEN}Examples:${NC}
+  jacker tune              # Analyze and optimize resources
+  jacker tune --force      # Force resource re-optimization
+
+${YELLOW}Description:${NC}
+This command analyzes your system's CPU and memory capabilities and
+automatically generates optimal resource allocations for all services
+in docker-compose.override.yml. It considers:
+  - Total CPU cores and memory
+  - System reserves for host processes
+  - Service dependencies and priorities
+  - Resource profiles (minimal/balanced/performance)
+
+The generated override file will be used on next service restart.
+EOF
+                exit 0
+                ;;
+            *)
+                error "Unknown option: $1"
+                exit 1
+                ;;
+        esac
+    done
+
+    cd_jacker_root
+    check_env_exists
+
+    # Source resources library
+    # shellcheck source=assets/lib/resources.sh
+    source "$JACKER_ROOT/assets/lib/resources.sh" || {
+        error "Failed to source resources.sh"
+        exit 1
+    }
+
+    info "Analyzing system capabilities..."
+
+    # Apply resource tuning
+    if apply_resource_tuning "$JACKER_ROOT/docker-compose.override.yml"; then
+        success "Resource tuning applied successfully"
+
+        # Prompt for restart
+        echo ""
+        read -rp "Restart services to apply changes? [Y/n]: " restart_services
+        restart_services=${restart_services:-Y}
+
+        if [[ "$restart_services" =~ ^[Yy] ]]; then
+            info "Restarting services..."
+            docker compose restart
+            success "Services restarted with new resource allocations"
+        else
+            info "Resource allocations will be applied on next restart"
+            info "Run: ./jacker restart"
+        fi
+    else
+        error "Resource tuning failed"
+        exit 1
+    fi
+}
+
+# ============================================================================
 # Command: version
 # ============================================================================
 cmd_version() {
@@ -1412,6 +1706,9 @@ main() {
         security|sec)
             cmd_security "$@"
             ;;
+        whitelist)
+            cmd_whitelist "$@"
+            ;;
 
         # Alert commands
         alerts|alert)
@@ -1421,6 +1718,11 @@ main() {
         # Information commands
         info|information)
             cmd_info "$@"
+            ;;
+
+        # Performance tuning
+        tune|optimize)
+            cmd_tune "$@"
             ;;
 
         # Unknown command

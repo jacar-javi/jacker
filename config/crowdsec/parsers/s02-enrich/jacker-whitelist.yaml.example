@@ -1,0 +1,88 @@
+# ====================================================================
+# Jacker Admin Whitelist Configuration - Example
+# ====================================================================
+# This file whitelists admin IPs and DNS names to prevent CrowdSec
+# from blocking legitimate admin access.
+#
+# Documentation: https://docs.crowdsec.net/docs/whitelist/create/
+#
+# After modifying this file, restart CrowdSec:
+#   docker compose restart crowdsec
+#   OR
+#   jacker whitelist reload
+# ====================================================================
+
+name: jacker/admin-whitelist
+description: "Whitelist for Jacker admin IPs and DNS names"
+
+whitelist:
+  reason: "Jacker admin access"
+
+  # ====================================================================
+  # Individual IP addresses
+  # ====================================================================
+  ip:
+    # Example: Your home public IP
+    # - "203.0.113.10"  # Home IP
+
+    # Example: Your office IP
+    # - "198.51.100.42"  # Office IP
+
+    # Example: VPN exit IP
+    # - "192.0.2.100"  # VPN IP
+
+  # ====================================================================
+  # CIDR ranges (for networks)
+  # ====================================================================
+  cidr:
+    # Example: Office network range
+    # - "198.51.100.0/24"  # Office network
+
+    # Example: VPN network range
+    # - "10.8.0.0/24"  # VPN network
+
+    # Example: Corporate network
+    # - "172.16.0.0/12"  # Corporate network
+
+  # ====================================================================
+  # Expression-based rules for advanced filtering
+  # ====================================================================
+  expression:
+    # Example: Whitelist based on reverse DNS
+    # - "evt.Meta.reverse_dns == 'home.example.com'"
+
+    # Example: Whitelist multiple hostnames
+    # - "evt.Meta.reverse_dns in ['office.example.com', 'vpn.example.com']"
+
+    # Example: Whitelist based on source IP variable
+    # - "evt.Meta.source_ip in ['203.0.113.10', '198.51.100.42']"
+
+
+# ====================================================================
+# USAGE INSTRUCTIONS
+# ====================================================================
+#
+# 1. Copy this file to jacker-whitelist.yaml:
+#    cp jacker-whitelist.yaml.example jacker-whitelist.yaml
+#
+# 2. Edit jacker-whitelist.yaml and uncomment/add your IPs
+#
+# 3. You can use the jacker CLI for easier management:
+#    jacker whitelist add <ip>     # Add IP interactively or directly
+#    jacker whitelist list         # Show current whitelist
+#    jacker whitelist reload       # Restart CrowdSec to apply
+#
+# 4. For automated whitelisting during init:
+#    The Jacker init process will prompt you to whitelist your IP
+#
+# ====================================================================
+# IMPORTANT NOTES
+# ====================================================================
+#
+# - Be careful with CIDR ranges - don't whitelist too broadly
+# - Test your whitelist with: jacker whitelist current
+# - Keep a backup of your configuration
+# - For dynamic IPs, consider using DNS-based whitelisting
+# - Changes require CrowdSec restart to take effect
+#
+# ====================================================================

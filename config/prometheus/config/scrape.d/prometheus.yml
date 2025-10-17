@@ -1,5 +1,0 @@
-scrape_configs:
-  # prometheus scraping
-  - job_name: prometheus
-    static_configs:
-      - targets: ['localhost:9090']

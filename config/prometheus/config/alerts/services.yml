@@ -34,16 +34,6 @@ groups:
           description: "Prometheus has been down for more than 1 minute"
 
       # Traefik Alerts
-      - alert: TraefikHighErrorRate
-        expr: sum(rate(traefik_service_requests_total{code=~"5.."}[5m])) by (service) / sum(rate(traefik_service_requests_total[5m])) by (service) > 0.05
-        for: 5m
-        labels:
-          severity: warning
-          category: traefik
-        annotations:
-          summary: "High error rate in Traefik service {{ $labels.service }}"
-          description: "Service {{ $labels.service }} has error rate above 5% (current: {{ $value | humanizePercentage }})"
-
       - alert: TraefikHighResponseTime
         expr: histogram_quantile(0.99, sum(rate(traefik_service_request_duration_seconds_bucket[5m])) by (service, le)) > 1
         for: 5m
@@ -74,17 +64,6 @@ groups:
         annotations:
           summary: "CrowdSec service is down"
           description: "CrowdSec has been down for more than 2 minutes. No active protection!"
-
-      # Loki Alerts
-      - alert: LokiDown
-        expr: up{job="loki"} == 0
-        for: 2m
-        labels:
-          severity: warning
-          category: logging
-        annotations:
-          summary: "Loki is down"
-          description: "Loki log aggregation service has been down for more than 2 minutes"
 
       # Alertmanager Alerts
       - alert: AlertmanagerDown

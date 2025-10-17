@@ -1,0 +1,18 @@
+http:
+  middlewares:
+    # ====================================================================
+    # OAUTH CHAIN WITH RELAXED CSP
+    # ====================================================================
+    # Use for: Grafana, Homepage, and other services requiring inline scripts
+    # This chain uses secure-headers-relaxed which includes unsafe-inline/unsafe-eval
+    # Services using this chain:
+    # - Grafana (dashboard rendering requires eval)
+    # - Homepage (widget scripts are inline)
+    chain-oauth-relaxed:
+      chain:
+        middlewares:
+          - crowdsec-bouncer@file         # CrowdSec IPS protection via Traefik plugin
+          - middlewares-rate-limit        # Standard rate limiting
+          - secure-headers-relaxed        # RELAXED CSP for legacy compatibility
+          - middlewares-oauth             # Google OAuth authentication
+          - middlewares-compress          # Enable compression

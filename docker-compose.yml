@@ -55,6 +55,8 @@ secrets:
     file: ${SECRETSDIR}/postgres_password
   redis_password:
     file: ${SECRETSDIR}/redis_password
+  redis_ratelimit_password:
+    file: ${SECRETSDIR}/redis_ratelimit_password
 
   # CrowdSec secrets
   crowdsec_lapi_key:
