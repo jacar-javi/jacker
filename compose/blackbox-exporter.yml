@@ -64,7 +64,7 @@ services:
     command:
       - "--config.file=/config/blackbox.yml"
       - "--web.listen-address=:9115"
-      - "--timeout-offset=0.5s"
+      - "--timeout-offset=0.5"
       - "--log.level=${BLACKBOX_LOG_LEVEL:-info}"
       - "--log.format=${BLACKBOX_LOG_FORMAT:-logfmt}"
 
