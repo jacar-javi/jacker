@@ -40,17 +40,18 @@ services:
       - ${DATADIR}/oauth2-proxy/templates:/templates:ro
 
     environment:
-      # Secrets loaded from files (more secure than env vars)
+      # OAuth Provider Configuration
+      - OAUTH2_PROXY_PROVIDER=google
+      - OAUTH2_PROXY_CLIENT_ID=${OAUTH_CLIENT_ID}
       - OAUTH2_PROXY_CLIENT_SECRET_FILE=/run/secrets/oauth_client_secret
+      - OAUTH2_PROXY_REDIRECT_URL=https://oauth.${PUBLIC_FQDN}/oauth2/callback
+
       # Cookie secret directly from environment variable (Docker secret file caching issue)
       - OAUTH2_PROXY_COOKIE_SECRET=${OAUTH_COOKIE_SECRET}
 
       # Redis connection with authentication
       # Password directly in URL (base64 password from environment variable)
       - OAUTH2_PROXY_REDIS_CONNECTION_URL=redis://oauth_user:${REDIS_OAUTH_PASSWORD}@redis:6379/0
-
-      # OAuth Configuration
-      - OAUTH2_PROXY_REDIRECT_URL=https://oauth.${PUBLIC_FQDN}/oauth2/callback
 
       # Cookie domain and security settings (override config file)
       - OAUTH2_PROXY_COOKIE_DOMAIN=${PUBLIC_FQDN}
