@@ -45,6 +45,10 @@ services:
       - OAUTH2_PROXY_COOKIE_SECRET_FILE=/run/secrets/oauth_cookie_secret
       - OAUTH2_PROXY_REDIS_PASSWORD_FILE=/run/secrets/redis_password
 
+      # Redis connection with authentication
+      # Uses oauth_user with password from secret file
+      - OAUTH2_PROXY_REDIS_CONNECTION_URL=redis://oauth_user:${REDIS_OAUTH_PASSWORD}@redis:6379/0
+
       # Cookie domain and security settings (override config file)
       - OAUTH2_PROXY_COOKIE_DOMAIN=${PUBLIC_FQDN}
       - OAUTH2_PROXY_COOKIE_SECURE=true

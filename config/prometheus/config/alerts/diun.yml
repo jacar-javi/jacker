@@ -300,7 +300,7 @@ groups:
         annotations:
           summary: "Diun database size growing rapidly"
           description: |
-            Diun database is growing by {{ $value | humanizeBytes }}/day.
+            Diun database is growing by {{ $value | humanize1024 }}B/day.
 
             Impact: Increased disk usage
             Action: Consider database cleanup or increased monitoring of image count
