@@ -54,7 +54,7 @@ services:
       - OAUTH2_PROXY_REDIS_CONNECTION_URL=redis://oauth_user:${REDIS_OAUTH_PASSWORD}@redis:6379/0
 
       # Cookie domain and security settings (override config file)
-      - OAUTH2_PROXY_COOKIE_DOMAIN=.${PUBLIC_FQDN}
+      - OAUTH2_PROXY_COOKIE_DOMAINS=.${PUBLIC_FQDN}
       - OAUTH2_PROXY_WHITELIST_DOMAINS=${PUBLIC_FQDN},.${PUBLIC_FQDN}
       - OAUTH2_PROXY_COOKIE_SECURE=true
       - OAUTH2_PROXY_COOKIE_HTTPONLY=true
