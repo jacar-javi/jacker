@@ -73,9 +73,12 @@ services:
       - "logging.component=oauth"
       - "logging.service=authentication"
 
-      # HTTP Router
+      # ============================================================
+      # ROUTER 1: OAuth Subdomain (oauth.${PUBLIC_FQDN})
+      # ============================================================
       - "traefik.http.routers.oauth-rtr.entrypoints=websecure"
       - "traefik.http.routers.oauth-rtr.rule=Host(`oauth.${PUBLIC_FQDN}`)"
+      - "traefik.http.routers.oauth-rtr.priority=10"
 
       # TLS Configuration
       - "traefik.http.routers.oauth-rtr.tls=true"
@@ -83,11 +86,34 @@ services:
       - "traefik.http.routers.oauth-rtr.tls.options=tls-opts@file"
 
       # Middlewares - No OAuth required for the OAuth service itself
-      # Use rate limiting and security headers only
       - "traefik.http.routers.oauth-rtr.middlewares=chain-no-oauth@file"
 
       # Service
       - "traefik.http.routers.oauth-rtr.service=oauth-svc"
+
+      # ============================================================
+      # ROUTER 2: OAuth Paths on All Domains (for forward auth)
+      # ============================================================
+      # This router catches /oauth2/* paths on ANY domain and routes to OAuth
+      # Needed for forward authentication flow from protected services
+      - "traefik.http.routers.oauth-paths-rtr.entrypoints=websecure"
+      - "traefik.http.routers.oauth-paths-rtr.rule=PathPrefix(`/oauth2`)"
+      - "traefik.http.routers.oauth-paths-rtr.priority=100"
+
+      # TLS Configuration
+      - "traefik.http.routers.oauth-paths-rtr.tls=true"
+      - "traefik.http.routers.oauth-paths-rtr.tls.certresolver=http"
+      - "traefik.http.routers.oauth-paths-rtr.tls.options=tls-opts@file"
+
+      # Middlewares - No OAuth required for the OAuth service itself
+      - "traefik.http.routers.oauth-paths-rtr.middlewares=chain-no-oauth@file"
+
+      # Service (same service as main router)
+      - "traefik.http.routers.oauth-paths-rtr.service=oauth-svc"
+
+      # ============================================================
+      # SERVICE CONFIGURATION
+      # ============================================================
       - "traefik.http.services.oauth-svc.loadbalancer.server.port=4180"
 
       # Health check
