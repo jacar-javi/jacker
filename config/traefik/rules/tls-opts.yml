@@ -7,32 +7,6 @@
 tls:
   options:
     # ================================================================
-    # MAXIMUM SECURITY - TLS 1.3 Only
-    # ================================================================
-    # Use for high-security services that don't need legacy support
-    # May block connections from older clients (pre-2018 browsers)
-
-    default:
-      minVersion: VersionTLS13
-
-      # TLS 1.3 cipher suites are auto-negotiated, cannot be configured
-      # The following are supported by default:
-      # - TLS_AES_256_GCM_SHA384
-      # - TLS_AES_128_GCM_SHA256
-      # - TLS_CHACHA20_POLY1305_SHA256
-
-      curvePreferences:
-        - X25519
-        - CurveP384
-
-      alpnProtocols:
-        - h3
-        - h2
-        - http/1.1
-
-      sniStrict: true
-
-    # ================================================================
     # DEFAULT TLS OPTIONS - Balanced Security & Compatibility
     # ================================================================
     # Suitable for most modern applications and browsers

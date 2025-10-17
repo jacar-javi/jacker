@@ -68,7 +68,7 @@ services:
     # ====================================================================
     # Use custom entrypoint to inject secrets into dynamic configuration
     entrypoint: ["/scripts/init-secrets.sh"]
-    command: ["traefik"]
+    command: ["traefik", "--configFile=/etc/traefik/traefik.yml"]
 
     # ====================================================================
     # NETWORK CONFIGURATION

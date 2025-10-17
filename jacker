@@ -11,6 +11,7 @@ set -euo pipefail
 # Script location detection
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export JACKER_ROOT="$SCRIPT_DIR"
+export JACKER_DIR="$SCRIPT_DIR"
 
 # Source common functions
 # shellcheck source=assets/lib/common.sh
@@ -800,7 +801,7 @@ EOF
 
     # shellcheck source=assets/lib/maintenance.sh
     source "$JACKER_ROOT/assets/lib/maintenance.sh"
-    run_update "$check_only" "$skip_pull"
+    update_jacker "$check_only" "$skip_pull"
 }
 
 # ============================================================================

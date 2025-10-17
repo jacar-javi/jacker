@@ -17,7 +17,7 @@ backup_jacker() {
     local backup_type="${1:-full}"
     local custom_path="${2:-}"
 
-    log_section "Jacker Backup"
+    section "Jacker Backup"
 
     # Determine backup path
     local backup_base="${custom_path:-${JACKER_DIR}/backups}"
@@ -43,7 +43,7 @@ backup_jacker() {
             backup_selective "$backup_dir"
             ;;
         *)
-            log_error "Unknown backup type: $backup_type"
+            error "Unknown backup type: $backup_type"
             return 1
             ;;
     esac
@@ -57,14 +57,14 @@ backup_jacker() {
         compress_backup "$backup_dir"
     fi
 
-    log_success "Backup completed: $backup_dir"
+    success "Backup completed: $backup_dir"
     show_backup_size "$backup_dir"
 }
 
 backup_full() {
     local backup_dir="$1"
 
-    log_info "Performing full backup..."
+    info "Performing full backup..."
 
     # Stop services if requested
     read -rp "Stop services during backup? (recommended) (Y/n): " stop_services
@@ -83,7 +83,7 @@ backup_full() {
     backup_volumes "$backup_dir"
 
     # Backup compose files
-    log_info "Backing up compose files..."
+    info "Backing up compose files..."
     tar -czf "$backup_dir/compose.tar.gz" -C "${JACKER_DIR}" compose docker-compose.yml
 
     # Restart services if they were stopped
@@ -95,7 +95,7 @@ backup_full() {
 backup_config() {
     local backup_dir="$1"
 
-    log_info "Backing up configuration..."
+    info "Backing up configuration..."
 
     # Backup .env file
     if [[ -f "${JACKER_DIR}/.env" ]]; then
@@ -124,7 +124,7 @@ backup_config() {
 
     # Backup secrets
     if [[ -d "${JACKER_DIR}/secrets" ]]; then
-        log_info "Backing up secrets (encrypted)..."
+        info "Backing up secrets (encrypted)..."
         tar -czf "$backup_dir/secrets.tar.gz.enc" -C "${JACKER_DIR}" secrets
         # Encrypt the secrets backup
         if command -v openssl &>/dev/null; then
@@ -140,7 +140,7 @@ backup_config() {
 backup_data() {
     local backup_dir="$1"
 
-    log_info "Backing up data directories..."
+    info "Backing up data directories..."
 
     # Critical data directories to backup
     local data_dirs=(
@@ -160,7 +160,7 @@ backup_data() {
     for dir_path in "${data_dirs[@]}"; do
         if [[ -d "${JACKER_DIR}/$dir_path" ]]; then
             local dir_name=$(basename "$dir_path")
-            log_info "Backing up $dir_path..."
+            info "Backing up $dir_path..."
 
             # Handle special cases
             case "$dir_path" in
@@ -176,7 +176,7 @@ backup_data() {
                     # Regular file backup
                     tar -czf "$backup_dir/data/${dir_name}.tar.gz" \
                         -C "${JACKER_DIR}" "$dir_path" 2>/dev/null || \
-                        log_warn "Failed to backup $dir_path"
+                        warning "Failed to backup $dir_path"
                     ;;
             esac
         fi
@@ -187,11 +187,11 @@ backup_postgres() {
     local backup_dir="$1"
 
     if ! docker ps --format '{{.Names}}' | grep -q 'jacker-postgres'; then
-        log_warn "PostgreSQL container not running, skipping database backup"
+        warning "PostgreSQL container not running, skipping database backup"
         return
     fi
 
-    log_info "Backing up PostgreSQL databases..."
+    info "Backing up PostgreSQL databases..."
 
     # Load configuration
     set -a
@@ -204,9 +204,9 @@ backup_postgres() {
 
     if [[ $? -eq 0 ]]; then
         gzip "$backup_dir/postgres_dump.sql"
-        log_success "PostgreSQL backup completed"
+        success "PostgreSQL backup completed"
     else
-        log_error "PostgreSQL backup failed"
+        error "PostgreSQL backup failed"
     fi
 }
 
@@ -214,11 +214,11 @@ backup_redis() {
     local backup_dir="$1"
 
     if ! docker ps --format '{{.Names}}' | grep -q 'jacker-redis'; then
-        log_warn "Redis container not running, skipping backup"
+        warning "Redis container not running, skipping backup"
         return
     fi
 
-    log_info "Backing up Redis..."
+    info "Backing up Redis..."
 
     # Trigger Redis save
     docker compose exec -T redis redis-cli BGSAVE 2>/dev/null
@@ -228,13 +228,13 @@ backup_redis() {
 
     # Copy dump file
     docker compose cp redis:/data/dump.rdb "$backup_dir/redis_dump.rdb" 2>/dev/null || \
-        log_warn "Failed to backup Redis"
+        warning "Failed to backup Redis"
 }
 
 backup_volumes() {
     local backup_dir="$1"
 
-    log_info "Backing up Docker volumes..."
+    info "Backing up Docker volumes..."
 
     mkdir -p "$backup_dir/volumes"
 
@@ -242,20 +242,20 @@ backup_volumes() {
     mapfile -t volumes < <(docker volume ls --format '{{.Name}}' | grep '^jacker_')
 
     for volume in "${volumes[@]}"; do
-        log_info "Backing up volume: $volume"
+        info "Backing up volume: $volume"
 
         # Create temporary container to access volume
         docker run --rm -v "${volume}:/source:ro" \
                -v "${backup_dir}/volumes:/backup" \
                alpine tar -czf "/backup/${volume}.tar.gz" -C /source . 2>/dev/null || \
-               log_warn "Failed to backup volume $volume"
+               warning "Failed to backup volume $volume"
     done
 }
 
 backup_selective() {
     local backup_dir="$1"
 
-    log_section "Selective Backup"
+    section "Selective Backup"
 
     echo "Select items to backup:"
     echo "1. Configuration files (.env, configs)"
@@ -298,7 +298,7 @@ backup_selective() {
                 backup_volumes "$backup_dir"
                 ;;
             *)
-                log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+                error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
                 return 1 2>/dev/null || exit 1
                 ;;
         esac
@@ -308,7 +308,7 @@ backup_selective() {
 create_backup_manifest() {
     local backup_dir="$1"
 
-    log_info "Creating backup manifest..."
+    info "Creating backup manifest..."
 
     # Load configuration
     set -a
@@ -340,7 +340,7 @@ EOF
 compress_backup() {
     local backup_dir="$1"
 
-    log_info "Compressing backup..."
+    info "Compressing backup..."
 
     local archive_name="$(basename "$backup_dir").tar.gz"
     local archive_path="$(dirname "$backup_dir")/$archive_name"
@@ -350,9 +350,9 @@ compress_backup() {
     if [[ $? -eq 0 ]]; then
         # Remove uncompressed backup
         rm -rf "$backup_dir"
-        log_success "Backup compressed: $archive_path"
+        success "Backup compressed: $archive_path"
     else
-        log_error "Failed to compress backup"
+        error "Failed to compress backup"
     fi
 }
 
@@ -373,7 +373,7 @@ show_backup_size() {
 #########################################
 
 restore_jacker() {
-    log_section "Jacker Restore"
+    section "Jacker Restore"
 
     # List available backups
     list_backups
@@ -389,13 +389,13 @@ restore_jacker() {
     fi
 
     if [[ ! -e "$backup_path" ]]; then
-        log_error "Backup not found: $backup_path"
+        error "Backup not found: $backup_path"
         return 1
     fi
 
     # Extract if compressed
     if [[ -f "$backup_path" ]] && [[ "$backup_path" == *.tar.gz ]]; then
-        log_info "Extracting backup..."
+        info "Extracting backup..."
         local extract_dir="/tmp/jacker_restore_$$"
         mkdir -p "$extract_dir"
         tar -xzf "$backup_path" -C "$extract_dir"
@@ -403,16 +403,16 @@ restore_jacker() {
     fi
 
     # Confirm restore
-    log_warn "This will overwrite current configuration and data!"
+    warning "This will overwrite current configuration and data!"
     read -rp "Continue with restore? (y/N): " confirm
 
     if [[ "${confirm,,}" != "y" ]]; then
-        log_info "Restore cancelled"
+        info "Restore cancelled"
         return
     fi
 
     # Stop services
-    log_info "Stopping services..."
+    info "Stopping services..."
     docker compose down
 
     # Perform restore
@@ -421,16 +421,16 @@ restore_jacker() {
     restore_volumes "$backup_path"
 
     # Start services
-    log_info "Starting services..."
+    info "Starting services..."
     docker compose up -d
 
-    log_success "Restore completed"
+    success "Restore completed"
 }
 
 restore_config() {
     local backup_path="$1"
 
-    log_info "Restoring configuration..."
+    info "Restoring configuration..."
 
     # Restore .env
     if [[ -f "$backup_path/.env" ]]; then
@@ -451,7 +451,7 @@ restore_config() {
 
     # Restore secrets (if encrypted)
     if [[ -f "$backup_path/secrets.tar.gz.enc.aes" ]]; then
-        log_info "Restoring encrypted secrets..."
+        info "Restoring encrypted secrets..."
         read -rsp "Enter decryption password: " dec_password
         echo
 
@@ -468,15 +468,15 @@ restore_config() {
 restore_data() {
     local backup_path="$1"
 
-    log_info "Restoring data..."
+    info "Restoring data..."
 
     # Restore data archives
     if [[ -d "$backup_path/data" ]]; then
         for archive in "$backup_path/data"/*.tar.gz; do
             if [[ -f "$archive" ]]; then
-                log_info "Restoring $(basename "$archive")..."
+                info "Restoring $(basename "$archive")..."
                 tar -xzf "$archive" -C "${JACKER_DIR}" 2>/dev/null || \
-                    log_warn "Failed to restore $(basename "$archive")"
+                    warning "Failed to restore $(basename "$archive")"
             fi
         done
     fi
@@ -495,7 +495,7 @@ restore_data() {
 restore_postgres() {
     local dump_file="$1"
 
-    log_info "Restoring PostgreSQL databases..."
+    info "Restoring PostgreSQL databases..."
 
     # Start PostgreSQL if not running
     docker compose up -d postgres
@@ -516,16 +516,16 @@ restore_postgres() {
     gunzip -c "$dump_file" | docker compose exec -T postgres psql -U "${POSTGRES_USER}"
 
     if [[ $? -eq 0 ]]; then
-        log_success "PostgreSQL restored"
+        success "PostgreSQL restored"
     else
-        log_error "PostgreSQL restore failed"
+        error "PostgreSQL restore failed"
     fi
 }
 
 restore_redis() {
     local dump_file="$1"
 
-    log_info "Restoring Redis..."
+    info "Restoring Redis..."
 
     # Copy dump file to Redis container
     docker compose cp "$dump_file" redis:/data/dump.rdb
@@ -533,23 +533,23 @@ restore_redis() {
     # Restart Redis to load dump
     docker compose restart redis
 
-    log_success "Redis restored"
+    success "Redis restored"
 }
 
 restore_volumes() {
     local backup_path="$1"
 
     if [[ ! -d "$backup_path/volumes" ]]; then
-        log_info "No volume backups found"
+        info "No volume backups found"
         return
     fi
 
-    log_info "Restoring Docker volumes..."
+    info "Restoring Docker volumes..."
 
     for archive in "$backup_path/volumes"/*.tar.gz; do
         if [[ -f "$archive" ]]; then
             local volume_name=$(basename "$archive" .tar.gz)
-            log_info "Restoring volume: $volume_name"
+            info "Restoring volume: $volume_name"
 
             # Create volume if it doesn't exist
             docker volume create "$volume_name" 2>/dev/null
@@ -558,7 +558,7 @@ restore_volumes() {
             docker run --rm -v "${volume_name}:/target" \
                    -v "$(dirname "$archive"):/backup:ro" \
                    alpine sh -c "cd /target && tar -xzf /backup/$(basename "$archive")" || \
-                   log_warn "Failed to restore volume $volume_name"
+                   warning "Failed to restore volume $volume_name"
         fi
     done
 }
@@ -567,11 +567,11 @@ list_backups() {
     local backup_dir="${JACKER_DIR}/backups"
 
     if [[ ! -d "$backup_dir" ]]; then
-        log_info "No backups found"
+        info "No backups found"
         return
     fi
 
-    log_subsection "Available Backups"
+    subsection "Available Backups"
 
     # List backups with details
     for backup in "$backup_dir"/*; do
@@ -595,7 +595,7 @@ list_backups() {
 #########################################
 
 update_jacker() {
-    log_section "Jacker Update"
+    section "Jacker Update"
 
     # Check for updates
     check_updates
@@ -622,14 +622,14 @@ update_jacker() {
             update_all
             ;;
         *)
-            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
             return 1 2>/dev/null || exit 1
             ;;
     esac
 }
 
 check_updates() {
-    log_info "Checking for updates..."
+    info "Checking for updates..."
 
     # Check Jacker repository for updates
     if [[ -d "${JACKER_DIR}/.git" ]]; then
@@ -637,33 +637,33 @@ check_updates() {
         local remote_commit=$(git -C "${JACKER_DIR}" ls-remote origin main | awk '{print $1}')
 
         if [[ "$current_commit" != "$remote_commit" ]]; then
-            log_info "Jacker updates available"
+            info "Jacker updates available"
             git -C "${JACKER_DIR}" log --oneline HEAD..origin/main 2>/dev/null | head -5
         else
-            log_success "Jacker is up to date"
+            success "Jacker is up to date"
         fi
     fi
 
     # Check Docker images for updates
-    log_info "Checking Docker images..."
+    info "Checking Docker images..."
     local outdated_images=$(docker images --format "table {{.Repository}}:{{.Tag}}\t{{.CreatedSince}}" | \
                            grep -E "weeks ago|months ago" | wc -l)
 
     if [[ "$outdated_images" -gt 0 ]]; then
-        log_info "$outdated_images Docker images may have updates available"
+        info "$outdated_images Docker images may have updates available"
     fi
 }
 
 update_jacker_system() {
-    log_info "Updating Jacker system..."
+    info "Updating Jacker system..."
 
     if [[ ! -d "${JACKER_DIR}/.git" ]]; then
-        log_error "Not a git repository. Cannot update automatically."
+        error "Not a git repository. Cannot update automatically."
         return 1
     fi
 
     # Create backup before update
-    log_info "Creating backup before update..."
+    info "Creating backup before update..."
     backup_jacker config
 
     # Pull latest changes
@@ -675,11 +675,11 @@ update_jacker_system() {
         pip install -r "${JACKER_DIR}/requirements.txt"
     fi
 
-    log_success "Jacker system updated"
+    success "Jacker system updated"
 }
 
 update_docker_images() {
-    log_info "Updating Docker images..."
+    info "Updating Docker images..."
 
     # Pull latest images
     docker compose pull
@@ -698,17 +698,17 @@ update_docker_images() {
         docker image prune -af
     fi
 
-    log_success "Docker images updated"
+    success "Docker images updated"
 }
 
 update_configurations() {
-    log_info "Updating configurations..."
+    info "Updating configurations..."
 
     # Update template configurations
     local templates_dir="${JACKER_DIR}/assets/templates"
 
     if [[ -d "$templates_dir" ]]; then
-        log_info "Regenerating configurations from templates..."
+        info "Regenerating configurations from templates..."
 
         # Load environment
         set -a
@@ -732,7 +732,7 @@ update_configurations() {
                         envsubst < "$template" > "${JACKER_DIR}/data/loki/promtail-config.yml"
                         ;;
                     *)
-                        log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+                        error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
                         return 1 2>/dev/null || exit 1
                         ;;
                 esac
@@ -740,18 +740,18 @@ update_configurations() {
         done
     fi
 
-    log_success "Configurations updated"
+    success "Configurations updated"
 }
 
 update_all() {
-    log_info "Performing full update..."
+    info "Performing full update..."
 
     update_jacker_system
     update_docker_images
     update_configurations
 
-    log_success "Full update completed"
-    log_info "Restart services with './jacker restart' to apply all changes"
+    success "Full update completed"
+    info "Restart services with './jacker restart' to apply all changes"
 }
 
 #########################################
@@ -759,7 +759,7 @@ update_all() {
 #########################################
 
 cleanup_jacker() {
-    log_section "Jacker Cleanup"
+    section "Jacker Cleanup"
 
     echo "Cleanup Options:"
     echo "1. Clean Docker resources"
@@ -786,24 +786,24 @@ cleanup_jacker() {
             deep_clean
             ;;
         *)
-            log_error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
+            error "Invalid option: $1" 2>/dev/null || echo "Invalid option" >&2
             return 1 2>/dev/null || exit 1
             ;;
     esac
 }
 
 clean_docker_resources() {
-    log_info "Cleaning Docker resources..."
+    info "Cleaning Docker resources..."
 
     # Remove stopped containers
     local stopped=$(docker ps -aq -f status=exited | wc -l)
     if [[ "$stopped" -gt 0 ]]; then
-        log_info "Removing $stopped stopped containers..."
+        info "Removing $stopped stopped containers..."
         docker container prune -f
     fi
 
     # Remove unused images
-    log_info "Removing unused images..."
+    info "Removing unused images..."
     docker image prune -af
 
     # Remove unused volumes
@@ -816,12 +816,12 @@ clean_docker_resources() {
     docker network prune -f
 
     # Show disk usage
-    log_info "Docker disk usage:"
+    info "Docker disk usage:"
     docker system df
 }
 
 clean_logs() {
-    log_info "Cleaning logs..."
+    info "Cleaning logs..."
 
     # Clean container logs
     mapfile -t containers < <(docker ps -q)
@@ -830,7 +830,7 @@ clean_logs() {
         if [[ -f "$log_file" ]]; then
             local log_size=$(du -h "$log_file" | awk '{print $1}')
             if [[ "$log_size" != "0" ]]; then
-                log_info "Truncating log for $container ($log_size)..."
+                info "Truncating log for $container ($log_size)..."
                 echo "" | sudo tee "$log_file" > /dev/null
             fi
         fi
@@ -840,28 +840,28 @@ clean_logs() {
     local loki_dir="${JACKER_DIR}/data/loki/data"
     if [[ -d "$loki_dir" ]]; then
         local loki_size=$(du -sh "$loki_dir" | awk '{print $1}')
-        log_info "Loki data size: $loki_size"
+        info "Loki data size: $loki_size"
 
         read -rp "Clean old Loki chunks? (y/N): " clean_loki
         if [[ "${clean_loki,,}" == "y" ]]; then
             find "$loki_dir/chunks" -type f -mtime +7 -delete 2>/dev/null
-            log_success "Old Loki chunks cleaned"
+            success "Old Loki chunks cleaned"
         fi
     fi
 }
 
 clean_old_backups() {
-    log_info "Cleaning old backups..."
+    info "Cleaning old backups..."
 
     local backup_dir="${JACKER_DIR}/backups"
 
     if [[ ! -d "$backup_dir" ]]; then
-        log_info "No backups directory found"
+        info "No backups directory found"
         return
     fi
 
     # Show current backups
-    log_info "Current backups:"
+    info "Current backups:"
     ls -lah "$backup_dir"
 
     read -rp "Keep how many recent backups? [5]: " keep_count
@@ -874,16 +874,16 @@ clean_old_backups() {
     for backup in "${backups[@]}"; do
         ((count++))
         if [[ "$count" -gt "$keep_count" ]]; then
-            log_info "Removing old backup: $backup"
+            info "Removing old backup: $backup"
             rm -rf "${backup_dir:?}/${backup}"
         fi
     done
 
-    log_success "Old backups cleaned"
+    success "Old backups cleaned"
 }
 
 clean_temp_files() {
-    log_info "Cleaning temporary files..."
+    info "Cleaning temporary files..."
 
     # Clean /tmp
     find /tmp -name "jacker_*" -mtime +1 -delete 2>/dev/null
@@ -891,11 +891,11 @@ clean_temp_files() {
     # Clean Docker build cache
     docker builder prune -af
 
-    log_success "Temporary files cleaned"
+    success "Temporary files cleaned"
 }
 
 deep_clean() {
-    log_warn "Deep clean will remove all unnecessary data!"
+    warning "Deep clean will remove all unnecessary data!"
     read -rp "Continue? (y/N): " confirm
 
     if [[ "${confirm,,}" != "y" ]]; then
@@ -908,7 +908,7 @@ deep_clean() {
     clean_temp_files
 
     # Additional deep cleaning
-    log_info "Performing deep clean..."
+    info "Performing deep clean..."
 
     # Clean package manager cache
     if command -v apt-get &>/dev/null; then
@@ -921,7 +921,7 @@ deep_clean() {
         sudo journalctl --vacuum-time=7d
     fi
 
-    log_success "Deep clean completed"
+    success "Deep clean completed"
 }
 
 #########################################
@@ -1062,7 +1062,7 @@ recreate_data_directories() {
 #########################################
 
 migrate_jacker() {
-    log_section "Jacker Migration"
+    section "Jacker Migration"
 
     echo "Migration Options:"
     echo "1. Migrate to new server"
@@ -1085,14 +1085,14 @@ migrate_jacker() {
             migrate_to_authentik
             ;;
         *)
-            log_error "Invalid option: $migrate_choice" 2>/dev/null || echo "Invalid option" >&2
+            error "Invalid option: $migrate_choice" 2>/dev/null || echo "Invalid option" >&2
             return 1 2>/dev/null || exit 1
             ;;
     esac
 }
 
 migrate_to_server() {
-    log_info "Server migration wizard..."
+    info "Server migration wizard..."
 
     echo "This will create a migration package for transferring Jacker to another server"
 
@@ -1133,20 +1133,20 @@ EOF
 
     chmod +x "$migration_dir/migrate.sh"
 
-    log_success "Migration package created: $migration_dir"
+    success "Migration package created: $migration_dir"
     echo "Transfer this directory to the new server and run ./migrate.sh"
 }
 
 migrate_compose_version() {
-    log_info "Migrating Docker Compose version..."
+    info "Migrating Docker Compose version..."
 
     # Check current compose version
     if docker-compose version &>/dev/null 2>&1; then
-        log_info "Docker Compose v1 detected"
+        info "Docker Compose v1 detected"
 
         # Update to v2
         if ! docker compose version &>/dev/null 2>&1; then
-            log_info "Installing Docker Compose v2..."
+            info "Installing Docker Compose v2..."
 
             sudo mkdir -p /usr/local/lib/docker/cli-plugins
             sudo curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" \
@@ -1154,14 +1154,14 @@ migrate_compose_version() {
             sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
         fi
 
-        log_success "Docker Compose v2 installed"
+        success "Docker Compose v2 installed"
     else
-        log_info "Already using Docker Compose v2"
+        info "Already using Docker Compose v2"
     fi
 }
 
 migrate_database() {
-    log_info "Database migration..."
+    info "Database migration..."
 
     echo "Current database: PostgreSQL"
     echo "Migration options:"
@@ -1172,23 +1172,23 @@ migrate_database() {
 
     case "$db_choice" in
         1)
-            log_warn "PostgreSQL to MySQL migration not yet implemented"
+            warning "PostgreSQL to MySQL migration not yet implemented"
             ;;
         2)
-            log_warn "SQLite to PostgreSQL migration not yet implemented"
+            warning "SQLite to PostgreSQL migration not yet implemented"
             ;;
         3)
             configure_external_database
             ;;
         *)
-            log_error "Invalid option: $db_choice" 2>/dev/null || echo "Invalid option" >&2
+            error "Invalid option: $db_choice" 2>/dev/null || echo "Invalid option" >&2
             return 1 2>/dev/null || exit 1
             ;;
     esac
 }
 
 configure_external_database() {
-    log_info "Configuring external database..."
+    info "Configuring external database..."
 
     read -rp "Database host: " db_host
     read -rp "Database port [5432]: " db_port
@@ -1205,16 +1205,16 @@ configure_external_database() {
     update_env_var "POSTGRES_USER" "$db_user"
     update_env_var "POSTGRES_PASSWORD" "$db_pass"
 
-    log_success "External database configured"
+    success "External database configured"
 }
 
 migrate_to_authentik() {
-    log_info "Migrating from OAuth to Authentik..."
+    info "Migrating from OAuth to Authentik..."
 
     # This would implement the migration from OAuth to Authentik
     # Following the guide in jacker-docs/docs/guides/authentik-migration.md
 
-    log_warn "Please refer to jacker-docs/docs/guides/authentik-migration.md for migration steps"
+    warning "Please refer to jacker-docs/docs/guides/authentik-migration.md for migration steps"
 }
 
 #########################################
