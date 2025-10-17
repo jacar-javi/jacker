@@ -43,7 +43,7 @@ services:
       # OAuth Provider Configuration
       - OAUTH2_PROXY_PROVIDER=google
       - OAUTH2_PROXY_CLIENT_ID=${OAUTH_CLIENT_ID}
-      - OAUTH2_PROXY_CLIENT_SECRET_FILE=/run/secrets/oauth_client_secret
+      - OAUTH2_PROXY_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
       - OAUTH2_PROXY_REDIRECT_URL=https://oauth.${PUBLIC_FQDN}/oauth2/callback
 
       # Cookie secret directly from environment variable (Docker secret file caching issue)
