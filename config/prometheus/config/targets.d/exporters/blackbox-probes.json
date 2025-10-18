@@ -30,5 +30,23 @@
       "environment": "production",
       "probe_type": "ssl_certificate"
     }
+  },
+  {
+    "targets": ["postgres:5432"],
+    "labels": {
+      "job": "blackbox-tcp",
+      "module": "tcp_connect",
+      "service": "postgresql",
+      "component": "database"
+    }
+  },
+  {
+    "targets": ["redis:6379"],
+    "labels": {
+      "job": "blackbox-tcp",
+      "module": "tcp_connect",
+      "service": "redis",
+      "component": "cache"
+    }
   }
 ]

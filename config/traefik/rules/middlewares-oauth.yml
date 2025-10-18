@@ -11,6 +11,7 @@ http:
           - X-Auth-Request-Access-Token
           - X-Auth-Request-Groups
           - X-Auth-Request-Preferred-Username
+          - Set-Cookie
 
     # OAuth with rate limiting (recommended for login endpoints)
     middlewares-oauth-ratelimited:

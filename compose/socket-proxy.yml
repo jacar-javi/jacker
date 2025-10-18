@@ -4,7 +4,7 @@ services:
   # This proxy provides a security layer between containers and the Docker socket
   socket-proxy:
     container_name: socket-proxy
-    image: tecnativa/docker-socket-proxy:latest
+    image: tecnativa/docker-socket-proxy:0.1.2
 
     # Security options
     security_opt:

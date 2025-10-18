@@ -42,7 +42,7 @@ services:
     depends_on:
       prometheus:
         condition: service_healthy
-      docker-socket-proxy:
+      socket-proxy:
         condition: service_started
 
     # ====================================================================
@@ -64,7 +64,7 @@ services:
       PROMETHEUS_URL: http://prometheus:9090
 
       # Docker Socket Proxy
-      DOCKER_HOST: tcp://docker-socket-proxy:2375
+      DOCKER_HOST: tcp://socket-proxy:2375
 
       # Monitoring Configuration
       CHECK_INTERVAL: ${RESOURCE_MANAGER_CHECK_INTERVAL:-300}  # 5 minutes

@@ -12,6 +12,9 @@ services:
 
     restart: unless-stopped
 
+    # Healthcheck disabled - OAuth2-Proxy uses distroless image with no shell/wget/curl
+    # Traefik loadbalancer healthcheck is used instead (see labels below)
+
     networks:
       - traefik_proxy
       - cache
@@ -58,7 +61,9 @@ services:
       - OAUTH2_PROXY_WHITELIST_DOMAINS=${PUBLIC_FQDN},.${PUBLIC_FQDN}
       - OAUTH2_PROXY_COOKIE_SECURE=true
       - OAUTH2_PROXY_COOKIE_HTTPONLY=true
-      - OAUTH2_PROXY_COOKIE_SAMESITE=none
+      - OAUTH2_PROXY_COOKIE_SAMESITE=lax
+      - OAUTH2_PROXY_COOKIE_CSRF_PER_REQUEST=false
+      - OAUTH2_PROXY_COOKIE_CSRF_EXPIRE=15m
       - OAUTH2_PROXY_COOKIE_EXPIRE=${OAUTH_COOKIE_LIFETIME:-604800}s
       - OAUTH2_PROXY_COOKIE_REFRESH=${OAUTH_COOKIE_REFRESH:-3600}s
       # Logging configuration
@@ -68,6 +73,7 @@ services:
 
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
 
       # Logging labels for Promtail
       - "logging.component=oauth"

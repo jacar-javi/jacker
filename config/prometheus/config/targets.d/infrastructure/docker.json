@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "targets": ["socket-proxy:2375"],
+    "labels": {
+      "job": "docker-engine",
+      "component": "infrastructure",
+      "service": "docker-socket-proxy"
+    }
+  }
+]

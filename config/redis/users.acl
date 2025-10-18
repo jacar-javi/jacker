@@ -32,7 +32,7 @@
 #
 # SECURITY NOTE: Change this password immediately after deployment
 # Generate a secure password with: openssl rand -base64 32
-user default on >G5FqLwu9zUXiQMZBOTzYMiL3r05HezgMcljUjMis5BI= +@all ~* &*
+user default on >WILL_BE_GENERATED_AT_RUNTIME +@all ~* &*
 
 # ====================================================================
 # OAuth2-Proxy User - Session Storage
@@ -50,7 +50,7 @@ user default on >G5FqLwu9zUXiQMZBOTzYMiL3r05HezgMcljUjMis5BI= +@all ~* &*
 #
 # Key pattern: oauth:* - Only access keys prefixed with "oauth:"
 # Database: db 0 only
-user oauth_user on >9lisK7mvEL1HkLGzVFO72fbP9NaS11jXQl4ZecrkS84= +@read +@write +@string +@hash +@keyspace +@connection ~oauth:* resetchannels -@all
+user oauth_user on >WILL_BE_GENERATED_AT_RUNTIME +@read +@write +@string +@hash +@keyspace +@connection ~oauth:* resetchannels -@all
 
 # ====================================================================
 # Rate Limiting User - Traefik Rate Limiter
@@ -67,7 +67,7 @@ user oauth_user on >9lisK7mvEL1HkLGzVFO72fbP9NaS11jXQl4ZecrkS84= +@read +@write 
 #
 # Key pattern: ratelimit:* - Only access keys prefixed with "ratelimit:"
 # Database: db 1 for separation from session data
-user ratelimit_user on >oPn+x0exmxVMHBLH3f5lHnbCo3qgpBb2Buw8CY79CbY= +@read +@write +@string +@keyspace +@connection ~ratelimit:* resetchannels -@all
+user ratelimit_user on >WILL_BE_GENERATED_AT_RUNTIME +@read +@write +@string +@keyspace +@connection ~ratelimit:* resetchannels -@all
 
 # ====================================================================
 # Monitoring User - Read-Only Access for Metrics
@@ -82,7 +82,7 @@ user ratelimit_user on >oPn+x0exmxVMHBLH3f5lHnbCo3qgpBb2Buw8CY79CbY= +@read +@wr
 #   @dangerous   - INFO, CONFIG GET (needed for metrics)
 #
 # Note: This user can read all keys but cannot modify data
-user exporter_user on >DvlRkS98Xxuy/TGAxE15pDUW4vS0Hscsv7uXPK7IZrA= +@read +@keyspace +@connection +info +config|get ~* resetchannels -@all
+user exporter_user on >WILL_BE_GENERATED_AT_RUNTIME +@read +@keyspace +@connection +info +config|get ~* resetchannels -@all
 
 # ====================================================================
 # ACL Categories Reference

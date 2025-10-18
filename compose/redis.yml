@@ -61,6 +61,8 @@ services:
     secrets:
       - redis_password
       - redis_ratelimit_password
+      - redis_oauth_password
+      - redis_exporter_password
 
     # ====================================================================
     # VOLUME MOUNTS
@@ -239,6 +241,13 @@ services:
       - no-new-privileges=true
 
     restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8081/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
     depends_on:
       redis:

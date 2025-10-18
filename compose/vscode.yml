@@ -1,7 +1,7 @@
 services:
   # VSCode - VSCode Editing
   vscode:
-    image: lscr.io/linuxserver/code-server:latest
+    image: lscr.io/linuxserver/code-server:4.95.3
     container_name: vscode
 
     security_opt:
@@ -19,6 +19,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2048M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
 
     networks:
       traefik_proxy:

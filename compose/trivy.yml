@@ -5,7 +5,7 @@ services:
   # Official Image: https://hub.docker.com/r/aquasec/trivy
   # ====================================================================
   trivy:
-    image: aquasec/trivy:latest
+    image: aquasec/trivy:0.57.1
     container_name: trivy
 
     # ====================================================================
