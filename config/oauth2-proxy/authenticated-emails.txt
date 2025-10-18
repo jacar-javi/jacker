@@ -1,0 +1,4 @@
+# OAuth2-Proxy Authenticated Emails
+# Only users with these email addresses can authenticate
+# One email per line
+chiki@cloudhd.pro

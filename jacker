@@ -30,6 +30,7 @@ show_usage() {
 ${BLUE}Jacker - Docker Home Server Management Platform v${VERSION}${NC}
 
 ${GREEN}Usage:${NC} jacker <command> [options]
+       jacker --interactive    # Launch interactive menu
 
 ${YELLOW}Core Commands:${NC}
   init            Initialize Jacker (first-time setup)
@@ -63,13 +64,15 @@ ${YELLOW}Information Commands:${NC}
   help            Show this help message
 
 ${GREEN}Global Options:${NC}
-  -h, --help      Show help for specific command
-  -v, --verbose   Enable verbose output
-  -q, --quiet     Suppress non-critical output
-  --dry-run       Show what would be done without making changes
-  --version       Show version information
+  -i, --interactive  Launch interactive TUI menu
+  -h, --help         Show help for specific command
+  -v, --verbose      Enable verbose output
+  -q, --quiet        Suppress non-critical output
+  --dry-run          Show what would be done without making changes
+  --version          Show version information
 
 ${GREEN}Examples:${NC}
+  jacker --interactive            # Interactive menu mode
   jacker init                     # First-time setup
   jacker init --auto              # Automated setup with defaults
   jacker status                   # Show all services status
@@ -1586,6 +1589,13 @@ main() {
     local args=()
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            -i|--interactive)
+                # Source TUI library and launch interactive mode
+                # shellcheck source=assets/lib/tui.sh
+                source "$JACKER_ROOT/assets/lib/tui.sh"
+                run_interactive_mode
+                exit $?
+                ;;
             -v|--verbose)
                 VERBOSE=true
                 shift

@@ -39,6 +39,8 @@ services:
         mode: "0444"
 
     volumes:
+      # OAuth2-Proxy configuration files (authenticated emails, etc.)
+      - ${CONFIGDIR}/oauth2-proxy:/config:ro
       # Custom templates (optional)
       - ${DATADIR}/oauth2-proxy/templates:/templates:ro
 

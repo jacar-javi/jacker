@@ -81,7 +81,7 @@ services:
     # HEALTH CHECK
     # ====================================================================
     healthcheck:
-      test: ["CMD", "/usr/local/bin/diun", "version"]
+      test: ["CMD", "/usr/local/bin/diun", "--version"]
       interval: 30s
       timeout: 10s
       retries: 3
