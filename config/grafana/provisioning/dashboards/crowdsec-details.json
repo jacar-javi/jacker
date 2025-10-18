@@ -32,7 +32,7 @@
         "collapsed": true,
         "datasource": {
           "type": "prometheus",
-          "uid": "IH0jqv6nz"
+          "uid": "prometheus-uid"
         },
         "gridPos": {
           "h": 1,
@@ -49,7 +49,7 @@
             "dashes": false,
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "fieldConfig": {
               "defaults": {
@@ -97,7 +97,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "expr": "process_resident_memory_bytes{instance=\"$instance\"}",
                 "interval": "",
@@ -144,7 +144,7 @@
             "dashes": false,
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "fieldConfig": {
               "defaults": {
@@ -190,7 +190,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "expr": "rate(process_cpu_seconds_total{instance=\"$instance\"}[$__interval])*100",
                 "interval": "",
@@ -233,7 +233,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "fieldConfig": {
               "defaults": {
@@ -298,7 +298,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "expr": "(process_start_time_seconds{instance=\"$instance\"})*1000",
                 "instant": false,
@@ -317,7 +317,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "IH0jqv6nz"
+              "uid": "prometheus-uid"
             },
             "refId": "A"
           }
@@ -329,7 +329,7 @@
         "collapsed": true,
         "datasource": {
           "type": "prometheus",
-          "uid": "IH0jqv6nz"
+          "uid": "prometheus-uid"
         },
         "gridPos": {
           "h": 1,
@@ -342,7 +342,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "fieldConfig": {
               "defaults": {
@@ -392,7 +392,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "exemplar": true,
                 "expr": "sum(cs_alerts)",
@@ -407,7 +407,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "fieldConfig": {
               "defaults": {
@@ -481,7 +481,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "exemplar": true,
                 "expr": "cs_alerts{instance=\"$instance\"}",
@@ -498,7 +498,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "IH0jqv6nz"
+              "uid": "prometheus-uid"
             },
             "refId": "A"
           }
@@ -510,7 +510,7 @@
         "collapsed": true,
         "datasource": {
           "type": "prometheus",
-          "uid": "IH0jqv6nz"
+          "uid": "prometheus-uid"
         },
         "gridPos": {
           "h": 1,
@@ -527,7 +527,7 @@
             "dashes": false,
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "decimals": 1,
             "fieldConfig": {
@@ -578,7 +578,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "exemplar": true,
                 "expr": "sum(increase(cs_filesource_hits_total{instance=\"$instance\"}[$__interval])) by (source)",
@@ -590,7 +590,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "exemplar": true,
                 "expr": "sum(increase(cs_journalctlsource_hits_total{instance=\"$instance\"}[$__interval])) by (source)",
@@ -602,7 +602,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "exemplar": true,
                 "expr": "sum(increase(cs_cloudwatch_stream_hits_total{instance=\"$instance\"}[$__interval])) by (group, stream)",
@@ -614,7 +614,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "exemplar": true,
                 "expr": "sum(increase(cs_syslogsource_hits_total{instance=\"$instance\"}[$__interval])) by (source)",
@@ -662,7 +662,7 @@
             "dashes": false,
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "decimals": 1,
             "fieldConfig": {
@@ -713,7 +713,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "expr": "sum(increase(cs_parser_hits_ok_total{instance=\"$instance\"}[$__interval])) by (source)",
                 "interval": "",
@@ -760,7 +760,7 @@
             "dashes": false,
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "decimals": 1,
             "fieldConfig": {
@@ -811,7 +811,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "expr": "sum(increase(cs_parser_hits_ko_total{instance=\"$instance\"}[$__interval])) by (source)",
                 "interval": "",
@@ -854,7 +854,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "fieldConfig": {
               "defaults": {
@@ -903,7 +903,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "editorMode": "code",
                 "exemplar": true,
@@ -922,7 +922,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "IH0jqv6nz"
+              "uid": "prometheus-uid"
             },
             "refId": "A"
           }
@@ -934,7 +934,7 @@
         "collapsed": true,
         "datasource": {
           "type": "prometheus",
-          "uid": "IH0jqv6nz"
+          "uid": "prometheus-uid"
         },
         "gridPos": {
           "h": 1,
@@ -951,7 +951,7 @@
             "dashes": false,
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "decimals": 1,
             "fieldConfig": {
@@ -1002,7 +1002,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "expr": "sum(cs_buckets{instance=\"$instance\"}) by (name)",
                 "interval": "",
@@ -1048,7 +1048,7 @@
             "dashes": false,
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "decimals": 1,
             "fieldConfig": {
@@ -1099,7 +1099,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "expr": "sum(increase(cs_bucket_created_total{instance=\"$instance\"}[$__interval])) by (name)",
                 "interval": "",
@@ -1145,7 +1145,7 @@
             "dashes": false,
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "decimals": 1,
             "fieldConfig": {
@@ -1196,7 +1196,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "expr": "sum(increase(cs_bucket_overflowed_total{instance=\"$instance\"}[$__interval])) by (name)",
                 "interval": "",
@@ -1243,7 +1243,7 @@
             "dashes": false,
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "decimals": 1,
             "fieldConfig": {
@@ -1294,7 +1294,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "expr": "sum(increase(cs_bucket_underflowed_total{instance=\"$instance\"}[$__interval])) by (name)",
                 "interval": "",
@@ -1337,7 +1337,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "PBFA97CFB590B2093"
+              "uid": "prometheus-uid"
             },
             "fieldConfig": {
               "defaults": {
@@ -1386,7 +1386,7 @@
               {
                 "datasource": {
                   "type": "prometheus",
-                  "uid": "PBFA97CFB590B2093"
+                  "uid": "prometheus-uid"
                 },
                 "editorMode": "code",
                 "exemplar": true,
@@ -1405,7 +1405,7 @@
           {
             "datasource": {
               "type": "prometheus",
-              "uid": "IH0jqv6nz"
+              "uid": "prometheus-uid"
             },
             "refId": "A"
           }
@@ -1427,7 +1427,7 @@
           },
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus-uid"
           },
           "definition": "label_values(cs_info, instance)",
           "hide": 0,
@@ -1457,7 +1457,7 @@
           },
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus-uid"
           },
           "definition": "label_values(cs_parsing_time_seconds_bucket{instance=\"$instance\"}, type)",
           "hide": 0,
@@ -1483,7 +1483,7 @@
           },
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus-uid"
           },
           "definition": "label_values(cs_parsing_time_seconds_bucket{instance=\"$instance\", type=\"$datasource_type\"}, source)",
           "hide": 0,
