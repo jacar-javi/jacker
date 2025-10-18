@@ -103,7 +103,7 @@ services:
     # NOTE: ACL file is generated inline from Docker secrets
     # Inline ACL generation avoids file permission issues with mounted scripts
     entrypoint: ["/bin/sh", "-c"]
-    command: >-
+    command: |
       echo '=== Redis ACL Initialization ===';
       mkdir -p /usr/local/etc/redis;
       DEFAULT_PWD=$$(cat /run/secrets/redis_password);
