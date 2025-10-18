@@ -162,8 +162,8 @@ configs:
   # Redis configs
   redis_conf:
     file: ${CONFIGDIR}/redis/redis.conf
-  redis_acl:
-    file: ${CONFIGDIR}/redis/users.acl
+  # NOTE: redis_acl removed - ACL file is generated dynamically by init-acl.sh from Docker secrets
+  # See compose/redis.yml entrypoint and config/redis/scripts/init-acl.sh for implementation
 
   # OAuth2-Proxy configs
   oauth2_proxy_cfg:
