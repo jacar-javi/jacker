@@ -26,7 +26,7 @@ echo "✓ Passwords loaded from secrets"
 # Note: OAuth user gets access to all keys temporarily for debugging
 cat > /usr/local/etc/redis/users.acl << EOF
 user default on >${DEFAULT_PASSWORD} +@all ~* &*
-user oauth_user on >${OAUTH_PASSWORD} -@all +@read +@write +@string +@hash +@keyspace +@connection ~* resetchannels
+user oauth_user on >${OAUTH_PASSWORD} -@all +@read +@write +@string +@hash +@keyspace +@connection +eval +evalsha +script ~* resetchannels
 user ratelimit_user on >${RATELIMIT_PASSWORD} -@all +@read +@write +@string +@keyspace +@connection +select +eval +evalsha +script ~* resetchannels
 user exporter_user on >${EXPORTER_PASSWORD} -@all +@read +@keyspace +@connection +info +config|get ~* resetchannels
 EOF

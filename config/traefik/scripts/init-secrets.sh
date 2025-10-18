@@ -23,6 +23,22 @@ else
     echo "⚠ Redis rate limit password secret not found, skipping middleware generation"
 fi
 
+# Check if CrowdSec Traefik bouncer API key is set (environment variable)
+if [ -n "${CROWDSEC_TRAEFIK_BOUNCER_API_KEY:-}" ]; then
+    echo "✓ CrowdSec Traefik bouncer API key loaded from environment"
+
+    # Generate middlewares-crowdsec-plugin.yml from template
+    if [ -f "/rules/middlewares-crowdsec-plugin.yml.template" ]; then
+        sed "s|CROWDSEC_TRAEFIK_BOUNCER_API_KEY_PLACEHOLDER|${CROWDSEC_TRAEFIK_BOUNCER_API_KEY}|g" \
+            /rules/middlewares-crowdsec-plugin.yml.template > /rules/middlewares-crowdsec-plugin.yml
+        echo "✓ Generated /rules/middlewares-crowdsec-plugin.yml from template"
+    else
+        echo "⚠ Template file not found: /rules/middlewares-crowdsec-plugin.yml.template"
+    fi
+else
+    echo "⚠ CrowdSec Traefik bouncer API key not found, skipping middleware generation"
+fi
+
 # Set proper permissions
 chmod 644 /rules/*.yml 2>/dev/null || true
 

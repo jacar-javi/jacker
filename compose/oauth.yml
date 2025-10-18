@@ -55,8 +55,8 @@ services:
       - OAUTH2_PROXY_COOKIE_SECRET=${OAUTH_COOKIE_SECRET}
 
       # Redis connection with authentication
-      # Password directly in URL (base64 password from environment variable)
-      - OAUTH2_PROXY_REDIS_CONNECTION_URL=redis://oauth_user:${REDIS_OAUTH_PASSWORD}@redis:6379/0
+      # Password must be URL-encoded to handle special characters (/, =, +)
+      - OAUTH2_PROXY_REDIS_CONNECTION_URL=redis://oauth_user:${REDIS_OAUTH_PASSWORD_URLENCODED}@redis:6379/0
 
       # Email domain whitelist (use * for all domains)
       - OAUTH2_PROXY_EMAIL_DOMAINS=${OAUTH_EMAIL_DOMAINS:-*}

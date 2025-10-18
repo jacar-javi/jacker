@@ -189,6 +189,9 @@ services:
       # Redis for distributed rate limiting
       TRAEFIK_RATELIMIT_REDIS_ENDPOINT: redis:6379
 
+      # CrowdSec bouncer API key
+      CROWDSEC_TRAEFIK_BOUNCER_API_KEY: ${CROWDSEC_TRAEFIK_BOUNCER_API_KEY}
+
       # Optional: OpenTelemetry tracing
       # TRAEFIK_TRACING_ENABLED: ${TRACING_ENABLED:-false}
       # OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318

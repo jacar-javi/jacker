@@ -39,37 +39,13 @@ http:
         browserXssFilter: true
         referrerPolicy: strict-origin-when-cross-origin
 
+        # Custom Response Headers
+        # NOTE: CSP and Permissions-Policy moved here due to Traefik v3.5.3 multiline YAML parsing bug
         # Content Security Policy - STRICT (No unsafe-inline, no unsafe-eval)
         # Provides maximum XSS protection
-        # Applications MUST use nonce-based or hash-based CSP for inline scripts
-        contentSecurityPolicy: |
-          default-src 'self';
-          script-src 'self' https://cdn.jsdelivr.net https://unpkg.com;
-          style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net;
-          font-src 'self' data: https://fonts.gstatic.com;
-          img-src 'self' data: blob: https:;
-          connect-src 'self' wss: https:;
-          media-src 'self';
-          object-src 'none';
-          frame-ancestors 'self';
-          base-uri 'self';
-          form-action 'self';
-          upgrade-insecure-requests;
-
-        # Permissions Policy - Restrict browser features
-        permissionsPolicy: |
-          accelerometer=(),
-          camera=(),
-          geolocation=(),
-          gyroscope=(),
-          magnetometer=(),
-          microphone=(),
-          payment=(),
-          usb=(),
-          interest-cohort=()
-
-        # Custom Response Headers
         customResponseHeaders:
+          Content-Security-Policy: "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' wss: https:; media-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;"
+          Permissions-Policy: "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), interest-cohort=()"
           X-Robots-Tag: "noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
           X-Frame-Options: DENY
           X-Content-Type-Options: nosniff
@@ -119,43 +95,15 @@ http:
         browserXssFilter: true
         referrerPolicy: strict-origin-when-cross-origin
 
+        # Custom Response Headers
+        # NOTE: CSP and Permissions-Policy moved here due to Traefik v3.5.3 multiline YAML parsing bug
         # Content Security Policy - BALANCED
         # ✅ Removed 'unsafe-inline' from script-src (SECURITY IMPROVEMENT)
         # ✅ Removed 'unsafe-eval' from script-src (SECURITY IMPROVEMENT)
         # ⚠️  'unsafe-inline' kept for style-src (common pattern, lower risk)
-        #
-        # If your app breaks:
-        # 1. Check browser console for CSP violations
-        # 2. Move inline scripts to external files
-        # 3. Or use 'secure-headers-relaxed' temporarily while refactoring
-        contentSecurityPolicy: |
-          default-src 'self';
-          script-src 'self' https://cdn.jsdelivr.net https://unpkg.com;
-          style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
-          font-src 'self' data: https://fonts.gstatic.com;
-          img-src 'self' data: blob: https:;
-          connect-src 'self' wss: https:;
-          media-src 'self';
-          object-src 'none';
-          frame-ancestors 'self';
-          base-uri 'self';
-          form-action 'self';
-          upgrade-insecure-requests;
-
-        # Permissions Policy - Restrict browser features
-        permissionsPolicy: |
-          accelerometer=(),
-          camera=(),
-          geolocation=(),
-          gyroscope=(),
-          magnetometer=(),
-          microphone=(),
-          payment=(),
-          usb=(),
-          interest-cohort=()
-
-        # Custom Response Headers
         customResponseHeaders:
+          Content-Security-Policy: "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' wss: https:; media-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;"
+          Permissions-Policy: "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), interest-cohort=()"
           X-Robots-Tag: "noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
           X-Frame-Options: SAMEORIGIN
           X-Content-Type-Options: nosniff
@@ -206,41 +154,14 @@ http:
         browserXssFilter: true
         referrerPolicy: strict-origin-when-cross-origin
 
+        # Custom Response Headers
+        # NOTE: CSP and Permissions-Policy moved here due to Traefik v3.5.3 multiline YAML parsing bug
         # Content Security Policy - RELAXED (Legacy Support)
         # ⚠️  Includes unsafe-inline and unsafe-eval
-        # Services using this profile:
-        # - Grafana (requires eval for dashboard rendering)
-        # - Homepage (uses inline scripts for widgets)
-        # - Legacy admin panels
-        contentSecurityPolicy: |
-          default-src 'self';
-          script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com;
-          style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
-          font-src 'self' data: https://fonts.gstatic.com;
-          img-src 'self' data: blob: https:;
-          connect-src 'self' wss: https:;
-          media-src 'self' blob: data:;
-          object-src 'none';
-          frame-src 'self' https:;
-          frame-ancestors 'self';
-          base-uri 'self';
-          form-action 'self';
-          upgrade-insecure-requests;
-
-        # Permissions Policy - Restrict browser features
-        permissionsPolicy: |
-          accelerometer=(),
-          camera=(),
-          geolocation=(),
-          gyroscope=(),
-          magnetometer=(),
-          microphone=(),
-          payment=(),
-          usb=(),
-          interest-cohort=()
-
-        # Custom Response Headers
+        # Services using this profile: Grafana, Homepage, Legacy admin panels
         customResponseHeaders:
+          Content-Security-Policy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' wss: https:; media-src 'self' blob: data:; object-src 'none'; frame-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;"
+          Permissions-Policy: "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), interest-cohort=()"
           X-Robots-Tag: "noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
           X-Frame-Options: SAMEORIGIN
           X-Content-Type-Options: nosniff

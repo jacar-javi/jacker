@@ -89,8 +89,8 @@ services:
       # Unix socket directory (for local connections)
       - ${DATADIR}/postgres/run:/var/run/postgresql:rw
 
-      # SSL certificates - DISABLED (SSL handled by Traefik, internal service only)
-      # - ${DATADIR}/postgres/ssl:/var/lib/postgresql/ssl:ro
+      # SSL certificates for encrypted connections
+      - ${DATADIR}/postgres/ssl:/var/lib/postgresql/ssl:ro
 
       # Timezone
       - /etc/localtime:/etc/localtime:ro
@@ -223,8 +223,8 @@ services:
 
     environment:
       # Use separate environment variables to avoid URL encoding issues with special characters
-      # SSL disabled - internal service only, SSL handled by Traefik
-      DATA_SOURCE_URI: "postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      # SSL required for encrypted database connections
+      DATA_SOURCE_URI: "postgres:5432/${POSTGRES_DB}?sslmode=require"
       DATA_SOURCE_USER: ${POSTGRES_USER}
       DATA_SOURCE_PASS: ${POSTGRES_PASSWORD}
       PG_EXPORTER_WEB_LISTEN_ADDRESS: ":9187"
