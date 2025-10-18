@@ -739,6 +739,33 @@ create_directory_structure() {
     sudo chown -R 1000:1000 "${JACKER_DIR}/data/crowdsec" 2>/dev/null || \
         log_warn "Could not set CrowdSec directory ownership (may need to run with sudo)"
 
+    # Prometheus data directory - needs UID 1000:1000 permissions (PUID from .env)
+    log_info "Creating Prometheus data directories with correct permissions..."
+    mkdir -p "${JACKER_DIR}/data/prometheus"/{data,certs} 2>/dev/null || \
+        { sudo mkdir -p "${JACKER_DIR}/data/prometheus"/{data,certs} && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/prometheus"; }
+
+    # Set ownership to UID 1000:1000 (Prometheus container user from PUID)
+    sudo chown -R 1000:1000 "${JACKER_DIR}/data/prometheus" 2>/dev/null || \
+        log_warn "Could not set Prometheus directory ownership (may need to run with sudo)"
+
+    # Grafana data directory - needs UID 1000:1000 permissions (PUID from .env)
+    log_info "Creating Grafana data directories with correct permissions..."
+    mkdir -p "${JACKER_DIR}/data/grafana"/{data,logs,plugins,provisioning,dashboards} 2>/dev/null || \
+        { sudo mkdir -p "${JACKER_DIR}/data/grafana"/{data,logs,plugins,provisioning,dashboards} && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/grafana"; }
+
+    # Set ownership to UID 1000:1000 (Grafana container user from PUID)
+    sudo chown -R 1000:1000 "${JACKER_DIR}/data/grafana" 2>/dev/null || \
+        log_warn "Could not set Grafana directory ownership (may need to run with sudo)"
+
+    # Promtail data directory - needs UID 1000:1000 permissions (PUID from .env)
+    log_info "Creating Promtail data directories with correct permissions..."
+    mkdir -p "${JACKER_DIR}/data/promtail"/{positions,cache} 2>/dev/null || \
+        { sudo mkdir -p "${JACKER_DIR}/data/promtail"/{positions,cache} && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/promtail"; }
+
+    # Set ownership to UID 1000:1000 (Promtail container user from PUID)
+    sudo chown -R 1000:1000 "${JACKER_DIR}/data/promtail" 2>/dev/null || \
+        log_warn "Could not set Promtail directory ownership (may need to run with sudo)"
+
     # Secrets directory should be restricted
     chmod 700 "${JACKER_DIR}/secrets" 2>/dev/null || \
         { sudo chmod 700 "${JACKER_DIR}/secrets"; }

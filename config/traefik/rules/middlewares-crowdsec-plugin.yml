@@ -25,7 +25,7 @@ http:
           # CrowdSec LAPI connection
           crowdsecLapiScheme: http
           crowdsecLapiHost: crowdsec:8080
-          crowdsecLapiKey: u3oW2DLwiUYmqGRwKBB9O9sJyNk+9Cd0MhpOeiYDSgU
+          crowdsecLapiKey: 1a55eab6d7f7db26cddc23a763c1b769372ceec4c4807ebcb3a891a5f2ca53e5
 
           # Remediation: ban or captcha
           # ban = block malicious IPs
