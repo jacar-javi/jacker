@@ -43,5 +43,6 @@ fi
 echo "=== ACL Initialization Complete ==="
 echo ""
 
-# Execute redis-server with the provided arguments and ACL file
-exec redis-server "$@" --aclfile /usr/local/etc/redis/users.acl
+# Execute redis-server with the provided arguments
+# ACL file is loaded from redis.conf (after commands are renamed)
+exec redis-server "$@"
