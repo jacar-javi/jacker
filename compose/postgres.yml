@@ -18,6 +18,16 @@ services:
     # Run as default postgres user (uid 70 in alpine image)
     # user: "${PUID:-999}:${PGID:-999}" # COMMENTED OUT - PostgreSQL image manages its own user
 
+    # Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+      - FOWNER
+
     # Restart policy
     restart: unless-stopped
 
@@ -29,9 +39,11 @@ services:
         limits:
           cpus: "2.0"
           memory: 2048M # Adjust based on workload
+          pids: 200
         reservations:
           cpus: "0.5"
           memory: 512M
+          pids: 200
 
     # Memory and process limits
     shm_size: 256MB # Shared memory for PostgreSQL
@@ -210,6 +222,15 @@ services:
 
     security_opt:
       - no-new-privileges=true
+
+    # Capability restrictions
+    cap_drop:
+      - ALL
+
+    deploy:
+      resources:
+        limits:
+          pids: 200
 
     restart: unless-stopped
 

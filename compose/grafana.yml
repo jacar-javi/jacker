@@ -25,6 +25,14 @@ services:
     # Run as specific user
     user: "${PUID:-472}:${PGID:-472}" # Grafana default UID/GID
 
+    # Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
     # Restart policy
     restart: unless-stopped
 
@@ -36,9 +44,11 @@ services:
         limits:
           cpus: "2.0"
           memory: 1024M
+          pids: 200
         reservations:
           cpus: "0.5"
           memory: 256M
+          pids: 200
 
     # ====================================================================
     # DEPENDENCIES
@@ -120,9 +130,9 @@ services:
 
       # Database configuration (default SQLite, can use PostgreSQL)
       GF_DATABASE_TYPE: ${GF_DATABASE_TYPE:-sqlite3}
-      GF_DATABASE_HOST: ${GF_DATABASE_HOST:-}
-      GF_DATABASE_NAME: ${GF_DATABASE_NAME:-grafana}
-      GF_DATABASE_USER: ${GF_DATABASE_USER:-}
+      GF_DATABASE_HOST: ${GF_DATABASE_HOST:-postgres}
+      GF_DATABASE_NAME: ${GF_DATABASE_NAME:-grafana_db}
+      GF_DATABASE_USER: ${GF_DATABASE_USER:-grafana_user}
       GF_DATABASE_PASSWORD: ${GF_DATABASE_PASSWORD:-}
       GF_DATABASE_SSL_MODE: ${GF_DATABASE_SSL_MODE:-require}
       GF_DATABASE_MAX_IDLE_CONN: ${GF_DATABASE_MAX_IDLE_CONN:-2}
@@ -232,7 +242,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.grafana-rtr.tls=true"
       - "traefik.http.routers.grafana-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.grafana-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.grafana-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.grafana-rtr.middlewares=chain-oauth@file"

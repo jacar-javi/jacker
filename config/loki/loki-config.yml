@@ -106,6 +106,7 @@ chunk_store_config:
   chunk_cache_config:
     redis:
       endpoint: redis:6379
+      password: ${REDIS_PASSWORD}
       db: 2
       expiration: 24h
 
@@ -122,6 +123,7 @@ query_range:
     cache:
       redis:
         endpoint: redis:6379
+        password: ${REDIS_PASSWORD}
         db: 1
         expiration: 1h
 

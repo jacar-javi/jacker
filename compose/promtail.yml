@@ -18,6 +18,14 @@ services:
     # Run as specific user
     user: "${PUID:-0}:${PGID:-0}" # Root needed for log access
 
+    # Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
     # Restart policy
     restart: unless-stopped
 
@@ -29,9 +37,11 @@ services:
         limits:
           cpus: "1.0"
           memory: 512M
+          pids: 200
         reservations:
           cpus: "0.25"
           memory: 128M
+          pids: 200
 
     # ====================================================================
     # DEPENDENCIES

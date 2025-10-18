@@ -1,0 +1,68 @@
+# CrowdSec Email Notification Plugin Configuration
+# https://docs.crowdsec.net/docs/next/notification_plugins/email
+
+type: email
+
+name: email_admin
+
+# This plugin is run only for alerts that contain decisions
+format: |
+  {{range . -}}
+  {{$alert := . -}}
+
+  ========================================
+  CrowdSec Security Alert
+  ========================================
+
+  Machine ID: {{$alert.MachineID}}
+  Scenario: {{$alert.Scenario}}
+  Message: {{$alert.Message}}
+
+  Source Information:
+  - IP Address: {{$alert.Source.IP}}
+  - Scope: {{$alert.Source.Scope}}
+  {{if $alert.Source.Value}}
+  - Value: {{$alert.Source.Value}}
+  {{end}}
+  {{if $alert.Source.Cn}}
+  - Country: {{$alert.Source.Cn}}
+  {{end}}
+  {{if $alert.Source.AsName}}
+  - AS Name: {{$alert.Source.AsName}}
+  {{end}}
+
+  Decision Information:
+  {{range $alert.Decisions -}}
+  - Type: {{.Type}}
+  - Duration: {{.Duration}}
+  - Scope: {{.Scope}}
+  {{if .Value}}
+  - Value: {{.Value}}
+  {{end}}
+  {{end -}}
+
+  Time: {{$alert.StartAt}}
+  Stop Time: {{$alert.StopAt}}
+
+  Events Count: {{len $alert.Events}}
+
+  ========================================
+
+  {{end -}}
+
+# SMTP Configuration (using environment variables from .env)
+smtp_host: ${SMTP_HOST}
+smtp_port: ${SMTP_PORT}
+smtp_username: ${SMTP_USERNAME}
+smtp_password: ${SMTP_PASSWORD}
+auth_type: login
+
+# Email headers
+sender_email: ${SMTP_FROM}
+receiver_emails:
+  - ${ALERT_EMAIL_SECURITY}
+
+email_subject: "[CrowdSec Alert] {{.MachineID}} - {{.Scenario}}"
+
+# Encryption
+encryption_type: starttls

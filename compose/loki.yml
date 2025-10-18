@@ -18,6 +18,10 @@ services:
     # Run as loki user (UID 10001)
     user: "10001:10001"
 
+    # Capability restrictions
+    cap_drop:
+      - ALL
+
     # Restart policy
     restart: unless-stopped
 
@@ -29,9 +33,11 @@ services:
         limits:
           cpus: "2.0"
           memory: 2048M
+          pids: 200
         reservations:
           cpus: "0.5"
           memory: 512M
+          pids: 200
 
     # System limits
     ulimits:
@@ -99,6 +105,9 @@ services:
     environment:
       # Basic configuration
       TZ: ${TZ}
+
+      # Redis authentication
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
 
       # Performance tuning
       GOGC: ${LOKI_GOGC:-100}

@@ -19,6 +19,16 @@ services:
     # CrowdSec requires root permissions to read security-critical logs
     user: "0:0"
 
+    # Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - CHOWN
+      - SETGID
+      - SETUID
+
     # Restart policy for production
     restart: unless-stopped
 
@@ -30,6 +40,7 @@ services:
         limits:
           cpus: "1.0"
           memory: 512M
+          pids: 200
         reservations:
           cpus: "0.25"
           memory: 128M
@@ -130,7 +141,7 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_CROWDSEC_DB:-crowdsec_db}
-      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_USER: ${POSTGRES_CROWDSEC_USER:-crowdsec_user}
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_SSLMODE: require
 
@@ -235,7 +246,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.crowdsec-rtr.tls=true"
       - "traefik.http.routers.crowdsec-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.crowdsec-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.crowdsec-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.crowdsec-rtr.middlewares=chain-oauth@file"

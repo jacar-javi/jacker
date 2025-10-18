@@ -18,6 +18,14 @@ services:
     # Run as default redis user (uid 999 in alpine image)
     # user: "${PUID:-999}:${PGID:-999}" # COMMENTED OUT - Redis image manages its own user
 
+    # Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
     # Restart policy
     restart: unless-stopped
 
@@ -29,9 +37,11 @@ services:
         limits:
           cpus: '1.0'
           memory: 1024M
+          pids: 200
         reservations:
           cpus: '0.25'
           memory: 256M
+          pids: 200
 
     # System limits
     ulimits:
@@ -184,6 +194,15 @@ services:
 
     security_opt:
       - no-new-privileges=true
+
+    # Capability restrictions
+    cap_drop:
+      - ALL
+
+    deploy:
+      resources:
+        limits:
+          pids: 200
 
     restart: unless-stopped
 

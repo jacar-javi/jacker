@@ -1,0 +1,6 @@
+# PostgreSQL automated backup - daily at 2 AM
+# To install: sudo cp config/cron/database-backup.cron /etc/cron.d/jacker-backup
+# Or add to user crontab: crontab -e
+
+# Format: minute hour day month day-of-week command
+0 2 * * * /home/ubuntu/jacker/scripts/backup-database.sh >> /var/log/jacker-backup.log 2>&1

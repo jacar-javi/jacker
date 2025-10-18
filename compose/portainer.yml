@@ -5,6 +5,18 @@ services:
     image: portainer/portainer-ce:2.33.2
     security_opt:
       - no-new-privileges=true
+
+    # Run as non-root user
+    user: "${PUID}:${PGID}"
+
+    # Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
     restart: unless-stopped
 
     # Healthcheck disabled - Portainer uses minimal image without wget/curl
@@ -15,9 +27,11 @@ services:
         limits:
           cpus: "1.0"
           memory: 512M
+          pids: 200
         reservations:
           cpus: "0.25"
           memory: 128M
+          pids: 200
 
     depends_on:
       socket-proxy:
@@ -45,7 +59,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.portainer-rtr.tls=true"
       - "traefik.http.routers.portainer-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.portainer-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.portainer-rtr.tls.options=tls-opts@file"
 
       # Middlewares
       - "traefik.http.routers.portainer-rtr.middlewares=chain-oauth@file"

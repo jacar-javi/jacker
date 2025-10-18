@@ -10,6 +10,18 @@ services:
     security_opt:
       - no-new-privileges=true
 
+    # Run as non-root user
+    user: "${PUID}:${PGID}"
+
+    # Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - DAC_OVERRIDE
+
     restart: unless-stopped
 
     networks:
@@ -22,8 +34,9 @@ services:
       - 127.0.0.1:2375:2375
 
     # Privileged mode configuration
+    # SECURITY: Disabled for enhanced container security
     # Set to true for VM environments, false for unprivileged LXC containers
-    privileged: ${HOST_IS_VM:-true}
+    privileged: false
 
     volumes:
       # Mount the Docker socket - this is the only container that should have direct access
@@ -80,8 +93,8 @@ services:
       # ====================================================================
       # IMAGE OPERATIONS
       # ====================================================================
-      # Required by: Portainer (image management), Authentik (may need for deployments)
-      IMAGES: 1 # List, inspect images - safe read operation
+      # SECURITY: Disabled for runtime - not needed for normal operations
+      IMAGES: 0 # List, inspect images - disabled for security
       DISTRIBUTION: 0 # Image distribution/registry info - not needed
 
       # ====================================================================
@@ -107,7 +120,7 @@ services:
       # ====================================================================
       # Required by: Portainer (stack management), Traefik (service discovery)
       SERVICES: 1 # List, inspect services (Swarm mode) - safe read operation
-      TASKS: 1 # List, inspect tasks (Swarm mode) - safe read operation
+      TASKS: 0 # SECURITY: Disabled - not needed for runtime operations
 
       # ====================================================================
       # WRITE OPERATIONS
@@ -117,6 +130,14 @@ services:
       #              Authentik (may create containers)
       # WARNING: This allows container creation/modification
       POST: 1 # Enable POST operations - use with caution
+
+    # ====================================================================
+    # RESOURCE LIMITS
+    # ====================================================================
+    deploy:
+      resources:
+        limits:
+          pids: 200
 
     healthcheck:
       test: wget --no-verbose --spider --tries=1 http://localhost:2375/version || exit 1

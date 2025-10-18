@@ -88,7 +88,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.authentik-rtr.tls=true"
       - "traefik.http.routers.authentik-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.authentik-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.authentik-rtr.tls.options=tls-opts@file"
 
       # Middlewares (Authentik handles its own auth)
       - "traefik.http.routers.authentik-rtr.middlewares=chain-no-oauth@file"

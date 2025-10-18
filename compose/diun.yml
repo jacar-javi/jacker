@@ -99,7 +99,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.diun-rtr.tls=true"
       - "traefik.http.routers.diun-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.diun-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.diun-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.diun-rtr.middlewares=chain-oauth@file"

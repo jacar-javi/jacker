@@ -25,9 +25,11 @@ services:
         limits:
           cpus: "2.0"
           memory: 2048M
+          pids: 200
         reservations:
           cpus: "0.5"
           memory: 512M
+          pids: 200
 
     networks:
       traefik_proxy:
@@ -40,11 +42,7 @@ services:
       - $DATADIR/vscode/config:/config
       # Custom shell configuration
       - ./config/vscode/.bashrc:/config/.bashrc:ro
-      # SSH keys for passwordless authentication (read-only for security)
-      - ~/.ssh/id_rsa:/config/.ssh/id_rsa:ro
-      - ~/.ssh/id_rsa.pub:/config/.ssh/id_rsa.pub:ro
-      # SSH known_hosts (read-write so SSH can update it)
-      - ~/.ssh/known_hosts:/config/.ssh/known_hosts:rw
+      # SECURITY: Host SSH keys removed - generate keys inside container for security
       # Git configuration for SSH operations
       - ~/.gitconfig:/config/.gitconfig:ro
 
@@ -53,8 +51,7 @@ services:
       PUID: $PUID
       PGID: $PGID
       DEFAULT_WORKSPACE: /data/jacker
-      # Git SSH command configuration for using the mounted private key
-      GIT_SSH_COMMAND: ssh -i /config/.ssh/id_rsa
+      # SECURITY: GIT_SSH_COMMAND removed - use container-generated keys
 
     labels:
       - "traefik.enable=true"
@@ -66,7 +63,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.vscode-rtr.tls=true"
       - "traefik.http.routers.vscode-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.vscode-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.vscode-rtr.tls.options=tls-opts@file"
 
       # Middlewares
       - "traefik.http.routers.vscode-rtr.middlewares=chain-oauth@file"

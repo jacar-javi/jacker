@@ -1,0 +1,29 @@
+# ====================================================================
+# Trivy Vulnerability Scanning Cron Jobs
+# ====================================================================
+# Automated vulnerability scanning for all running containers
+# Reports are saved to ${DOCKERDIR}/data/trivy/reports
+# ====================================================================
+
+# Weekly comprehensive scan - Every Sunday at 3:00 AM
+# Scans all containers for CRITICAL, HIGH, and MEDIUM vulnerabilities
+0 3 * * 0 /home/ubuntu/jacker/scripts/trivy-scan.sh >> /var/log/jacker-trivy.log 2>&1
+
+# Daily quick scan for CRITICAL vulnerabilities only - Every day at 2:00 AM
+# Faster scan focusing only on critical issues
+#0 2 * * * TRIVY_SEVERITY=CRITICAL /home/ubuntu/jacker/scripts/trivy-scan.sh >> /var/log/jacker-trivy-critical.log 2>&1
+
+# Monthly cleanup of old reports - First day of month at 4:00 AM
+# Removes reports older than 30 days (configurable via TRIVY_RETENTION_DAYS)
+0 4 1 * * /home/ubuntu/jacker/scripts/trivy-scan.sh --cleanup-only >> /var/log/jacker-trivy-cleanup.log 2>&1
+
+# ====================================================================
+# Installation Instructions
+# ====================================================================
+# 1. Edit paths to match your installation directory
+# 2. Create log directory: sudo mkdir -p /var/log && sudo touch /var/log/jacker-trivy.log
+# 3. Set permissions: sudo chown $USER:$USER /var/log/jacker-trivy*.log
+# 4. Install crontab: crontab -e (paste the lines above)
+# 5. Verify: crontab -l
+# 6. Test run: /home/ubuntu/jacker/scripts/trivy-scan.sh --help
+# ====================================================================

@@ -18,6 +18,10 @@ services:
     # Run as nobody user
     user: "65534:65534"
 
+    # Capability restrictions
+    cap_drop:
+      - ALL
+
     # Read-only root filesystem
     read_only: true
 
@@ -43,9 +47,11 @@ services:
         limits:
           cpus: "0.5"
           memory: 256M
+          pids: 200
         reservations:
           cpus: "0.1"
           memory: 64M
+          pids: 200
 
     # ====================================================================
     # VOLUME MOUNTS
@@ -100,7 +106,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.blackbox-exporter-rtr.tls=true"
       - "traefik.http.routers.blackbox-exporter-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.blackbox-exporter-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.blackbox-exporter-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.blackbox-exporter-rtr.middlewares=chain-oauth@file"

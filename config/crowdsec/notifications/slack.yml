@@ -1,0 +1,64 @@
+# CrowdSec Slack Notification Plugin Configuration
+# https://docs.crowdsec.net/docs/next/notification_plugins/slack
+
+type: slack
+
+name: slack_security
+
+# Slack webhook URL from environment variable
+webhook: ${SLACK_WEBHOOK_URL}
+
+# Format for Slack messages
+format: |
+  {
+    "text": "CrowdSec Security Alert",
+    "blocks": [
+      {
+        "type": "header",
+        "text": {
+          "type": "plain_text",
+          "text": ":warning: CrowdSec Security Alert"
+        }
+      },
+      {{range . -}}
+      {{$alert := . -}}
+      {
+        "type": "section",
+        "fields": [
+          {
+            "type": "mrkdwn",
+            "text": "*Scenario:*\n{{$alert.Scenario}}"
+          },
+          {
+            "type": "mrkdwn",
+            "text": "*Machine:*\n{{$alert.MachineID}}"
+          },
+          {
+            "type": "mrkdwn",
+            "text": "*Source IP:*\n{{$alert.Source.IP}}"
+          },
+          {
+            "type": "mrkdwn",
+            "text": "*Decision:*\n{{range $alert.Decisions}}{{.Type}} for {{.Duration}}{{end}}"
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "*Message:* {{$alert.Message}}"
+        }
+      },
+      {
+        "type": "context",
+        "elements": [
+          {
+            "type": "mrkdwn",
+            "text": "Events: {{len $alert.Events}} | Time: {{$alert.StartAt}}"
+          }
+        ]
+      }
+      {{end -}}
+    ]
+  }

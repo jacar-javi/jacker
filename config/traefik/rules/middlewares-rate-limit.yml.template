@@ -1,12 +1,35 @@
 http:
   middlewares:
-    # Default rate limit - moderate protection with Redis backend
+    # ====================================================================
+    # RATE LIMITING - Protect against brute force and DoS attacks
+    # ====================================================================
+    # All rate limits use Redis backend for distributed rate limiting
+    # across multiple Traefik instances (important for HA deployments)
+
+    # General rate limit for web interfaces (100 req/min)
+    rate-limit-general:
+      rateLimit:
+        average: 100  # 100 requests per minute on average
+        burst: 50     # Allow bursts up to 50 requests
+        period: 1m
+        sourceCriterion:
+          requestHeaderName: X-Forwarded-For
+          requestHost: true
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 1  # Use DB 1 for rate limiting (separate from session storage in DB 0)
+          username: "ratelimit_user"
+          password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"
+
+    # Default rate limit (alias for general) - moderate protection with Redis backend
     rate-limit-default:
       rateLimit:
-        average: 50  # 50 requests per second on average
-        burst: 100   # Allow bursts up to 100 requests
-        period: 1s
+        average: 100  # 100 requests per minute on average
+        burst: 50     # Allow bursts up to 50 requests
+        period: 1m
         sourceCriterion:
+          requestHeaderName: X-Forwarded-For
           requestHost: true
         redis:
           endpoints:
@@ -15,13 +38,14 @@ http:
           username: "ratelimit_user"
           password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"
 
-    # Alias for consistent naming
+    # Alias for consistent naming (used in middleware chains)
     middlewares-rate-limit:
       rateLimit:
-        average: 50  # 50 requests per second on average
-        burst: 100   # Allow bursts up to 100 requests
-        period: 1s
+        average: 100  # 100 requests per minute on average
+        burst: 50     # Allow bursts up to 50 requests
+        period: 1m
         sourceCriterion:
+          requestHeaderName: X-Forwarded-For
           requestHost: true
         redis:
           endpoints:
@@ -30,14 +54,44 @@ http:
           username: "ratelimit_user"
           password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"
 
-    # Strict rate limit - for sensitive endpoints with Redis backend
+    # Strict rate limit for authentication endpoints (20 req/min)
+    rate-limit-auth:
+      rateLimit:
+        average: 20   # 20 requests per minute
+        burst: 10     # Allow small bursts (10 requests)
+        period: 1m
+        sourceCriterion:
+          requestHeaderName: X-Forwarded-For
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 1  # Use DB 1 for rate limiting (separate from session storage in DB 0)
+          username: "ratelimit_user"
+          password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"
+
+    # Very strict rate limit for critical services (10 req/min)
+    rate-limit-critical:
+      rateLimit:
+        average: 10   # 10 requests per minute
+        burst: 5      # Very small bursts (5 requests)
+        period: 1m
+        sourceCriterion:
+          requestHeaderName: X-Forwarded-For
+        redis:
+          endpoints:
+            - "redis:6379"
+          db: 1  # Use DB 1 for rate limiting (separate from session storage in DB 0)
+          username: "ratelimit_user"
+          password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"
+
+    # Legacy alias for strict rate limit
     rate-limit-strict:
       rateLimit:
-        average: 10  # 10 requests per second
-        burst: 20    # Allow bursts up to 20 requests
-        period: 1s
+        average: 10   # 10 requests per minute
+        burst: 5      # Very small bursts
+        period: 1m
         sourceCriterion:
-          requestHost: true
+          requestHeaderName: X-Forwarded-For
         redis:
           endpoints:
             - "redis:6379"
@@ -48,11 +102,11 @@ http:
     # Alias for consistent naming
     middlewares-rate-limit-strict:
       rateLimit:
-        average: 10  # 10 requests per second
-        burst: 20    # Allow bursts up to 20 requests
-        period: 1s
+        average: 10   # 10 requests per minute
+        burst: 5      # Very small bursts
+        period: 1m
         sourceCriterion:
-          requestHost: true
+          requestHeaderName: X-Forwarded-For
         redis:
           endpoints:
             - "redis:6379"
@@ -60,14 +114,14 @@ http:
           username: "ratelimit_user"
           password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"
 
-    # API rate limit - for API endpoints with Redis backend
+    # API rate limit for API endpoints (200 req/min)
     rate-limit-api:
       rateLimit:
-        average: 100  # 100 requests per minute
-        burst: 50     # Allow bursts up to 50 requests
+        average: 200  # 200 requests per minute
+        burst: 100    # Allow bursts up to 100 requests
         period: 1m
         sourceCriterion:
-          requestHost: true
+          requestHeaderName: X-Forwarded-For
         redis:
           endpoints:
             - "redis:6379"
@@ -78,26 +132,11 @@ http:
     # Alias for consistent naming
     middlewares-rate-limit-api:
       rateLimit:
-        average: 100  # 100 requests per minute
-        burst: 50     # Allow bursts up to 50 requests
+        average: 200  # 200 requests per minute
+        burst: 100    # Allow bursts up to 100 requests
         period: 1m
         sourceCriterion:
-          requestHost: true
-        redis:
-          endpoints:
-            - "redis:6379"
-          db: 1  # Use DB 1 for rate limiting (separate from session storage in DB 0)
-          username: "ratelimit_user"
-          password: "REDIS_RATELIMIT_PASSWORD_PLACEHOLDER"
-
-    # Login rate limit - prevent brute force with Redis backend
-    rate-limit-auth:
-      rateLimit:
-        average: 5   # 5 requests per minute
-        burst: 10    # Allow small bursts
-        period: 1m
-        sourceCriterion:
-          requestHost: true
+          requestHeaderName: X-Forwarded-For
         redis:
           endpoints:
             - "redis:6379"

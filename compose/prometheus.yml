@@ -18,6 +18,10 @@ services:
     # Run as specific user
     user: "${PUID:-65534}:${PGID:-65534}" # nobody:nobody
 
+    # Capability restrictions (read-only service needs minimal capabilities)
+    cap_drop:
+      - ALL
+
     # Read-only root filesystem for security
     read_only: true
 
@@ -32,6 +36,7 @@ services:
         limits:
           cpus: "2.0"
           memory: 2048M
+          pids: 200
         reservations:
           cpus: "0.5"
           memory: 512M
@@ -172,7 +177,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.prometheus-rtr.tls=true"
       - "traefik.http.routers.prometheus-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.prometheus-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.prometheus-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.prometheus-rtr.middlewares=chain-oauth@file"
@@ -215,6 +220,13 @@ services:
 
     privileged: true # Required for container metrics
 
+    # NOTE: Cannot use cap_drop/cap_add with privileged mode
+
+    deploy:
+      resources:
+        limits:
+          pids: 200
+
     devices:
       - /dev/kmsg
 
@@ -256,6 +268,15 @@ services:
     security_opt:
       - no-new-privileges=true
 
+    # Capability restrictions
+    cap_drop:
+      - ALL
+
+    deploy:
+      resources:
+        limits:
+          pids: 200
+
     restart: unless-stopped
 
     networks:
@@ -288,7 +309,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.pushgateway-rtr.tls=true"
       - "traefik.http.routers.pushgateway-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.pushgateway-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.pushgateway-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.pushgateway-rtr.middlewares=chain-oauth@file"

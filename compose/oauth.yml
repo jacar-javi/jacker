@@ -10,6 +10,17 @@ services:
     security_opt:
       - no-new-privileges=true
 
+    # Run as non-root user
+    user: "${PUID}:${PGID}"
+
+    # Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
     restart: unless-stopped
 
     # Healthcheck disabled - OAuth2-Proxy uses distroless image with no shell/wget/curl
@@ -67,7 +78,7 @@ services:
       - OAUTH2_PROXY_COOKIE_SECURE=true
       - OAUTH2_PROXY_COOKIE_HTTPONLY=true
       - OAUTH2_PROXY_COOKIE_SAMESITE=lax
-      - OAUTH2_PROXY_COOKIE_CSRF_PER_REQUEST=false
+      - OAUTH2_PROXY_COOKIE_CSRF_PER_REQUEST=true
       - OAUTH2_PROXY_COOKIE_CSRF_EXPIRE=15m
       - OAUTH2_PROXY_COOKIE_EXPIRE=${OAUTH_COOKIE_LIFETIME:-604800}s
       - OAUTH2_PROXY_COOKIE_REFRESH=${OAUTH_COOKIE_REFRESH:-3600}s
@@ -83,6 +94,11 @@ services:
       - OAUTH2_PROXY_STANDARD_LOGGING=true
       - OAUTH2_PROXY_REQUEST_LOGGING=true
       - OAUTH2_PROXY_AUTH_LOGGING=true
+
+      # UI Configuration
+      - OAUTH2_PROXY_SKIP_PROVIDER_BUTTON=${OAUTH_SKIP_PROVIDER_BUTTON:-false}
+      - OAUTH2_PROXY_BANNER=${OAUTH_BANNER:-Jacker Infrastructure - Secure Login}
+      - OAUTH2_PROXY_FOOTER=${OAUTH_FOOTER:-Protected by OAuth2-Proxy}
 
     labels:
       - "traefik.enable=true"
@@ -102,7 +118,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.oauth-rtr.tls=true"
       - "traefik.http.routers.oauth-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.oauth-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.oauth-rtr.tls.options=tls-opts@file"
 
       # Middlewares - No OAuth required for the OAuth service itself
       - "traefik.http.routers.oauth-rtr.middlewares=chain-no-oauth@file"
@@ -122,7 +138,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.oauth-paths-rtr.tls=true"
       - "traefik.http.routers.oauth-paths-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.oauth-paths-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.oauth-paths-rtr.tls.options=tls-opts@file"
 
       # Middlewares - No OAuth required for the OAuth service itself
       - "traefik.http.routers.oauth-paths-rtr.middlewares=chain-no-oauth@file"
@@ -159,6 +175,8 @@ services:
         limits:
           cpus: "0.5"
           memory: 256M
+          pids: 200
         reservations:
           cpus: "0.1"
           memory: 64M
+          pids: 200

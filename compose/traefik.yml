@@ -18,6 +18,15 @@ services:
     # User/Group mapping for proper file permissions
     user: "${PUID:-1000}:${PGID:-1000}"
 
+    # Capability restrictions
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - NET_BIND_SERVICE
+
     # Restart policy for production reliability
     restart: unless-stopped
 
@@ -29,6 +38,7 @@ services:
         limits:
           cpus: "2.0" # Increased for better performance under load
           memory: 1024M # Increased for caching and connection handling
+          pids: 200
         reservations:
           cpus: "0.5" # Ensure minimum resources
           memory: 256M
@@ -212,7 +222,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.traefik-rtr.tls=true"
       - "traefik.http.routers.traefik-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.traefik-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.traefik-rtr.tls.options=tls-opts@file"
 
       # Service Configuration
       - "traefik.http.routers.traefik-rtr.service=api@internal"

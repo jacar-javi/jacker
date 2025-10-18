@@ -137,7 +137,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.trivy-rtr.tls=true"
       - "traefik.http.routers.trivy-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.trivy-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.trivy-rtr.tls.options=tls-opts@file"
 
       # Middleware - OAuth protection
       - "traefik.http.routers.trivy-rtr.middlewares=chain-oauth@file"

@@ -1,0 +1,38 @@
+# CrowdSec Notification Profiles Configuration
+# https://docs.crowdsec.net/docs/next/notification_plugins/intro
+
+# Default IP remediation profile with notifications
+name: default_ip_remediation
+filters:
+  - Alert.Remediation == true && Alert.GetScope() == "Ip"
+decisions:
+  - type: ban
+    duration: 4h
+notifications:
+  - email_admin
+on_success: break
+
+---
+# IP range ban profile with notifications
+name: ip_range_remediation
+filters:
+  - Alert.Remediation == true && Alert.GetScope() == "Range"
+decisions:
+  - type: ban
+    duration: 24h
+notifications:
+  - email_admin
+on_success: break
+
+---
+# Captcha profile for less severe attacks
+name: captcha_remediation
+filters:
+  - Alert.Remediation == true && Alert.GetScope() == "Ip"
+  - Alert.GetScenario() contains "http"
+decisions:
+  - type: captcha
+    duration: 2h
+notifications:
+  - email_admin
+on_success: break

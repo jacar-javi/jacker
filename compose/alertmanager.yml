@@ -18,6 +18,10 @@ services:
     # Run as specific user
     user: "${PUID:-65534}:${PGID:-65534}" # nobody:nobody
 
+    # Capability restrictions
+    cap_drop:
+      - ALL
+
     # Read-only root filesystem for security
     read_only: true
 
@@ -186,7 +190,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.alertmanager-rtr.tls=true"
       - "traefik.http.routers.alertmanager-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.alertmanager-rtr.tls.options=tls-opts@file"
+      - "traefik.http.routers.alertmanager-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.alertmanager-rtr.middlewares=chain-oauth@file"
@@ -233,6 +237,11 @@ services:
       - no-new-privileges=true
 
     user: "${PUID:-65534}:${PGID:-65534}"
+
+    # Capability restrictions
+    cap_drop:
+      - ALL
+
     read_only: true
     restart: unless-stopped
 
@@ -241,6 +250,7 @@ services:
         limits:
           cpus: "1.0"
           memory: 512M
+          pids: 200
         reservations:
           cpus: "0.25"
           memory: 128M
