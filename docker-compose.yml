@@ -181,6 +181,7 @@ include:
   - compose/oauth.yml # Default: Google OAuth
   # - compose/authentik.yml      # Alternative: Self-hosted Authentik
   - compose/crowdsec.yml
+  - compose/trivy.yml
 
   # MONITORING
   - compose/node-exporter.yml
@@ -191,6 +192,7 @@ include:
   - compose/alertmanager.yml
   - compose/grafana.yml
   - compose/jaeger.yml
+  - compose/diun.yml
 
   # APPS
   - compose/portainer.yml
