@@ -103,10 +103,11 @@ services:
     # NOTE: ACL file is generated inline from Docker secrets
     # Copy mounted script to writable location and execute it
     entrypoint: ["/bin/sh", "-c"]
-    command: |
-      cp /scripts/init-acl.sh /tmp/init-acl.sh &&
-      chmod +x /tmp/init-acl.sh &&
-      /tmp/init-acl.sh /usr/local/etc/redis/redis.conf \
+    command:
+      - |
+        cp /scripts/init-acl.sh /tmp/init-acl.sh &&
+        chmod +x /tmp/init-acl.sh &&
+        /tmp/init-acl.sh /usr/local/etc/redis/redis.conf \
         --maxmemory ${REDIS_MAXMEMORY:-512mb} \
         --maxmemory-policy ${REDIS_MAXMEMORY_POLICY:-allkeys-lru} \
         --save "${REDIS_SAVE:-60 1000 300 100 600 1}" \
