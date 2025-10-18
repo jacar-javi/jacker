@@ -15,8 +15,9 @@ services:
       - apparmor=unconfined # Or custom AppArmor profile
       - seccomp=unconfined # Required for certain security operations
 
-    # Run as non-root user when possible
-    user: "${PUID:-1000}:${PGID:-1000}"
+    # Run as root to access system log files (/var/log/auth.log, syslog, ufw.log, etc.)
+    # CrowdSec requires root permissions to read security-critical logs
+    user: "0:0"
 
     # Restart policy for production
     restart: unless-stopped
@@ -118,7 +119,7 @@ services:
     environment:
       # Basic Configuration
       TZ: ${TZ}
-      GID: "${PGID:-1000}"
+      GID: "0" # Run as root to access system logs
       CUSTOM_HOSTNAME: ${HOSTNAME}
 
       # Docker Socket Proxy
