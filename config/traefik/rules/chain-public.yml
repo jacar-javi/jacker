@@ -4,16 +4,16 @@ http:
     chain-public-cached:
       chain:
         middlewares:
-          - middlewares-rate-limit@file
-          - middlewares-secure-headers@file
-          - middlewares-cache-static@file
-          - middlewares-compress@file
+          - middlewares-rate-limit
+          - middlewares-secure-headers
+          - middlewares-cache-static
+          - middlewares-compress
 
     # Public chain without authentication
     chain-public:
       chain:
         middlewares:
-          - middlewares-rate-limit@file
-          - middlewares-secure-headers@file
-          - middlewares-cache-none@file
-          - middlewares-compress@file
+          - middlewares-rate-limit
+          - middlewares-secure-headers
+          - middlewares-cache-none
+          - middlewares-compress

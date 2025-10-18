@@ -39,8 +39,8 @@ services:
         mode: "0444"
 
     volumes:
-      # Custom templates (sign_in.html, error.html, robots.txt)
-      - ${CONFIGDIR}/oauth2-proxy/templates:/templates:ro
+      # Custom templates (optional)
+      - ${DATADIR}/oauth2-proxy/templates:/templates:ro
 
     environment:
       # OAuth Provider Configuration

@@ -3,6 +3,6 @@ http:
     chain-no-oauth-no-crowdsec:
       chain:
         middlewares:
-          - middlewares-rate-limit@file
-          - middlewares-secure-headers@file
-          - middlewares-compress@file
+          - middlewares-rate-limit
+          - middlewares-secure-headers
+          - middlewares-compress

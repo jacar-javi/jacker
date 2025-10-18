@@ -10,29 +10,29 @@ http:
     chain-oauth-strict:
       chain:
         middlewares:
-          - crowdsec-bouncer@file         # CrowdSec IPS protection via Traefik plugin
-          - middlewares-rate-limit-strict@file
+          # - crowdsec-bouncer@file         # CrowdSec IPS protection via Traefik plugin
+          - middlewares-rate-limit-strict
           - secure-headers-strict         # STRICT CSP - No unsafe directives
-          - middlewares-oauth@file
-          - middlewares-cache-none@file
-          - middlewares-compress@file
+          - middlewares-oauth
+          - middlewares-cache-none
+          - middlewares-compress
 
     # Public with strict CSP
     chain-public-strict:
       chain:
         middlewares:
-          - middlewares-rate-limit@file
+          - middlewares-rate-limit
           - secure-headers-strict         # STRICT CSP - No unsafe directives
-          - middlewares-cache-static@file
-          - middlewares-compress@file
+          - middlewares-cache-static
+          - middlewares-compress
 
     # API with strict CSP
     chain-api-strict:
       chain:
         middlewares:
-          - crowdsec-bouncer@file
-          - middlewares-rate-limit-api@file
-          - middlewares-cors-restrict@file
+          # - crowdsec-bouncer@file
+          - middlewares-rate-limit-api
+          - middlewares-cors-restrict
           - secure-headers-strict         # STRICT CSP - No unsafe directives
-          - middlewares-cache-api@file
-          - middlewares-compress@file
+          - middlewares-cache-api
+          - middlewares-compress

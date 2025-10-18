@@ -4,19 +4,19 @@ http:
     chain-api:
       chain:
         middlewares:
-          - crowdsec-bouncer@file         # CrowdSec IPS protection via Traefik plugin
-          - middlewares-rate-limit-api@file
-          - middlewares-cors-restrict@file
-          - middlewares-secure-headers@file
-          - middlewares-cache-api@file
-          - middlewares-compress@file
+          # - crowdsec-bouncer@file         # CrowdSec IPS protection via Traefik plugin
+          - middlewares-rate-limit-api
+          - middlewares-cors-restrict
+          - middlewares-secure-headers
+          - middlewares-cache-api
+          - middlewares-compress
 
     # Public API chain with permissive CORS
     chain-api-public:
       chain:
         middlewares:
-          - middlewares-rate-limit-api@file
-          - middlewares-cors-allow@file
-          - middlewares-secure-headers@file
-          - middlewares-cache-api@file
-          - middlewares-compress@file
+          - middlewares-rate-limit-api
+          - middlewares-cors-allow
+          - middlewares-secure-headers
+          - middlewares-cache-api
+          - middlewares-compress

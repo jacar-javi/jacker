@@ -8,7 +8,7 @@ http:
     chain-public-relaxed:
       chain:
         middlewares:
-          - middlewares-rate-limit@file
+          - middlewares-rate-limit
           - secure-headers-relaxed        # RELAXED CSP for legacy compatibility
-          - middlewares-cache-none@file
-          - middlewares-compress@file
+          - middlewares-cache-none
+          - middlewares-compress

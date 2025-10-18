@@ -11,7 +11,7 @@ http:
     chain-oauth-relaxed:
       chain:
         middlewares:
-          - crowdsec-bouncer@file         # CrowdSec IPS protection via Traefik plugin
+          # - crowdsec-bouncer@file         # CrowdSec IPS protection via Traefik plugin
           - middlewares-rate-limit        # Standard rate limiting
           - secure-headers-relaxed        # RELAXED CSP for legacy compatibility
           - middlewares-oauth             # Google OAuth authentication

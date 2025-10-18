@@ -5,8 +5,8 @@ http:
       chain:
         middlewares:
           - crowdsec-bouncer@file         # CrowdSec IPS protection via Traefik plugin
-          - middlewares-rate-limit@file   # Standard rate limiting
-          - middlewares-secure-headers@file  # Security headers including CSP
-          - middlewares-oauth-errors@file # Catch 401 and redirect to OAuth login
-          - middlewares-oauth@file        # Google OAuth authentication
-          - middlewares-compress@file     # Enable compression
+          - middlewares-rate-limit        # Standard rate limiting
+          - middlewares-secure-headers    # Security headers including CSP
+          - middlewares-oauth-errors      # Catch 401 and redirect to OAuth login
+          - middlewares-oauth             # Google OAuth authentication
+          - middlewares-compress          # Enable compression
