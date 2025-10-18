@@ -16,13 +16,12 @@ services:
       - seccomp=unconfined
 
     # Run as specific user
-    # EXCEPTION: Prometheus MUST run as its default user (nobody/UID 65534):
+    # EXCEPTION: Prometheus MUST run as root to:
     # 1. Write TSDB data to /prometheus directory
     # 2. Create query log file /prometheus/queries.active
-    # 3. Prometheus image uses hardcoded UID 65534
+    # 3. Initialize data directory with correct permissions
     # Security is enforced via: cap_drop, read_only filesystem, OAuth authentication
-    # DO NOT override with PUID - must use Prometheus's default UID
-    # user: "${PUID:-65534}:${PGID:-65534}"
+    user: "0:0"
 
     # Capability restrictions (read-only service needs minimal capabilities)
     cap_drop:

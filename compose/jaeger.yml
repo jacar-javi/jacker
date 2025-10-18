@@ -24,7 +24,7 @@ services:
     # 3. Jaeger all-in-one image needs write permissions to storage
     # Security is enforced via: cap_drop/cap_add, OAuth authentication, internal-only access
     # Alternative: Use tmpfs for ephemeral storage (see tmpfs section below)
-    # user: "${PUID:-1000}:${PGID:-1000}"
+    user: "0:0"
 
     # Capability restrictions
     cap_drop:

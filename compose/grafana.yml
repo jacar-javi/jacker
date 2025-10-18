@@ -23,13 +23,13 @@ services:
       - seccomp=unconfined
 
     # Run as specific user
-    # EXCEPTION: Grafana MUST run as UID 472 (grafana user in container):
+    # EXCEPTION: Grafana MUST run as root to:
     # 1. Create SQLite database at /var/lib/grafana/grafana.db
     # 2. Write plugin data to /var/lib/grafana/plugins
-    # 3. Grafana image uses hardcoded UID 472
+    # 3. Initialize data directory with correct permissions
+    # 4. Grafana then drops privileges internally to grafana user (UID 472)
     # Security is enforced via: cap_drop/cap_add, OAuth authentication, TLS
-    # DO NOT override with PUID - must use Grafana's default UID
-    # user: "${PUID:-472}:${PGID:-472}"
+    user: "0:0"
 
     # Capability restrictions
     cap_drop:
