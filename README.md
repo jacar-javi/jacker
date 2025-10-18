@@ -78,17 +78,87 @@ graph TB
     Apps --> Redis
 ```
 
-## Quick Start
+## Prerequisites
 
-**Prerequisites:** Configure DNS A records for your domain before installation (required for SSL certificates)
+Before installing Jacker, ensure your system meets these requirements:
+
+### System Requirements
+
+- **Operating System**: Linux (Ubuntu 20.04+, Debian 11+, or similar)
+- **Docker**: Version 24.0 or higher
+- **Docker Compose**: Version 2.20 or higher
+- **Memory**: Minimum 2GB RAM (4GB+ recommended for production)
+- **Disk Space**: Minimum 20GB free space (50GB+ recommended)
+- **CPU**: 2+ cores recommended
+
+### Access Requirements
+
+- **sudo/root access**: Required for:
+  - Setting directory permissions during initial setup
+  - Installing Docker (if not already installed)
+  - Configuring system networking (optional)
+
+### Network Requirements
+
+- **Domain Name**: A registered domain with DNS access
+- **DNS Configuration**: Ability to create A records pointing to your server
+- **Open Ports**:
+  - Port 80 (HTTP) - for Let's Encrypt validation
+  - Port 443 (HTTPS) - for secure web access
+  - These ports must not be used by other services (Apache, Nginx, etc.)
+
+### DNS Setup (Required Before Installation)
+
+Configure these DNS records before running the installer:
+
+```
+yourdomain.com              A    YOUR_SERVER_IP
+*.yourdomain.com            A    YOUR_SERVER_IP
+```
+
+Or individual records for each service:
+
+```
+traefik.yourdomain.com      A    YOUR_SERVER_IP
+grafana.yourdomain.com      A    YOUR_SERVER_IP
+portainer.yourdomain.com    A    YOUR_SERVER_IP
+(etc.)
+```
+
+DNS propagation can take 5-60 minutes. Verify with:
+```bash
+nslookup traefik.yourdomain.com
+```
+
+### Optional Requirements
+
+- **OAuth Provider** (Google, GitHub, etc.) - For authentication
+- **SMTP Server** - For email alerts
+- **Telegram/Slack** - For chat notifications
+
+### Checking Prerequisites
+
+Run the validation script to check your system:
+
+```bash
+./scripts/validate.sh
+```
+
+This will verify:
+- Docker and Docker Compose versions
+- Available disk space and memory
+- Port availability
+- DNS configuration (if domain is set)
+
+## Quick Start
 
 ```bash
 # Clone the repository
 git clone https://github.com/jacar-javi/jacker.git
 cd jacker
 
-# Optional: Validate prerequisites
-./validate.sh
+# Validate prerequisites
+./scripts/validate.sh
 
 # Run installer (choose Quick or Advanced setup)
 ./jacker init
@@ -194,7 +264,8 @@ Complete documentation is available at **[jacker.jacar.es](https://jacker.jacar.
 - **[User Guide](https://jacker.jacar.es/guide/)** - Daily operations and management
 - **[Security](https://jacker.jacar.es/security/)** - Security features and best practices
 - **[Monitoring](https://jacker.jacar.es/monitoring/)** - Metrics, logs, and alerting
-- **[Troubleshooting](https://jacker.jacar.es/troubleshooting/)** - Common issues and solutions
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions (especially first-install issues)
+- **[Directory Permissions](docs/DIRECTORY_PERMISSIONS.md)** - Permission requirements and fixes
 
 ## Management
 

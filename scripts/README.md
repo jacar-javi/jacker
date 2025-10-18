@@ -1,8 +1,121 @@
-# PostgreSQL Security Scripts
+# Jacker Stack Management Scripts
 
-This directory contains scripts for managing PostgreSQL security configuration.
+This directory contains scripts for managing the Jacker stack, including validation, security, and deployment.
 
 ## Scripts Overview
+
+### 0. validate-deployment.sh
+
+**CRITICAL: Run this BEFORE every deployment!**
+
+Comprehensive pre-deployment validation script that catches permission and configuration issues before services start.
+
+**Usage:**
+```bash
+./scripts/validate-deployment.sh
+```
+
+**Exit Codes:**
+- `0` - All validations passed (safe to deploy)
+- `Non-zero` - Validation errors detected (DO NOT deploy)
+
+**What it validates:**
+
+**1. Directory Permissions:**
+- `/data/traefik/plugins` - UID 1000, mode 755
+- `/data/loki` - UID 10001, mode 755
+- `/data/jaeger/badger` - PUID from .env, mode 755
+- `/data/crowdsec` - UID 1000, mode 755
+- `/data/postgres/data/pgdata` - UID 70, mode 700
+- `/data/redis/data` - writable
+
+**2. Configuration Files:**
+- All YAML files in `config/traefik/rules/` are valid
+- No forbidden Traefik v3 fields (retryOn, bufferingBodyMode)
+- Chain files have proper middleware references (no @file inside chains)
+- `docker-compose.yml` syntax is valid
+
+**3. Environment Variables:**
+- All required vars from `.env.defaults` are set in `.env`
+- PUID and PGID are numeric
+- Domain names are valid format
+- No default/placeholder values in critical vars
+
+**4. Secrets:**
+- All required secret files exist in `secrets/`
+- Secrets have correct permissions (600 or 400)
+- Secret files are not empty
+
+**5. Docker:**
+- Docker daemon is running
+- Docker Compose is installed
+- Required networks can be created
+- Sufficient disk space available
+- No port conflicts detected
+
+**6. Network Configuration:**
+- All network subnet variables are set
+- Subnet formats are valid (CIDR notation)
+
+**7. Firewall:**
+- UFW configuration check (if installed)
+- Required ports (80, 443) are allowed
+
+**Output Format:**
+- Green checkmarks (✅) for passed checks
+- Red X (❌) for failed checks
+- Yellow warning (⚠️) for non-critical issues
+- Blue info (ℹ️) for informational messages
+- Clear error messages with remediation steps
+
+**Example Output:**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Validating Environment Variables
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[CHECK] Checking for .env file
+  ✅ Found .env file
+[CHECK] Loading environment variables
+  ✅ Environment variables loaded
+[CHECK] Validating required environment variables are set
+  ✅ All required environment variables are set
+```
+
+**Best Practice:**
+Add this to your deployment workflow:
+```bash
+# Before deploying
+./scripts/validate-deployment.sh && docker compose up -d
+```
+
+**Troubleshooting Common Issues:**
+
+*Issue: "Required variable X is not set"*
+```bash
+# Copy defaults and configure
+cp .env.defaults .env
+# Edit .env and set the missing variable
+```
+
+*Issue: "Directory has incorrect ownership"*
+```bash
+# Fix ownership (example for Loki)
+sudo chown -R 10001:10001 /data/loki
+```
+
+*Issue: "Secret file missing"*
+```bash
+# Generate and save secret
+openssl rand -base64 32 > secrets/secret_name
+chmod 600 secrets/secret_name
+```
+
+*Issue: "Chain file contains '@file' suffix"*
+```bash
+# Edit chain files and remove @file from middleware references
+# Change: - middleware-name@file
+# To:     - middleware-name
+```
 
 ### 1. generate-postgres-ssl.sh
 

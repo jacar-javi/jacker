@@ -703,8 +703,8 @@ create_directory_structure() {
 
     # Loki data directory - needs UID 10001 permissions
     log_info "Creating Loki data directories with correct permissions..."
-    mkdir -p "${JACKER_DIR}/data/loki" 2>/dev/null || \
-        { sudo mkdir -p "${JACKER_DIR}/data/loki" && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/loki"; }
+    mkdir -p "${JACKER_DIR}/data/loki"/{chunks,compactor,index,rules,tsdb-cache,wal} 2>/dev/null || \
+        { sudo mkdir -p "${JACKER_DIR}/data/loki"/{chunks,compactor,index,rules,tsdb-cache,wal} && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/loki"; }
 
     # Set ownership to Loki UID (10001:10001)
     sudo chown -R 10001:10001 "${JACKER_DIR}/data/loki" 2>/dev/null || \
@@ -720,6 +720,24 @@ create_directory_structure() {
     # Set ownership to current user (matches PUID:PGID from .env)
     sudo chown -R "$(id -u):$(id -g)" "${JACKER_DIR}/data/jaeger" 2>/dev/null || \
         log_warn "Could not set Jaeger directory ownership (may need to run with sudo)"
+
+    # Traefik plugins directory - needs UID 1000:1000 permissions
+    log_info "Creating Traefik plugins directory with correct permissions..."
+    mkdir -p "${JACKER_DIR}/data/traefik/plugins" 2>/dev/null || \
+        { sudo mkdir -p "${JACKER_DIR}/data/traefik/plugins" && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/traefik/plugins"; }
+
+    # Set ownership to UID 1000:1000 (Traefik container user)
+    sudo chown -R 1000:1000 "${JACKER_DIR}/data/traefik/plugins" 2>/dev/null || \
+        log_warn "Could not set Traefik plugins directory ownership (may need to run with sudo)"
+
+    # CrowdSec data directory - needs UID 1000:1000 permissions
+    log_info "Creating CrowdSec data directories with correct permissions..."
+    mkdir -p "${JACKER_DIR}/data/crowdsec"/{config,data,db} 2>/dev/null || \
+        { sudo mkdir -p "${JACKER_DIR}/data/crowdsec"/{config,data,db} && sudo chown "$(id -u):$(id -g)" "${JACKER_DIR}/data/crowdsec"; }
+
+    # Set ownership to UID 1000:1000 (CrowdSec container user)
+    sudo chown -R 1000:1000 "${JACKER_DIR}/data/crowdsec" 2>/dev/null || \
+        log_warn "Could not set CrowdSec directory ownership (may need to run with sudo)"
 
     # Secrets directory should be restricted
     chmod 700 "${JACKER_DIR}/secrets" 2>/dev/null || \
