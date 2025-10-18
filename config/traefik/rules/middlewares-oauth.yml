@@ -1,6 +1,6 @@
 http:
   middlewares:
-    # OAuth2-Proxy middleware for authentication
+    # OAuth2-Proxy forwardAuth middleware for authentication verification
     middlewares-oauth:
       forwardAuth:
         address: "http://oauth:4180/oauth2/auth"
@@ -12,13 +12,22 @@ http:
           - X-Auth-Request-Groups
           - X-Auth-Request-Preferred-Username
           - Set-Cookie
+        authRequestHeaders:
+          - "Cookie"
+          - "X-Forwarded-Method"
+          - "X-Forwarded-Proto"
+          - "X-Forwarded-Host"
+          - "X-Forwarded-Uri"
+          - "X-Forwarded-For"
+
+    # NOTE: chain-oauth is defined in chain-oauth.yml (includes CrowdSec, rate-limit, etc.)
 
     # OAuth with rate limiting (recommended for login endpoints)
     middlewares-oauth-ratelimited:
       chain:
         middlewares:
           - middlewares-rate-limit-auth
-          - middlewares-oauth
+          - chain-oauth
 
     # Strict rate limit for authentication endpoints
     middlewares-rate-limit-auth:

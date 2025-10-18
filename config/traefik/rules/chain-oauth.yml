@@ -1,11 +1,12 @@
 http:
   middlewares:
-    # Standard OAuth chain with CrowdSec protection
+    # Standard OAuth chain with CrowdSec protection and automatic OAuth redirect
     chain-oauth:
       chain:
         middlewares:
           - crowdsec-bouncer@file         # CrowdSec IPS protection via Traefik plugin
           - middlewares-rate-limit        # Standard rate limiting
           - middlewares-secure-headers    # Security headers including CSP
+          - middlewares-oauth-errors      # Catch 401 and redirect to OAuth login
           - middlewares-oauth             # Google OAuth authentication
           - middlewares-compress          # Enable compression

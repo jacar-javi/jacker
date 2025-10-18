@@ -289,7 +289,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.redis-commander-rtr.tls=true"
       - "traefik.http.routers.redis-commander-rtr.tls.certresolver=http"
-      - "traefik.http.routers.redis-commander-rtr.tls.options=tls-opts@file"
+#       - "traefik.http.routers.redis-commander-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.redis-commander-rtr.middlewares=chain-oauth@file"

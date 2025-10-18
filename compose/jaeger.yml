@@ -94,7 +94,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.jaeger-rtr.tls=true"
       - "traefik.http.routers.jaeger-rtr.tls.certresolver=http"
-      - "traefik.http.routers.jaeger-rtr.tls.options=tls-opts@file"
+#       - "traefik.http.routers.jaeger-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.jaeger-rtr.middlewares=chain-oauth@file"

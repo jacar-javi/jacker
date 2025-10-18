@@ -232,7 +232,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.grafana-rtr.tls=true"
       - "traefik.http.routers.grafana-rtr.tls.certresolver=http"
-      - "traefik.http.routers.grafana-rtr.tls.options=tls-opts@file"
+#       - "traefik.http.routers.grafana-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.grafana-rtr.middlewares=chain-oauth@file"

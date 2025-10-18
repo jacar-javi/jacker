@@ -56,6 +56,9 @@ services:
       # Password directly in URL (base64 password from environment variable)
       - OAUTH2_PROXY_REDIS_CONNECTION_URL=redis://oauth_user:${REDIS_OAUTH_PASSWORD}@redis:6379/0
 
+      # Email domain whitelist (use * for all domains)
+      - OAUTH2_PROXY_EMAIL_DOMAINS=${OAUTH_EMAIL_DOMAINS:-*}
+
       # Cookie domain and security settings (override config file)
       - OAUTH2_PROXY_COOKIE_DOMAINS=.${PUBLIC_FQDN}
       - OAUTH2_PROXY_WHITELIST_DOMAINS=${PUBLIC_FQDN},.${PUBLIC_FQDN}
@@ -66,6 +69,14 @@ services:
       - OAUTH2_PROXY_COOKIE_CSRF_EXPIRE=15m
       - OAUTH2_PROXY_COOKIE_EXPIRE=${OAUTH_COOKIE_LIFETIME:-604800}s
       - OAUTH2_PROXY_COOKIE_REFRESH=${OAUTH_COOKIE_REFRESH:-3600}s
+
+      # Reverse proxy configuration (CRITICAL for Traefik integration)
+      - OAUTH2_PROXY_REVERSE_PROXY=true
+      - OAUTH2_PROXY_SET_XAUTHREQUEST=true
+
+      # Custom templates
+      - OAUTH2_PROXY_CUSTOM_TEMPLATES_DIR=/templates
+
       # Logging configuration
       - OAUTH2_PROXY_STANDARD_LOGGING=true
       - OAUTH2_PROXY_REQUEST_LOGGING=true
@@ -89,7 +100,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.oauth-rtr.tls=true"
       - "traefik.http.routers.oauth-rtr.tls.certresolver=http"
-      - "traefik.http.routers.oauth-rtr.tls.options=tls-opts@file"
+#       - "traefik.http.routers.oauth-rtr.tls.options=tls-opts@file"
 
       # Middlewares - No OAuth required for the OAuth service itself
       - "traefik.http.routers.oauth-rtr.middlewares=chain-no-oauth@file"
@@ -109,7 +120,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.oauth-paths-rtr.tls=true"
       - "traefik.http.routers.oauth-paths-rtr.tls.certresolver=http"
-      - "traefik.http.routers.oauth-paths-rtr.tls.options=tls-opts@file"
+#       - "traefik.http.routers.oauth-paths-rtr.tls.options=tls-opts@file"
 
       # Middlewares - No OAuth required for the OAuth service itself
       - "traefik.http.routers.oauth-paths-rtr.middlewares=chain-no-oauth@file"

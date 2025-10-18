@@ -234,7 +234,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.crowdsec-rtr.tls=true"
       - "traefik.http.routers.crowdsec-rtr.tls.certresolver=http"
-      - "traefik.http.routers.crowdsec-rtr.tls.options=tls-opts@file"
+#       - "traefik.http.routers.crowdsec-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.crowdsec-rtr.middlewares=chain-oauth@file"

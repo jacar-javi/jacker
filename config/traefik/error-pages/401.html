@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Required</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            text-align: center;
+            animation: slideIn 0.4s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 16px;
+            color: #667eea;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #666;
+            margin-bottom: 24px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .redirect-info {
+            font-size: 14px;
+            color: #999;
+            margin-top: 16px;
+        }
+        .manual-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.3s;
+        }
+        .manual-link:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🔐</div>
+        <h1>Authentication Required</h1>
+        <p>You need to sign in to access this service.</p>
+        <p>Redirecting you to Google Sign-In...</p>
+        <div class="spinner"></div>
+        <p class="redirect-info" id="countdown">Redirecting in 2 seconds</p>
+        <a href="#" id="manual-link" class="manual-link" style="display: none;">Click here if not redirected</a>
+    </div>
+
+    <script>
+        // Get the current URL where user was trying to access
+        const currentUrl = window.location.href;
+
+        // Build OAuth sign-in URL with redirect back to original page
+        const oauthDomain = window.location.hostname.replace(/^[^.]+\./, '');
+        const oauthUrl = `https://oauth.${oauthDomain}/oauth2/sign_in?rd=${encodeURIComponent(currentUrl)}`;
+
+        // Update manual link
+        document.getElementById('manual-link').href = oauthUrl;
+
+        // Countdown timer
+        let seconds = 2;
+        const countdownEl = document.getElementById('countdown');
+        const manualLinkEl = document.getElementById('manual-link');
+
+        const countdown = setInterval(() => {
+            seconds--;
+            if (seconds > 0) {
+                countdownEl.textContent = `Redirecting in ${seconds} ${seconds === 1 ? 'second' : 'seconds'}`;
+            } else {
+                clearInterval(countdown);
+                countdownEl.textContent = 'Redirecting now...';
+                // Perform redirect
+                window.location.href = oauthUrl;
+            }
+        }, 1000);
+
+        // Show manual link after 3 seconds as fallback
+        setTimeout(() => {
+            manualLinkEl.style.display = 'inline-block';
+        }, 3000);
+    </script>
+</body>
+</html>

@@ -116,6 +116,8 @@ configs:
     file: ${CONFIGDIR}/traefik/rules/chain-strict.yml
   traefik_tls_opts:
     file: ${CONFIGDIR}/traefik/rules/tls-opts.yml
+  traefik_middlewares_errors:
+    file: ${CONFIGDIR}/traefik/rules/middlewares-errors.yml
 
   # Prometheus configs
   prometheus_yml:
@@ -171,6 +173,7 @@ include:
   # CORE
   - compose/socket-proxy.yml
   - compose/traefik.yml
+  - compose/error-pages.yml
   - compose/postgres.yml
   - compose/redis.yml
 

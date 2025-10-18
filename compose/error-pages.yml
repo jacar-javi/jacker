@@ -1,0 +1,50 @@
+services:
+  # Error Pages Service - Serves custom error pages for Traefik
+  error-pages:
+    image: nginx:alpine
+    container_name: error-pages
+    restart: unless-stopped
+
+    security_opt:
+      - no-new-privileges=true
+
+    networks:
+      - traefik_proxy
+
+    volumes:
+      # Mount custom error pages
+      - ${CONFIGDIR}/traefik/error-pages:/usr/share/nginx/html:ro
+      # Custom nginx config for error pages
+      - ${CONFIGDIR}/traefik/error-pages/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+
+      # Service definition for error pages
+      - "traefik.http.services.error-pages-svc.loadbalancer.server.port=80"
+
+      # Health check
+      - "traefik.http.services.error-pages-svc.loadbalancer.healthcheck.path=/401.html"
+      - "traefik.http.services.error-pages-svc.loadbalancer.healthcheck.interval=30s"
+
+      # Router (needed for Traefik to discover the service, but won't match real traffic)
+      - "traefik.http.routers.error-pages-rtr.rule=Host(`error-pages.internal`)"
+      - "traefik.http.routers.error-pages-rtr.service=error-pages-svc"
+      - "traefik.http.routers.error-pages-rtr.entrypoints=websecure"
+
+    healthcheck:
+      test: ["CMD", "test", "-f", "/usr/share/nginx/html/401.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 32M
+        reservations:
+          cpus: "0.05"
+          memory: 16M

@@ -209,7 +209,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.traefik-rtr.tls=true"
       - "traefik.http.routers.traefik-rtr.tls.certresolver=http"
-      - "traefik.http.routers.traefik-rtr.tls.options=tls-opts@file"
+#       - "traefik.http.routers.traefik-rtr.tls.options=tls-opts@file"
 
       # Service Configuration
       - "traefik.http.routers.traefik-rtr.service=api@internal"

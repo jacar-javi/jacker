@@ -55,7 +55,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.homepage-rtr.tls=true"
       - "traefik.http.routers.homepage-rtr.tls.certresolver=http"
-      - "traefik.http.routers.homepage-rtr.tls.options=tls-opts@file"
+#       - "traefik.http.routers.homepage-rtr.tls.options=tls-opts@file"
 
       # Middlewares
       - "traefik.http.routers.homepage-rtr.middlewares=chain-oauth@file"

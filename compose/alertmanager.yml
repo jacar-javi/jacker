@@ -186,7 +186,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.alertmanager-rtr.tls=true"
       - "traefik.http.routers.alertmanager-rtr.tls.certresolver=http"
-      - "traefik.http.routers.alertmanager-rtr.tls.options=tls-opts@file"
+#       - "traefik.http.routers.alertmanager-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.alertmanager-rtr.middlewares=chain-oauth@file"

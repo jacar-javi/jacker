@@ -49,7 +49,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.portainer-rtr.tls=true"
       - "traefik.http.routers.portainer-rtr.tls.certresolver=http"
-      - "traefik.http.routers.portainer-rtr.tls.options=tls-opts@file"
+#       - "traefik.http.routers.portainer-rtr.tls.options=tls-opts@file"
 
       # Middlewares
       - "traefik.http.routers.portainer-rtr.middlewares=chain-oauth@file"

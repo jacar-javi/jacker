@@ -1,0 +1,10 @@
+http:
+  middlewares:
+    # OAuth Error Handler - Catches 401 from forwardAuth and serves custom error page
+    # The custom page redirects users to Google OAuth login
+    middlewares-oauth-errors:
+      errors:
+        status:
+          - "401"
+        service: error-pages-svc@docker
+        query: "/401.html"

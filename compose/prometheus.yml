@@ -172,7 +172,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.prometheus-rtr.tls=true"
       - "traefik.http.routers.prometheus-rtr.tls.certresolver=http"
-      - "traefik.http.routers.prometheus-rtr.tls.options=tls-opts@file"
+#       - "traefik.http.routers.prometheus-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.prometheus-rtr.middlewares=chain-oauth@file"
@@ -288,7 +288,7 @@ services:
       # TLS Configuration
       - "traefik.http.routers.pushgateway-rtr.tls=true"
       - "traefik.http.routers.pushgateway-rtr.tls.certresolver=http"
-      - "traefik.http.routers.pushgateway-rtr.tls.options=tls-opts@file"
+#       - "traefik.http.routers.pushgateway-rtr.tls.options=tls-opts@file"
 
       # Middleware
       - "traefik.http.routers.pushgateway-rtr.middlewares=chain-oauth@file"

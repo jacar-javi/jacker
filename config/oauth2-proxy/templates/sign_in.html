@@ -1,0 +1,12 @@
+{{define "sign_in.html"}}
+<!DOCTYPE html>
+<html lang="en" charset="utf-8">
+  <head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+    <script>
+    window.location = "{{.ProxyPrefix}}/start?rd=" + encodeURI(window.location)
+    </script>
+  </head>
+</html>
+{{end}}
