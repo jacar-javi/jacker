@@ -103,27 +103,24 @@ services:
     # NOTE: ACL file is generated inline from Docker secrets
     # Inline ACL generation avoids file permission issues with mounted scripts
     entrypoint: ["/bin/sh", "-c"]
-    command: >
-      "
+    command: >-
       echo '=== Redis ACL Initialization ===';
       mkdir -p /usr/local/etc/redis;
       DEFAULT_PWD=$$(cat /run/secrets/redis_password);
       OAUTH_PWD=$$(cat /run/secrets/redis_oauth_password);
       RATELIMIT_PWD=$$(cat /run/secrets/redis_ratelimit_password);
       EXPORTER_PWD=$$(cat /run/secrets/redis_exporter_password);
-      cat > /usr/local/etc/redis/users.acl << 'EOFACL'
-user default on >$${DEFAULT_PWD} +@all ~* &*
-user oauth_user on >$${OAUTH_PWD} -@all +@read +@write +@string +@hash +@keyspace +@connection +eval +evalsha +script ~* resetchannels
-user ratelimit_user on >$${RATELIMIT_PWD} -@all +@read +@write +@string +@keyspace +@connection +select +eval +evalsha +script ~* resetchannels
-user exporter_user on >$${EXPORTER_PWD} -@all +@read +@keyspace +@connection +info +config|get ~* resetchannels
-EOFACL
+      echo "user default on >$$DEFAULT_PWD +@all ~* &*" > /usr/local/etc/redis/users.acl;
+      echo "user oauth_user on >$$OAUTH_PWD -@all +@read +@write +@string +@hash +@keyspace +@connection +eval +evalsha +script ~* resetchannels" >> /usr/local/etc/redis/users.acl;
+      echo "user ratelimit_user on >$$RATELIMIT_PWD -@all +@read +@write +@string +@keyspace +@connection +select +eval +evalsha +script ~* resetchannels" >> /usr/local/etc/redis/users.acl;
+      echo "user exporter_user on >$$EXPORTER_PWD -@all +@read +@keyspace +@connection +info +config|get ~* resetchannels" >> /usr/local/etc/redis/users.acl;
       chmod 644 /usr/local/etc/redis/users.acl;
       echo '✓ ACL file generated';
       exec redis-server /usr/local/etc/redis/redis.conf
       --aclfile /usr/local/etc/redis/users.acl
       --maxmemory ${REDIS_MAXMEMORY:-512mb}
       --maxmemory-policy ${REDIS_MAXMEMORY_POLICY:-allkeys-lru}
-      --save '${REDIS_SAVE:-60 1000 300 100 600 1}'
+      --save "${REDIS_SAVE:-60 1000 300 100 600 1}"
       --appendonly ${REDIS_AOF:-yes}
       --appendfsync ${REDIS_AOF_SYNC:-everysec}
       --tcp-backlog ${REDIS_TCP_BACKLOG:-511}
@@ -144,7 +141,6 @@ EOFACL
       --replica-lazy-flush ${REDIS_REPLICA_LAZY_FLUSH:-yes}
       --io-threads ${REDIS_IO_THREADS:-4}
       --io-threads-do-reads ${REDIS_IO_THREADS_DO_READS:-yes}
-      "
 
     # ====================================================================
     # ENVIRONMENT CONFIGURATION
