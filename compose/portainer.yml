@@ -7,7 +7,12 @@ services:
       - no-new-privileges=true
 
     # Run as non-root user
-    user: "${PUID}:${PGID}"
+    # EXCEPTION: Portainer MUST run as root to:
+    # 1. Create BoltDB database at /data/portainer.db
+    # 2. Manage Docker resources via socket-proxy
+    # 3. Initialize data directory with correct permissions
+    # Security is enforced via: cap_drop/cap_add, socket-proxy restrictions, OAuth
+    # user: "${PUID}:${PGID}"
 
     # Capability restrictions
     cap_drop:

@@ -18,7 +18,13 @@ services:
       - no-new-privileges=true
 
     # Run as specific user to match data directory ownership
-    user: "${PUID:-1000}:${PGID:-1000}"
+    # EXCEPTION: Jaeger MUST run as root to:
+    # 1. Create Badger database directories at /badger/key and /badger/data
+    # 2. Initialize storage backend with correct permissions
+    # 3. Jaeger all-in-one image needs write permissions to storage
+    # Security is enforced via: cap_drop/cap_add, OAuth authentication, internal-only access
+    # Alternative: Use tmpfs for ephemeral storage (see tmpfs section below)
+    # user: "${PUID:-1000}:${PGID:-1000}"
 
     # Capability restrictions
     cap_drop:
