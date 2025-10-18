@@ -31,8 +31,6 @@ services:
         reservations:
           cpus: "0.25"
           memory: 128M
-          pids: 200
-
     depends_on:
       socket-proxy:
         condition: service_healthy

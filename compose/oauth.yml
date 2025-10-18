@@ -179,4 +179,3 @@ services:
         reservations:
           cpus: "0.1"
           memory: 64M
-          pids: 200

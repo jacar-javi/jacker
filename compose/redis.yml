@@ -41,8 +41,6 @@ services:
         reservations:
           cpus: '0.25'
           memory: 256M
-          pids: 200
-
     # System limits
     ulimits:
       nofile:

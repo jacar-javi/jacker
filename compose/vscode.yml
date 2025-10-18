@@ -29,8 +29,6 @@ services:
         reservations:
           cpus: "0.5"
           memory: 512M
-          pids: 200
-
     networks:
       traefik_proxy:
         ipv4_address: $CODE_TRAEFIK_SUBNET_IP
