@@ -87,8 +87,8 @@ services:
       # Configuration file
       - ${CONFIGDIR}/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
 
-      # ACL initialization scripts (NOT NEEDED - ACL generated inline in command)
-      # - ${CONFIGDIR}/redis/scripts:/scripts:ro
+      # ACL initialization scripts (copied to /tmp and executed)
+      - ${CONFIGDIR}/redis/scripts:/scripts:ro
 
       # TLS certificates
       - ${DATADIR}/redis/certs:/tls:ro
@@ -101,46 +101,35 @@ services:
     # COMMAND CONFIGURATION
     # ====================================================================
     # NOTE: ACL file is generated inline from Docker secrets
-    # Inline ACL generation avoids file permission issues with mounted scripts
+    # Copy mounted script to writable location and execute it
     entrypoint: ["/bin/sh", "-c"]
     command: |
-      echo '=== Redis ACL Initialization ===';
-      mkdir -p /usr/local/etc/redis;
-      DEFAULT_PWD=$$(cat /run/secrets/redis_password);
-      OAUTH_PWD=$$(cat /run/secrets/redis_oauth_password);
-      RATELIMIT_PWD=$$(cat /run/secrets/redis_ratelimit_password);
-      EXPORTER_PWD=$$(cat /run/secrets/redis_exporter_password);
-      echo "user default on >$$DEFAULT_PWD +@all ~* &*" > /usr/local/etc/redis/users.acl;
-      echo "user oauth_user on >$$OAUTH_PWD -@all +@read +@write +@string +@hash +@keyspace +@connection +eval +evalsha +script ~* resetchannels" >> /usr/local/etc/redis/users.acl;
-      echo "user ratelimit_user on >$$RATELIMIT_PWD -@all +@read +@write +@string +@keyspace +@connection +select +eval +evalsha +script ~* resetchannels" >> /usr/local/etc/redis/users.acl;
-      echo "user exporter_user on >$$EXPORTER_PWD -@all +@read +@keyspace +@connection +info +config|get ~* resetchannels" >> /usr/local/etc/redis/users.acl;
-      chmod 644 /usr/local/etc/redis/users.acl;
-      echo '✓ ACL file generated';
-      exec redis-server /usr/local/etc/redis/redis.conf
-      --aclfile /usr/local/etc/redis/users.acl
-      --maxmemory ${REDIS_MAXMEMORY:-512mb}
-      --maxmemory-policy ${REDIS_MAXMEMORY_POLICY:-allkeys-lru}
-      --save "${REDIS_SAVE:-60 1000 300 100 600 1}"
-      --appendonly ${REDIS_AOF:-yes}
-      --appendfsync ${REDIS_AOF_SYNC:-everysec}
-      --tcp-backlog ${REDIS_TCP_BACKLOG:-511}
-      --tcp-keepalive ${REDIS_TCP_KEEPALIVE:-300}
-      --timeout ${REDIS_TIMEOUT:-0}
-      --databases ${REDIS_DATABASES:-16}
-      --loglevel ${REDIS_LOGLEVEL:-notice}
-      --requirepass $$DEFAULT_PWD
-      --bind 0.0.0.0
-      --protected-mode ${REDIS_PROTECTED_MODE:-yes}
-      --port 6379
-      --rdbcompression ${REDIS_RDB_COMPRESSION:-yes}
-      --rdbchecksum ${REDIS_RDB_CHECKSUM:-yes}
-      --stop-writes-on-bgsave-error ${REDIS_STOP_WRITES_ON_BGSAVE_ERROR:-yes}
-      --lazyfree-lazy-eviction ${REDIS_LAZY_EVICTION:-yes}
-      --lazyfree-lazy-expire ${REDIS_LAZY_EXPIRE:-yes}
-      --lazyfree-lazy-server-del ${REDIS_LAZY_SERVER_DEL:-yes}
-      --replica-lazy-flush ${REDIS_REPLICA_LAZY_FLUSH:-yes}
-      --io-threads ${REDIS_IO_THREADS:-4}
-      --io-threads-do-reads ${REDIS_IO_THREADS_DO_READS:-yes}
+      cp /scripts/init-acl.sh /tmp/init-acl.sh &&
+      chmod +x /tmp/init-acl.sh &&
+      /tmp/init-acl.sh /usr/local/etc/redis/redis.conf \
+        --maxmemory ${REDIS_MAXMEMORY:-512mb} \
+        --maxmemory-policy ${REDIS_MAXMEMORY_POLICY:-allkeys-lru} \
+        --save "${REDIS_SAVE:-60 1000 300 100 600 1}" \
+        --appendonly ${REDIS_AOF:-yes} \
+        --appendfsync ${REDIS_AOF_SYNC:-everysec} \
+        --tcp-backlog ${REDIS_TCP_BACKLOG:-511} \
+        --tcp-keepalive ${REDIS_TCP_KEEPALIVE:-300} \
+        --timeout ${REDIS_TIMEOUT:-0} \
+        --databases ${REDIS_DATABASES:-16} \
+        --loglevel ${REDIS_LOGLEVEL:-notice} \
+        --requirepass "$$(cat /run/secrets/redis_password)" \
+        --bind 0.0.0.0 \
+        --protected-mode ${REDIS_PROTECTED_MODE:-yes} \
+        --port 6379 \
+        --rdbcompression ${REDIS_RDB_COMPRESSION:-yes} \
+        --rdbchecksum ${REDIS_RDB_CHECKSUM:-yes} \
+        --stop-writes-on-bgsave-error ${REDIS_STOP_WRITES_ON_BGSAVE_ERROR:-yes} \
+        --lazyfree-lazy-eviction ${REDIS_LAZY_EVICTION:-yes} \
+        --lazyfree-lazy-expire ${REDIS_LAZY_EXPIRE:-yes} \
+        --lazyfree-lazy-server-del ${REDIS_LAZY_SERVER_DEL:-yes} \
+        --replica-lazy-flush ${REDIS_REPLICA_LAZY_FLUSH:-yes} \
+        --io-threads ${REDIS_IO_THREADS:-4} \
+        --io-threads-do-reads ${REDIS_IO_THREADS_DO_READS:-yes}
 
     # ====================================================================
     # ENVIRONMENT CONFIGURATION
