@@ -16,6 +16,11 @@ services:
       - seccomp=unconfined
 
     # Run as default postgres user (uid 70 in alpine image)
+    # EXCEPTION: PostgreSQL MUST run as root to:
+    # 1. Execute init scripts which create databases and users
+    # 2. Initialize PGDATA directory with correct permissions
+    # 3. Start postgres process (which then drops privileges to postgres user internally)
+    # Security is enforced via: cap_drop/cap_add, password authentication, localhost-only binding
     # user: "${PUID:-999}:${PGID:-999}" # COMMENTED OUT - PostgreSQL image manages its own user
 
     # Capability restrictions

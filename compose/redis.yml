@@ -16,6 +16,11 @@ services:
       - seccomp=unconfined
 
     # Run as default redis user (uid 999 in alpine image)
+    # EXCEPTION: Redis MUST run as root to:
+    # 1. Execute init-acl.sh script which reads Docker secrets
+    # 2. Generate ACL file at /usr/local/etc/redis/users.acl
+    # 3. Start redis-server (which then drops privileges to redis user internally)
+    # Security is enforced via: cap_drop/cap_add, ACL authentication, protected mode
     # user: "${PUID:-999}:${PGID:-999}" # COMMENTED OUT - Redis image manages its own user
 
     # Capability restrictions
