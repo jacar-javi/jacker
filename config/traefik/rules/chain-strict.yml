@@ -5,8 +5,8 @@ http:
       chain:
         middlewares:
           - crowdsec-bouncer@file         # CrowdSec IPS protection via Traefik plugin
-          - middlewares-rate-limit-strict
-          - middlewares-secure-headers
-          - middlewares-oauth
-          - middlewares-cache-none
-          - middlewares-compress
+          - middlewares-rate-limit-strict@file
+          - middlewares-secure-headers@file
+          - middlewares-oauth@file
+          - middlewares-cache-none@file
+          - middlewares-compress@file
