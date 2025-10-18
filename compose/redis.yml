@@ -87,8 +87,8 @@ services:
       # Configuration file
       - ${CONFIGDIR}/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
 
-      # ACL initialization scripts
-      - ${CONFIGDIR}/redis/scripts:/scripts:ro
+      # ACL initialization scripts (NOT NEEDED - ACL generated inline in command)
+      # - ${CONFIGDIR}/redis/scripts:/scripts:ro
 
       # TLS certificates
       - ${DATADIR}/redis/certs:/tls:ro
@@ -100,14 +100,30 @@ services:
     # ====================================================================
     # COMMAND CONFIGURATION
     # ====================================================================
-    # NOTE: ACL file is generated from secrets by init-acl.sh entrypoint
-    # Using custom entrypoint to generate ACL from Docker secrets
+    # NOTE: ACL file is generated inline from Docker secrets
+    # Inline ACL generation avoids file permission issues with mounted scripts
     entrypoint: ["/bin/sh", "-c"]
     command: >
-      "sh /scripts/init-acl.sh /usr/local/etc/redis/redis.conf
+      "
+      echo '=== Redis ACL Initialization ===';
+      mkdir -p /usr/local/etc/redis;
+      DEFAULT_PWD=$$(cat /run/secrets/redis_password);
+      OAUTH_PWD=$$(cat /run/secrets/redis_oauth_password);
+      RATELIMIT_PWD=$$(cat /run/secrets/redis_ratelimit_password);
+      EXPORTER_PWD=$$(cat /run/secrets/redis_exporter_password);
+      cat > /usr/local/etc/redis/users.acl << 'EOFACL'
+user default on >$${DEFAULT_PWD} +@all ~* &*
+user oauth_user on >$${OAUTH_PWD} -@all +@read +@write +@string +@hash +@keyspace +@connection +eval +evalsha +script ~* resetchannels
+user ratelimit_user on >$${RATELIMIT_PWD} -@all +@read +@write +@string +@keyspace +@connection +select +eval +evalsha +script ~* resetchannels
+user exporter_user on >$${EXPORTER_PWD} -@all +@read +@keyspace +@connection +info +config|get ~* resetchannels
+EOFACL
+      chmod 644 /usr/local/etc/redis/users.acl;
+      echo '✓ ACL file generated';
+      exec redis-server /usr/local/etc/redis/redis.conf
+      --aclfile /usr/local/etc/redis/users.acl
       --maxmemory ${REDIS_MAXMEMORY:-512mb}
       --maxmemory-policy ${REDIS_MAXMEMORY_POLICY:-allkeys-lru}
-      --save \"${REDIS_SAVE:-60 1000 300 100 600 1}\"
+      --save '${REDIS_SAVE:-60 1000 300 100 600 1}'
       --appendonly ${REDIS_AOF:-yes}
       --appendfsync ${REDIS_AOF_SYNC:-everysec}
       --tcp-backlog ${REDIS_TCP_BACKLOG:-511}
@@ -115,7 +131,7 @@ services:
       --timeout ${REDIS_TIMEOUT:-0}
       --databases ${REDIS_DATABASES:-16}
       --loglevel ${REDIS_LOGLEVEL:-notice}
-      --requirepass $$(cat /run/secrets/redis_password)
+      --requirepass $$DEFAULT_PWD
       --bind 0.0.0.0
       --protected-mode ${REDIS_PROTECTED_MODE:-yes}
       --port 6379
@@ -127,7 +143,8 @@ services:
       --lazyfree-lazy-server-del ${REDIS_LAZY_SERVER_DEL:-yes}
       --replica-lazy-flush ${REDIS_REPLICA_LAZY_FLUSH:-yes}
       --io-threads ${REDIS_IO_THREADS:-4}
-      --io-threads-do-reads ${REDIS_IO_THREADS_DO_READS:-yes}"
+      --io-threads-do-reads ${REDIS_IO_THREADS_DO_READS:-yes}
+      "
 
     # ====================================================================
     # ENVIRONMENT CONFIGURATION
