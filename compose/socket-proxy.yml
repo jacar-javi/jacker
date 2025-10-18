@@ -11,7 +11,11 @@ services:
       - no-new-privileges=true
 
     # Run as non-root user
-    user: "${PUID}:${PGID}"
+    # EXCEPTION: Socket-proxy MUST run as root to:
+    # 1. Generate HAProxy config at /usr/local/etc/haproxy/haproxy.cfg
+    # 2. Access Docker socket (/var/run/docker.sock) which is root-owned
+    # Security is enforced via: privileged=false, cap_drop/cap_add, read-only socket
+    # user: "${PUID}:${PGID}"
 
     # Capability restrictions
     cap_drop:
