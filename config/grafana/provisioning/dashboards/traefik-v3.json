@@ -1,326 +1,451 @@
 {
-  "dashboard": {
-    "uid": "traefik-v3",
-    "title": "Traefik v3 Monitoring",
-    "tags": ["traefik", "reverse-proxy", "monitoring"],
-    "timezone": "browser",
-    "schemaVersion": 38,
-    "version": 1,
-    "refresh": "30s",
-    "time": {
-      "from": "now-6h",
-      "to": "now"
-    },
-    "panels": [
-      {
-        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
-        "id": 1,
-        "type": "stat",
-        "title": "Total Requests",
-        "targets": [
-          {
-            "expr": "sum(rate(traefik_entrypoint_requests_total[5m])) * 60",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "reqpm",
-            "color": { "mode": "thresholds" },
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "color": "green", "value": null },
-                { "color": "yellow", "value": 1000 },
-                { "color": "red", "value": 5000 }
-              ]
-            }
-          }
-        }
+  "uid": "traefik-v3",
+  "title": "Traefik v3 Monitoring",
+  "tags": [
+    "traefik",
+    "reverse-proxy",
+    "monitoring"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
       },
-      {
-        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
-        "id": 2,
-        "type": "stat",
-        "title": "Error Rate",
-        "targets": [
-          {
-            "expr": "sum(rate(traefik_entrypoint_requests_total{code=~\"5..\"}[5m])) / sum(rate(traefik_entrypoint_requests_total[5m])) * 100",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "color": { "mode": "thresholds" },
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "color": "green", "value": null },
-                { "color": "yellow", "value": 1 },
-                { "color": "red", "value": 5 }
-              ]
-            }
-          }
+      "id": 1,
+      "type": "stat",
+      "title": "Total Requests",
+      "targets": [
+        {
+          "expr": "sum(rate(traefik_entrypoint_requests_total[5m])) * 60",
+          "refId": "A"
         }
-      },
-      {
-        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
-        "id": 3,
-        "type": "stat",
-        "title": "P95 Latency",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le))",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "ms",
-            "color": { "mode": "thresholds" },
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "color": "green", "value": null },
-                { "color": "yellow", "value": 100 },
-                { "color": "red", "value": 500 }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
-        "id": 4,
-        "type": "stat",
-        "title": "Active Connections",
-        "targets": [
-          {
-            "expr": "sum(traefik_entrypoint_open_connections)",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "short",
-            "color": { "mode": "thresholds" },
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "color": "green", "value": null },
-                { "color": "yellow", "value": 100 },
-                { "color": "red", "value": 500 }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
-        "id": 5,
-        "type": "timeseries",
-        "title": "Request Rate by Status",
-        "targets": [
-          {
-            "expr": "sum(rate(traefik_entrypoint_requests_total[5m])) by (code) * 60",
-            "legendFormat": "{{code}}",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "reqpm",
-            "custom": {
-              "lineWidth": 2,
-              "fillOpacity": 10,
-              "showPoints": "never",
-              "spanNulls": true
-            }
-          }
-        },
-        "options": {
-          "legend": {
-            "displayMode": "table",
-            "placement": "right",
-            "calcs": ["mean", "max"]
-          }
-        }
-      },
-      {
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
-        "id": 6,
-        "type": "timeseries",
-        "title": "Response Time Percentiles",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.50, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le)) * 1000",
-            "legendFormat": "P50",
-            "refId": "A"
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqpm",
+          "color": {
+            "mode": "thresholds"
           },
-          {
-            "expr": "histogram_quantile(0.90, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le)) * 1000",
-            "legendFormat": "P90",
-            "refId": "B"
-          },
-          {
-            "expr": "histogram_quantile(0.95, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le)) * 1000",
-            "legendFormat": "P95",
-            "refId": "C"
-          },
-          {
-            "expr": "histogram_quantile(0.99, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le)) * 1000",
-            "legendFormat": "P99",
-            "refId": "D"
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1000
+              },
+              {
+                "color": "red",
+                "value": 5000
+              }
+            ]
           }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "ms",
-            "custom": {
-              "lineWidth": 2,
-              "fillOpacity": 10,
-              "showPoints": "never",
-              "spanNulls": true
-            }
-          }
-        }
-      },
-      {
-        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
-        "id": 7,
-        "type": "timeseries",
-        "title": "Requests by Router",
-        "targets": [
-          {
-            "expr": "sum(rate(traefik_router_requests_total[5m])) by (router) * 60",
-            "legendFormat": "{{router}}",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "reqpm",
-            "custom": {
-              "lineWidth": 2,
-              "fillOpacity": 10,
-              "showPoints": "never",
-              "spanNulls": true
-            }
-          }
-        },
-        "options": {
-          "legend": {
-            "displayMode": "table",
-            "placement": "bottom",
-            "calcs": ["mean", "max", "last"]
-          }
-        }
-      },
-      {
-        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
-        "id": 8,
-        "type": "timeseries",
-        "title": "Requests by Service",
-        "targets": [
-          {
-            "expr": "sum(rate(traefik_service_requests_total[5m])) by (service) * 60",
-            "legendFormat": "{{service}}",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "reqpm",
-            "custom": {
-              "lineWidth": 2,
-              "fillOpacity": 10,
-              "showPoints": "never",
-              "spanNulls": true
-            }
-          }
-        },
-        "options": {
-          "legend": {
-            "displayMode": "table",
-            "placement": "bottom",
-            "calcs": ["mean", "max", "last"]
-          }
-        }
-      },
-      {
-        "gridPos": { "h": 6, "w": 8, "x": 0, "y": 20 },
-        "id": 9,
-        "type": "piechart",
-        "title": "Requests by EntryPoint",
-        "targets": [
-          {
-            "expr": "sum(rate(traefik_entrypoint_requests_total[5m])) by (entrypoint)",
-            "legendFormat": "{{entrypoint}}",
-            "refId": "A"
-          }
-        ]
-      },
-      {
-        "gridPos": { "h": 6, "w": 8, "x": 8, "y": 20 },
-        "id": 10,
-        "type": "piechart",
-        "title": "TLS Versions",
-        "targets": [
-          {
-            "expr": "sum(traefik_tls_certs_not_after) by (version)",
-            "legendFormat": "{{version}}",
-            "refId": "A"
-          }
-        ]
-      },
-      {
-        "gridPos": { "h": 6, "w": 8, "x": 16, "y": 20 },
-        "id": 11,
-        "type": "table",
-        "title": "Certificate Expiry",
-        "targets": [
-          {
-            "expr": "(traefik_tls_certs_not_after - time()) / 86400",
-            "format": "table",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "days",
-            "custom": {
-              "align": "auto"
-            },
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                { "color": "red", "value": null },
-                { "color": "yellow", "value": 7 },
-                { "color": "green", "value": 30 }
-              ]
-            }
-          }
-        }
-      },
-      {
-        "gridPos": { "h": 6, "w": 24, "x": 0, "y": 26 },
-        "id": 12,
-        "type": "logs",
-        "title": "Recent Errors",
-        "targets": [
-          {
-            "expr": "{job=\"traefik_error\"} |~ \"ERROR|FATAL\"",
-            "refId": "A"
-          }
-        ],
-        "options": {
-          "showTime": true,
-          "showLabels": false,
-          "wrapLogMessage": true
         }
       }
-    ]
-  },
-  "overwrite": true
+    },
+    {
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 2,
+      "type": "stat",
+      "title": "Error Rate",
+      "targets": [
+        {
+          "expr": "sum(rate(traefik_entrypoint_requests_total{code=~\"5..\"}[5m])) / sum(rate(traefik_entrypoint_requests_total[5m])) * 100",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "type": "stat",
+      "title": "P95 Latency",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 100
+              },
+              {
+                "color": "red",
+                "value": 500
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 4,
+      "type": "stat",
+      "title": "Active Connections",
+      "targets": [
+        {
+          "expr": "sum(traefik_entrypoint_open_connections)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 100
+              },
+              {
+                "color": "red",
+                "value": 500
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 5,
+      "type": "timeseries",
+      "title": "Request Rate by Status",
+      "targets": [
+        {
+          "expr": "sum(rate(traefik_entrypoint_requests_total[5m])) by (code) * 60",
+          "legendFormat": "{{code}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqpm",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 6,
+      "type": "timeseries",
+      "title": "Response Time Percentiles",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+          "legendFormat": "P90",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+          "legendFormat": "P95",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+          "legendFormat": "P99",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        }
+      }
+    },
+    {
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "id": 7,
+      "type": "timeseries",
+      "title": "Requests by Router",
+      "targets": [
+        {
+          "expr": "sum(rate(traefik_router_requests_total[5m])) by (router) * 60",
+          "legendFormat": "{{router}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqpm",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        }
+      }
+    },
+    {
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "id": 8,
+      "type": "timeseries",
+      "title": "Requests by Service",
+      "targets": [
+        {
+          "expr": "sum(rate(traefik_service_requests_total[5m])) by (service) * 60",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqpm",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
+        }
+      }
+    },
+    {
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 20
+      },
+      "id": 9,
+      "type": "piechart",
+      "title": "Requests by EntryPoint",
+      "targets": [
+        {
+          "expr": "sum(rate(traefik_entrypoint_requests_total[5m])) by (entrypoint)",
+          "legendFormat": "{{entrypoint}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 20
+      },
+      "id": 10,
+      "type": "piechart",
+      "title": "TLS Versions",
+      "targets": [
+        {
+          "expr": "sum(traefik_tls_certs_not_after) by (version)",
+          "legendFormat": "{{version}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 20
+      },
+      "id": 11,
+      "type": "table",
+      "title": "Certificate Expiry",
+      "targets": [
+        {
+          "expr": "(traefik_tls_certs_not_after - time()) / 86400",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "days",
+          "custom": {
+            "align": "auto"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 7
+              },
+              {
+                "color": "green",
+                "value": 30
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "id": 12,
+      "type": "logs",
+      "title": "Recent Errors",
+      "targets": [
+        {
+          "expr": "{job=\"traefik_error\"} |~ \"ERROR|FATAL\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true
+      }
+    }
+  ]
 }
