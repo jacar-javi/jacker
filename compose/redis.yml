@@ -266,8 +266,8 @@ services:
     # Redis Commander doesn't support password files, use entrypoint wrapper
     entrypoint: ["/bin/sh", "-c"]
     command: >
-      "REDIS_PASSWORD=$$(cat /run/secrets/redis_password) &&
-      export REDIS_HOSTS=\"local:redis:6379:0:$$REDIS_PASSWORD\" &&
+      "export REDIS_PASSWORD=$$(cat /run/secrets/redis_password) &&
+      export REDIS_HOSTS=local:redis:6379:0:$$REDIS_PASSWORD &&
       exec node /redis-commander/bin/redis-commander.js"
 
     environment:
