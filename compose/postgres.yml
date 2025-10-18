@@ -43,7 +43,6 @@ services:
         reservations:
           cpus: "0.5"
           memory: 512M
-          pids: 200
 
     # Memory and process limits
     shm_size: 256MB # Shared memory for PostgreSQL
