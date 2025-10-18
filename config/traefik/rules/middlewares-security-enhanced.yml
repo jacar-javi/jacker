@@ -287,11 +287,9 @@ http:
       retry:
         attempts: 4
         initialInterval: 100ms
-        # Traefik v3: maxInterval and multiplier removed - exponential backoff is automatic
-        # maxInterval: 10s
-        # multiplier: 2
-        # Retry on 5xx errors and network issues
-        retryOn: 502,503,504,599
+        # Traefik v3: maxInterval, multiplier, and retryOn removed
+        # Exponential backoff is automatic
+        # Retries on network errors and 5xx by default
 
     # ====================================================================
     # BUFFERING
