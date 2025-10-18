@@ -157,11 +157,13 @@ services:
       - "prometheus.io/path=/metrics"
 
       # Homepage Integration
+      # NOTE: Trivy has no web UI - homepage link points to /metrics endpoint
+      # For web-based access, deploy a third-party UI like Trivy_WebUI
       - "homepage.group=Security"
       - "homepage.name=Trivy"
       - "homepage.icon=mdi-shield-bug"
-      - "homepage.href=https://trivy.${PUBLIC_FQDN}"
-      - "homepage.description=Container Vulnerability Scanner"
+      - "homepage.href=https://trivy.${PUBLIC_FQDN}/metrics"
+      - "homepage.description=Vulnerability Scanner (API)"
       - "homepage.weight=300"
 
       # Service Discovery

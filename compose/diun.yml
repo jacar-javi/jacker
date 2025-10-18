@@ -121,10 +121,11 @@ services:
       # Homepage Integration
       - "homepage.group=Monitoring"
       - "homepage.name=Diun"
-      - "homepage.icon=diun.svg"
+      - "homepage.icon=mdi-docker"
       - "homepage.href=https://diun.${PUBLIC_FQDN}"
       - "homepage.description=Docker Image Update Notifier"
       - "homepage.weight=400"
+      - "homepage.widget.type=generic"
 
       # Diun self-monitoring
       - "diun.enable=true"

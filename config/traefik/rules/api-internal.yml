@@ -1,0 +1,34 @@
+# ====================================================================
+# Internal API Router for Homepage Widget
+# ====================================================================
+# This router enables internal access to the Traefik API for Homepage
+# widget integration while maintaining security with api.insecure=false
+#
+# Security measures:
+# - Only accessible on internal 'traefik' entrypoint (port 8080)
+# - Rate limiting applied to prevent API abuse
+# - Not exposed to external internet (no websecure entrypoint)
+# ====================================================================
+
+http:
+  routers:
+    # Internal API router for service discovery (Homepage, monitoring tools)
+    traefik-api-internal:
+      entrypoints:
+        - traefik
+      rule: "PathPrefix(`/api`)"
+      service: api@internal
+      priority: 250
+      middlewares:
+        - middlewares-rate-limit-api
+
+  middlewares:
+    # Rate limiting for API endpoints to prevent abuse
+    middlewares-rate-limit-api:
+      rateLimit:
+        average: 100
+        burst: 200
+        period: 1m
+        sourceCriterion:
+          ipStrategy:
+            depth: 0

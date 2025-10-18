@@ -253,8 +253,8 @@ services:
       - "homepage.weight=200"
       - "homepage.widget.type=crowdsec"
       - "homepage.widget.url=http://crowdsec:8080"
-      - "homepage.widget.username=${HOSTNAME}"
-      - "homepage.widget.password=${CROWDSEC_API_LOCAL_PASSWORD}"
+      - "homepage.widget.username=vps1"
+      - "homepage.widget.password=test-crowdsec-api-password"
 
       # Monitoring
       - "prometheus.io/scrape=true"

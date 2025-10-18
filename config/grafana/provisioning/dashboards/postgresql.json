@@ -19,7 +19,7 @@
   "links": [],
   "panels": [
     {
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "prometheus-uid"},
       "fieldConfig": {
         "defaults": {
           "mappings": [
@@ -86,7 +86,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "prometheus-uid"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -142,7 +142,7 @@
       "type": "gauge"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "prometheus-uid"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -192,7 +192,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "prometheus-uid"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -244,7 +244,7 @@
       "type": "gauge"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "prometheus-uid"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -294,7 +294,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "prometheus-uid"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -352,7 +352,7 @@
       "type": "stat"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "prometheus-uid"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -443,7 +443,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "prometheus-uid"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -534,7 +534,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "prometheus-uid"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -610,7 +610,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "prometheus-uid"},
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -686,7 +686,7 @@
       "type": "timeseries"
     },
     {
-      "datasource": "Prometheus",
+      "datasource": {"type": "prometheus", "uid": "prometheus-uid"},
       "fieldConfig": {
         "defaults": {
           "color": {

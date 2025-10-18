@@ -231,76 +231,82 @@ services:
       - "prometheus.io/path=/metrics"
 
   # ====================================================================
-  # Redis Commander - Web Management UI (Optional)
+  # Redis Commander - Web Management UI (REMOVED - use redis-cli via Portainer terminal)
   # ====================================================================
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: redis-commander
-
-    security_opt:
-      - no-new-privileges=true
-
-    restart: unless-stopped
-
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8081/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-
-    depends_on:
-      redis:
-        condition: service_healthy
-
-    networks:
-      - cache
-      - traefik_proxy
-
-    # ====================================================================
-    # SECRETS
-    # ====================================================================
-    secrets:
-      - redis_password
-
-    # Redis Commander doesn't support password files, use entrypoint wrapper
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      "REDIS_PASSWORD=$$(cat /run/secrets/redis_password) &&
-      export REDIS_HOSTS=\"local:redis:6379:0:$$REDIS_PASSWORD\" &&
-      exec node /redis-commander/bin/redis-commander.js"
-
-    environment:
-      HTTP_USER: ${REDIS_COMMANDER_USER:-admin}
-      HTTP_PASSWORD: ${REDIS_COMMANDER_PASSWORD:-}
-      PORT: 8081
-      ADDRESS: 0.0.0.0
-      URL_PREFIX: ${REDIS_COMMANDER_URL_PREFIX:-}
-      TRUST_PROXY: true
-      NO_LOG_DATA: ${REDIS_COMMANDER_NO_LOG_DATA:-true}
-      FOLDING_CHAR: ":"
-      FLUSHDB_BUTTON: ${REDIS_COMMANDER_FLUSHDB:-false}
-
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.redis-commander-rtr.entrypoints=websecure"
-      - "traefik.http.routers.redis-commander-rtr.rule=Host(`redis.${PUBLIC_FQDN}`)"
-
-      # TLS Configuration
-      - "traefik.http.routers.redis-commander-rtr.tls=true"
-      - "traefik.http.routers.redis-commander-rtr.tls.certresolver=http"
-#       - "traefik.http.routers.redis-commander-rtr.tls.options=tls-opts@file"
-
-      # Middleware
-      - "traefik.http.routers.redis-commander-rtr.middlewares=chain-oauth@file"
-
-      # Service
-      - "traefik.http.routers.redis-commander-rtr.service=redis-commander-svc"
-      - "traefik.http.services.redis-commander-svc.loadbalancer.server.port=8081"
-
-      # Homepage Integration
-      - "homepage.group=Tools"
-      - "homepage.name=Redis Commander"
-      - "homepage.icon=redis.svg"
-      - "homepage.href=https://redis.${PUBLIC_FQDN}"
-      - "homepage.description=Redis Management UI"
+  # redis-commander:
+#     image: rediscommander/redis-commander:latest
+#     container_name: redis-commander
+# 
+#     security_opt:
+#       - no-new-privileges=true
+# 
+#     restart: unless-stopped
+# 
+#     healthcheck:
+#       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8081/ || exit 1"]
+#       interval: 30s
+#       timeout: 10s
+#       retries: 3
+#       start_period: 20s
+# 
+#     depends_on:
+#       redis:
+#         condition: service_healthy
+# 
+#     networks:
+#       - cache
+#       - traefik_proxy
+# 
+#     # ====================================================================
+#     # SECRETS
+#     # ====================================================================
+#     secrets:
+#       - redis_password
+# 
+#     # Redis Commander doesn't support password files, use entrypoint wrapper
+#     command:
+#       - /bin/sh
+#       - -c
+#       - |
+#         REDIS_PASSWORD=$(cat /run/secrets/redis_password) &&
+#         export REDIS_HOSTS="local:redis:6379:0" &&
+#         export REDIS_PASSWORD="$REDIS_PASSWORD" &&
+#         exec node /redis-commander/bin/redis-commander.js
+# 
+#     environment:
+#       HTTP_USER: ${REDIS_COMMANDER_USER:-admin}
+#       HTTP_PASSWORD: ${REDIS_COMMANDER_PASSWORD:-}
+#       PORT: 8081
+#       ADDRESS: 0.0.0.0
+#       URL_PREFIX: ${REDIS_COMMANDER_URL_PREFIX:-}
+#       TRUST_PROXY: true
+#       NO_LOG_DATA: ${REDIS_COMMANDER_NO_LOG_DATA:-true}
+#       FOLDING_CHAR: ":"
+#       FLUSHDB_BUTTON: ${REDIS_COMMANDER_FLUSHDB:-false}
+#       REDIS_HOST: redis
+#       REDIS_PORT: 6379
+#       REDIS_DB: 0
+# 
+#     labels:
+#       - "traefik.enable=true"
+#       - "traefik.http.routers.redis-commander-rtr.entrypoints=websecure"
+#       - "traefik.http.routers.redis-commander-rtr.rule=Host(`redis.${PUBLIC_FQDN}`)"
+# 
+#       # TLS Configuration
+#       - "traefik.http.routers.redis-commander-rtr.tls=true"
+#       - "traefik.http.routers.redis-commander-rtr.tls.certresolver=http"
+# #       - "traefik.http.routers.redis-commander-rtr.tls.options=tls-opts@file"
+# 
+#       # Middleware
+#       - "traefik.http.routers.redis-commander-rtr.middlewares=chain-oauth@file"
+# 
+#       # Service
+#       - "traefik.http.routers.redis-commander-rtr.service=redis-commander-svc"
+#       - "traefik.http.services.redis-commander-svc.loadbalancer.server.port=8081"
+# 
+#       # Homepage Integration
+#       - "homepage.group=Tools"
+#       - "homepage.name=Redis Commander"
+#       - "homepage.icon=redis.svg"
+#       - "homepage.href=https://redis.${PUBLIC_FQDN}"
+#       - "homepage.description=Redis Management UI"

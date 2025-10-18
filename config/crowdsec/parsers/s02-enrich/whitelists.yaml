@@ -1,0 +1,11 @@
+name: crowdsecurity/whitelists
+description: "Whitelist known and trusted IPs"
+whitelist:
+  reason: "Authorized administrator IP"
+  ip:
+    - "86.127.254.5"  # User's home/office IP (Spain)
+  cidr:
+    - "127.0.0.1/32"   # Localhost
+    - "10.0.0.0/8"      # Private network
+    - "172.16.0.0/12"   # Private network
+    - "192.168.0.0/16"  # Private network

@@ -3,7 +3,7 @@
 # https://gethomepage.dev/latest/configs/settings
 
 title: Jacker Platform
-favicon: /images/yo_y_jacar.png
+favicon: /images/favicon_jacar.png
 headerStyle: boxed
 language: es
 
@@ -24,6 +24,11 @@ layout:
     columns: 3
     icon: mdi-web
 
+  Infrastructure:
+    style: row
+    columns: 3
+    icon: mdi-database
+
   Security:
     style: row
     columns: 3
@@ -33,11 +38,6 @@ layout:
     style: row
     columns: 3
     icon: mdi-chart-line
-
-  Infrastructure:
-    style: row
-    columns: 3
-    icon: mdi-database
 
   Tools:
     style: row

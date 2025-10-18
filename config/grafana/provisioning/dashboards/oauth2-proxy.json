@@ -61,6 +61,10 @@
             ]
           }
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
       }
     },
     {
@@ -103,6 +107,10 @@
             ]
           }
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
       }
     },
     {
@@ -146,6 +154,10 @@
             ]
           }
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
       }
     },
     {
@@ -188,6 +200,10 @@
             ]
           }
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
       }
     },
     {
@@ -238,6 +254,10 @@
             "last"
           ]
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
       }
     },
     {
@@ -282,6 +302,10 @@
             "spanNulls": true
           }
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
       }
     },
     {
@@ -332,6 +356,10 @@
             "last"
           ]
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
       }
     },
     {
@@ -371,6 +399,10 @@
             "spanNulls": true
           }
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
       }
     },
     {
@@ -389,7 +421,11 @@
           "legendFormat": "{{provider}}",
           "refId": "A"
         }
-      ]
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
+      }
     },
     {
       "gridPos": {
@@ -407,7 +443,11 @@
           "legendFormat": "{{reason}}",
           "refId": "A"
         }
-      ]
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
+      }
     },
     {
       "gridPos": {
@@ -433,6 +473,10 @@
             "align": "auto"
           }
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
       }
     },
     {
@@ -456,6 +500,10 @@
         "showLabels": false,
         "wrapLogMessage": true,
         "sortOrder": "Descending"
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
       }
     },
     {
@@ -497,6 +545,10 @@
             ]
           }
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
       }
     },
     {
@@ -538,6 +590,10 @@
             ]
           }
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
       }
     },
     {
@@ -584,6 +640,10 @@
             }
           ]
         }
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-uid"
       }
     }
   ],

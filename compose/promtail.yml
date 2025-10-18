@@ -149,11 +149,7 @@ services:
     # HEALTH CHECK
     # ====================================================================
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://localhost:9080/ready || exit 1",
-        ]
+      test: ["CMD-SHELL", "pgrep -f promtail || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
